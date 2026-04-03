@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function PerfilPage({ user, onSignOut }: Props) {
+  const navigate = useNavigate()
   const [nombre, setNombre] = useState<string | null>(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
 
@@ -41,6 +43,32 @@ export default function PerfilPage({ user, onSignOut }: Props) {
       </div>
 
       {/* Divider */}
+      <div className="border-t border-muted/20 mb-6" />
+
+      {/* Navigation shortcuts */}
+      <div className="flex flex-col gap-2 mb-6">
+        <button
+          onClick={() => navigate('/metas')}
+          className="w-full flex items-center justify-between px-4 py-3 bg-surface rounded-xl hover:opacity-80 transition-opacity"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">◉</span>
+            <span className="text-white text-sm font-medium">Metas de ahorro</span>
+          </div>
+          <span className="text-muted text-sm">›</span>
+        </button>
+        <button
+          onClick={() => navigate('/proyecciones')}
+          className="w-full flex items-center justify-between px-4 py-3 bg-surface rounded-xl hover:opacity-80 transition-opacity"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">⟳</span>
+            <span className="text-white text-sm font-medium">Proyecciones</span>
+          </div>
+          <span className="text-muted text-sm">›</span>
+        </button>
+      </div>
+
       <div className="border-t border-muted/20 mb-6" />
 
       {/* Sign out section */}
