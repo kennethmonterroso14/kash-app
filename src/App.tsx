@@ -47,7 +47,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage user={user} />} />
         <Route path="/txns" element={<TransaccionesPage user={user} />} />
         <Route path="/cuentas" element={<CuentasPage user={user} />} />
-        <Route path="/budget" element={<BudgetPage user={user} />} />
+        <Route path="/budget" element={<BudgetPage userId={user.id} />} />
         <Route path="/metas" element={<MetasPage userId={user.id} />} />
         <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
