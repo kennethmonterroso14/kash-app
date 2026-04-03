@@ -7,7 +7,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  CartesianGrid,
 } from 'recharts'
 import { useCuentas } from '../hooks/useCuentas'
 import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
@@ -69,9 +68,9 @@ function CustomTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
   return (
-    <div className="bg-[#13161e] border border-[#4a4f5e]/40 rounded-xl px-3 py-2 text-sm shadow-lg">
+    <div className="bg-surface border border-[#4a4f5e]/40 rounded-xl px-3 py-2 text-sm shadow-lg">
       <p className="text-[#4a4f5e] text-xs mb-0.5">{point.fechaDisplay}</p>
-      <p className="text-[#c8f564] font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
+      <p className="text-accent font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
     </div>
   )
 }
@@ -153,7 +152,7 @@ export default function ProyeccionesPage({ user }: Props) {
         </div>
 
         {/* Inputs */}
-        <div className="bg-[#13161e] rounded-2xl p-4 space-y-4">
+        <div className="bg-surface rounded-2xl p-4 space-y-4">
 
           {/* Ahorro mensual */}
           <div>
@@ -166,7 +165,7 @@ export default function ProyeccionesPage({ user }: Props) {
               step={100}
               value={ahorroMensualQ}
               onChange={e => setAhorroMensualQ(Number(e.target.value))}
-              className="w-full bg-[#0d0f14] border border-[#4a4f5e]/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#c8f564]/60 transition-colors"
+              className="w-full bg-[#0d0f14] border border-[#4a4f5e]/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/60 transition-colors"
             />
           </div>
 
@@ -182,7 +181,7 @@ export default function ProyeccionesPage({ user }: Props) {
               step={0.5}
               value={rendimientoPct}
               onChange={e => setRendimientoPct(Number(e.target.value))}
-              className="w-full bg-[#0d0f14] border border-[#4a4f5e]/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#c8f564]/60 transition-colors"
+              className="w-full bg-[#0d0f14] border border-[#4a4f5e]/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/60 transition-colors"
             />
           </div>
 
@@ -198,7 +197,7 @@ export default function ProyeccionesPage({ user }: Props) {
                   onClick={() => setHorizonteIdx(i)}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                     horizonteIdx === i
-                      ? 'bg-[#c8f564] text-[#0d0f14]'
+                      ? 'bg-accent text-[#0d0f14]'
                       : 'text-[#4a4f5e] hover:text-white'
                   }`}
                 >
@@ -210,7 +209,7 @@ export default function ProyeccionesPage({ user }: Props) {
         </div>
 
         {/* Chart */}
-        <div className="bg-[#13161e] rounded-2xl p-4">
+        <div className="bg-surface rounded-2xl p-4">
           <h2 className="text-sm font-semibold text-[#4a4f5e] uppercase tracking-wider mb-4">
             Crecimiento proyectado
           </h2>
@@ -223,7 +222,6 @@ export default function ProyeccionesPage({ user }: Props) {
                     <stop offset="95%" stopColor="#c8f564" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} stroke="#4a4f5e" strokeOpacity={0.12} />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: '#4a4f5e', fontSize: 11 }}
@@ -264,12 +262,12 @@ export default function ProyeccionesPage({ user }: Props) {
             </h2>
             <div className="grid grid-cols-3 gap-3">
               {milestones.map(m => (
-                <div key={m.label} className="bg-[#13161e] rounded-2xl p-4 flex flex-col gap-1">
+                <div key={m.label} className="bg-surface rounded-2xl p-4 flex flex-col gap-1">
                   <span className="text-xs text-[#4a4f5e]">{m.label}</span>
                   <span className="text-sm font-bold text-white leading-tight">
                     {formatQ(m.patrimonio)}
                   </span>
-                  <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-[#c8f564]' : 'text-[#ff7c5c]'}`}>
+                  <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-accent' : 'text-danger'}`}>
                     {m.growth >= 0 ? '+' : ''}{m.growth}%
                   </span>
                 </div>
