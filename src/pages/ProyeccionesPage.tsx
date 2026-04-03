@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react'
-import type { User } from '@supabase/supabase-js'
+import { useMemo, useState, useId } from 'react'
 import {
   AreaChart,
   Area,
@@ -14,7 +13,7 @@ import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
 // ─── Types ───────────────────────────────────────────────────
 
 interface Props {
-  user: User
+  userId: string
 }
 
 interface ChartPoint {
@@ -32,7 +31,7 @@ const HORIZONTE_OPTIONS: { label: string; meses: number }[] = [
   { label: '10 años',meses: 120 },
 ]
 
-const MILESTONE_YEARS = [1, 3, 5]
+const MILESTONE_YEARS = [1, 3, 5] as const
 
 const MESES_ES = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -77,8 +76,9 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 
 // ─── Page ────────────────────────────────────────────────────
 
-export default function ProyeccionesPage({ user }: Props) {
-  const { totalPatrimonio, loading } = useCuentas(user.id)
+export default function ProyeccionesPage({ userId }: Props) {
+  const gradientId = useId()
+  const { totalPatrimonio, loading } = useCuentas(userId)
 
   const [ahorroMensualQ, setAhorroMensualQ] = useState(2000)
   const [rendimientoPct, setRendimientoPct] = useState(7)
@@ -104,6 +104,7 @@ export default function ProyeccionesPage({ user }: Props) {
 
   const chartData = useMemo((): ChartPoint[] => {
     if (puntos.length === 0) return []
+    // One point per year — each key is overwritten, keeping the last (end-of-year) value
     const byYear: Record<number, typeof puntos[0]> = {}
     for (const p of puntos) {
       byYear[p.fecha.getFullYear()] = p
@@ -217,7 +218,7 @@ export default function ProyeccionesPage({ user }: Props) {
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="accentGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#c8f564" stopOpacity={0.2} />
                     <stop offset="95%" stopColor="#c8f564" stopOpacity={0.02} />
                   </linearGradient>
@@ -241,7 +242,7 @@ export default function ProyeccionesPage({ user }: Props) {
                   dataKey="patrimonio"
                   stroke="#c8f564"
                   strokeWidth={2}
-                  fill="url(#accentGradient)"
+                  fill={`url(#${gradientId})`}
                   dot={false}
                   activeDot={{ r: 4, fill: '#c8f564', strokeWidth: 0 }}
                 />
