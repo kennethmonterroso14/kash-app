@@ -47,26 +47,23 @@ export default function PerfilPage({ user, onSignOut }: Props) {
 
       {/* Navigation shortcuts */}
       <div className="flex flex-col gap-2 mb-6">
-        <button
-          onClick={() => navigate('/metas')}
-          className="w-full flex items-center justify-between px-4 py-3 bg-surface rounded-xl hover:opacity-80 transition-opacity"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-lg">◉</span>
-            <span className="text-white text-sm font-medium">Metas de ahorro</span>
-          </div>
-          <span className="text-muted text-sm">›</span>
-        </button>
-        <button
-          onClick={() => navigate('/proyecciones')}
-          className="w-full flex items-center justify-between px-4 py-3 bg-surface rounded-xl hover:opacity-80 transition-opacity"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-lg">⟳</span>
-            <span className="text-white text-sm font-medium">Proyecciones</span>
-          </div>
-          <span className="text-muted text-sm">›</span>
-        </button>
+        {[
+          { to: '/pagos',        icon: '↻', label: 'Pagos Fijos' },
+          { to: '/metas',        icon: '◉', label: 'Metas de ahorro' },
+          { to: '/proyecciones', icon: '⟳', label: 'Proyecciones' },
+        ].map(({ to, icon, label }) => (
+          <button
+            key={to}
+            onClick={() => navigate(to)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-surface rounded-xl hover:opacity-80 transition-opacity"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg">{icon}</span>
+              <span className="text-white text-sm font-medium">{label}</span>
+            </div>
+            <span className="text-muted text-sm">›</span>
+          </button>
+        ))}
       </div>
 
       <div className="border-t border-muted/20 mb-6" />

@@ -12,9 +12,12 @@ import BudgetPage from './pages/BudgetPage'
 import MetasPage from './pages/MetasPage'
 import ProyeccionesPage from './pages/ProyeccionesPage'
 import PerfilPage from './pages/PerfilPage'
+import PagosRecurrentesPage from './pages/PagosRecurrentesPage'
+import { useAutoApplyPagos } from './hooks/useAutoApplyPagos'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
+  useAutoApplyPagos(user?.id)
   const [hasSetup, setHasSetup] = useState<boolean | null>(null)
 
   // Verificar si el usuario ya tiene cuentas configuradas
@@ -51,6 +54,7 @@ export default function App() {
         <Route path="/budget" element={<BudgetPage userId={user.id} />} />
         <Route path="/metas" element={<MetasPage userId={user.id} />} />
         <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
+        <Route path="/pagos" element={<PagosRecurrentesPage userId={user.id} />} />
         <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
