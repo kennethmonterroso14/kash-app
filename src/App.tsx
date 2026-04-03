@@ -33,7 +33,7 @@ export default function App() {
   if (loading || (user && hasSetup === null)) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <p className="text-accent font-mono text-lg animate-pulse">Kash</p>
+        <p className="text-accent font-display text-lg animate-pulse">Vorta</p>
       </div>
     )
   }

@@ -96,7 +96,7 @@ export default function PerfilPage({ user, onSignOut }: Props) {
       </div>
 
       {/* Version */}
-      <p className="text-muted text-xs text-center mt-12">Kash v1.0</p>
+      <p className="text-muted text-xs text-center mt-12">Vorta v2.0</p>
     </div>
   )
 }

@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo / título */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-accent font-mono">Kash</h1>
+          <h1 className="text-4xl font-bold text-accent font-display">Vorta</h1>
           <p className="text-muted text-sm mt-1">Finanzas personales · Guatemala</p>
         </div>
 

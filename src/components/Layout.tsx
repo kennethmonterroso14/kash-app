@@ -18,7 +18,7 @@ export default function Layout({ children, onSignOut }: Props) {
     <div className="min-h-screen bg-bg flex flex-col">
       {/* Header */}
       <header className="bg-surface border-b border-muted/20 px-4 py-3 flex justify-between items-center">
-        <span className="text-accent font-mono font-bold text-xl">Kash</span>
+        <span className="text-accent font-display font-bold text-xl">Vorta</span>
         <button
           onClick={onSignOut}
           className="text-muted text-sm hover:text-white transition-colors"
