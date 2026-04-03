@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
@@ -26,7 +26,12 @@ export default function TransaccionesPage({ user }: Props) {
   const [cantidad, setCantidad] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [categoria, setCategoria] = useState('Comida/Restaurantes')
-  const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? '')
+  const [cuentaId, setCuentaId] = useState('')
+
+  // Set default account once cuentas load
+  useEffect(() => {
+    if (!cuentaId && cuentas.length > 0) setCuentaId(cuentas[0].id)
+  }, [cuentas, cuentaId])
   const [saving, setSaving] = useState(false)
   const [transferDe, setTransferDe] = useState('')
   const [transferA, setTransferA]   = useState('')

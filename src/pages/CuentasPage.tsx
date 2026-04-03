@@ -26,6 +26,12 @@ export default function CuentasPage({ user }: Props) {
   const [saldoInput, setSaldoInput] = useState('')
   const [color, setColor] = useState(COLORES[0])
 
+  // Ajuste de saldo
+  const [ajustandoCuenta, setAjustandoCuenta] = useState<{ id: string; nombre: string } | null>(null)
+  const [ajusteInput, setAjusteInput] = useState('')
+  const [ajusteSaving, setAjusteSaving] = useState(false)
+  const [ajusteError, setAjusteError] = useState('')
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     const saldoQ = parseFloat(saldoInput)
@@ -66,6 +72,29 @@ export default function CuentasPage({ user }: Props) {
     setShowForm(false)
     setSaving(false)
     // Recargar cuentas
+    window.location.reload()
+  }
+
+  const handleAjuste = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!ajustandoCuenta) return
+    const val = parseFloat(ajusteInput)
+    if (isNaN(val) || val === 0) { setAjusteError('Ingresa un monto distinto de cero'); return }
+    setAjusteSaving(true)
+    setAjusteError('')
+    const { error: txnError } = await supabase.from('transacciones').insert({
+      user_id: user.id,
+      cuenta_id: ajustandoCuenta.id,
+      fecha: hoyGT(),
+      cantidad: toCentavos(Math.abs(val)) * (val < 0 ? -1 : 1),
+      descripcion: `Ajuste de saldo — ${ajustandoCuenta.nombre}`,
+      categoria: 'Ajuste de cuenta',
+      tipo: 'ajuste',
+    })
+    if (txnError) { setAjusteError(txnError.message); setAjusteSaving(false); return }
+    setAjustandoCuenta(null)
+    setAjusteInput('')
+    setAjusteSaving(false)
     window.location.reload()
   }
 
@@ -112,9 +141,53 @@ export default function CuentasPage({ user }: Props) {
             <p className={`font-mono font-semibold ${c.saldo >= 0 ? 'text-white' : 'text-danger'}`}>
               {formatQ(c.saldo)}
             </p>
+            <button
+              onClick={() => { setAjustandoCuenta({ id: c.id, nombre: c.nombre }); setAjusteInput(''); setAjusteError('') }}
+              className="mt-2 text-xs text-muted hover:text-accent transition-colors"
+            >
+              ± Ajustar saldo
+            </button>
           </div>
         ))}
       </div>
+
+      {/* Modal ajuste de saldo */}
+      {ajustandoCuenta && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-end justify-center z-50"
+          onClick={e => { if (e.target === e.currentTarget) setAjustandoCuenta(null) }}
+        >
+          <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-white font-semibold">Ajustar — {ajustandoCuenta.nombre}</h2>
+              <button onClick={() => setAjustandoCuenta(null)} className="text-muted text-xl">×</button>
+            </div>
+            <p className="text-muted text-sm">Ingresa un valor positivo para sumar o negativo para restar del saldo.</p>
+            <form onSubmit={handleAjuste} className="space-y-3">
+              <div>
+                <label className="text-muted text-xs mb-1 block">Monto (Q)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={ajusteInput}
+                  onChange={e => setAjusteInput(e.target.value)}
+                  required
+                  placeholder="ej. -500.00 o 200.00"
+                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                />
+              </div>
+              {ajusteError && <p className="text-danger text-xs">{ajusteError}</p>}
+              <button
+                type="submit"
+                disabled={ajusteSaving}
+                className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
+              >
+                {ajusteSaving ? 'Guardando...' : 'Aplicar ajuste'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal agregar cuenta */}
       {showForm && (
