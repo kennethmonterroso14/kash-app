@@ -12,6 +12,7 @@ const NAV = [
   { to: '/budget',       label: 'Presupuesto',  icon: '◧' },
   { to: '/metas',        label: 'Metas',        icon: '◉' },
   { to: '/proyecciones', label: 'Proyecciones', icon: '⟳' },
+  { to: '/perfil',       label: 'Perfil',       icon: '◐' },
 ]
 
 export default function Layout({ children, onSignOut }: Props) {
