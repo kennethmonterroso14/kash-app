@@ -9,24 +9,28 @@ import { CAT_COLORS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, MESES, hoyGT, mesActu
 interface Props { user: User }
 
 type TipoTxn = 'gasto' | 'ingreso' | 'ajuste'
+type TipoForm = 'gasto' | 'ingreso' | 'transferencia'
 
 export default function TransaccionesPage({ user }: Props) {
   const [mes, setMes] = useState(mesActual())
   const { cuentas } = useCuentas(user.id)
-  const { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn } = useTransacciones(user.id, mes)
+  const { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia } = useTransacciones(user.id, mes)
 
   const [showForm, setShowForm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [lastDeleted, setLastDeleted] = useState<Transaccion | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [tipo, setTipo] = useState<TipoTxn>('gasto')
+  const [tipo, setTipo] = useState<TipoForm>('gasto')
   const [fecha, setFecha] = useState(hoyGT())
   const [cantidad, setCantidad] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [categoria, setCategoria] = useState('Comida/Restaurantes')
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? '')
   const [saving, setSaving] = useState(false)
+  const [transferDe, setTransferDe] = useState('')
+  const [transferA, setTransferA]   = useState('')
+  const [transferSaving, setTransferSaving] = useState(false)
 
   const [filterCuenta, setFilterCuenta] = useState<string>('') // '' = all
   const [filterTipo, setFilterTipo]   = useState<string>('') // '' = all
@@ -69,26 +73,45 @@ export default function TransaccionesPage({ user }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  const cats = tipo === 'ingreso' ? CATEGORIAS_INGRESO
-    : tipo === 'ajuste' ? ['Ajuste de cuenta']
-    : CATEGORIAS_GASTO
+  const cats = tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO
 
   const handleAddTxn = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (tipo === 'transferencia') return
     const val = parseFloat(cantidad)
     if (isNaN(val) || val <= 0 || !descripcion || !cuentaId) return
     setSaving(true)
 
     const centavos = toCentavos(val)
     const cantidadFinal = tipo === 'gasto' ? -centavos : centavos
+    const tipoTxn: TipoTxn = tipo
 
-    await addTxn({ cuenta_id: cuentaId, cantidad: cantidadFinal, descripcion, categoria, tipo, fecha })
+    await addTxn({ cuenta_id: cuentaId, cantidad: cantidadFinal, descripcion, categoria, tipo: tipoTxn, fecha })
 
     setCantidad('')
     setDescripcion('')
     setFecha(hoyGT())
     setShowForm(false)
     setSaving(false)
+  }
+
+  const handleTransfer = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const val = parseFloat(cantidad)
+    if (isNaN(val) || val <= 0 || !transferDe || !transferA || transferDe === transferA) return
+    setTransferSaving(true)
+    await addTransferencia({
+      deCuentaId: transferDe,
+      aCuentaId: transferA,
+      cantidad: toCentavos(val),
+      descripcion: descripcion || 'Transferencia',
+      fecha,
+    })
+    setCantidad('')
+    setDescripcion('')
+    setFecha(hoyGT())
+    setShowForm(false)
+    setTransferSaving(false)
   }
 
   const handleDelete = (id: string) => {
@@ -364,24 +387,77 @@ export default function TransaccionesPage({ user }: Props) {
 
             {/* Tipo */}
             <div className="flex gap-1 bg-bg rounded-xl p-1">
-              {(['gasto', 'ingreso', 'ajuste'] as TipoTxn[]).map(t => (
+              {(['gasto', 'ingreso', 'transferencia'] as TipoForm[]).map(t => (
                 <button
                   key={t}
                   onClick={() => {
                     setTipo(t)
-                    setCategoria(t === 'ingreso' ? 'Ingreso' : t === 'ajuste' ? 'Ajuste de cuenta' : 'Comida/Restaurantes')
+                    setCategoria(t === 'ingreso' ? 'Ingreso' : 'Comida/Restaurantes')
+                    if (t === 'transferencia') {
+                      setTransferDe('')
+                      setTransferA('')
+                    }
                   }}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
                     tipo === t
-                      ? t === 'ingreso' ? 'bg-accent text-bg' : t === 'gasto' ? 'bg-danger text-white' : 'bg-muted text-white'
+                      ? t === 'ingreso' ? 'bg-accent text-bg' : t === 'gasto' ? 'bg-danger text-white' : 'text-white'
                       : 'text-muted'
                   }`}
+                  style={tipo === t && t === 'transferencia' ? { background: '#60a5fa' } : undefined}
                 >
                   {t}
                 </button>
               ))}
             </div>
 
+            {tipo === 'transferencia' ? (
+              <form onSubmit={handleTransfer} className="space-y-3">
+                {/* Monto */}
+                <div>
+                  <label className="text-muted text-xs mb-1 block">Monto (Q)</label>
+                  <input type="number" step="0.01" min="0.01" value={cantidad}
+                    onChange={e => setCantidad(e.target.value)} required placeholder="0.00"
+                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent" />
+                </div>
+                {/* De → A */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-muted text-xs mb-1 block">De cuenta</label>
+                    <select value={transferDe} onChange={e => setTransferDe(e.target.value)} required
+                      className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent">
+                      <option value="">Seleccionar</option>
+                      {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-muted text-xs mb-1 block">A cuenta</label>
+                    <select value={transferA} onChange={e => setTransferA(e.target.value)} required
+                      className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent">
+                      <option value="">Seleccionar</option>
+                      {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {/* Descripción opcional */}
+                <div>
+                  <label className="text-muted text-xs mb-1 block">Descripción (opcional)</label>
+                  <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)}
+                    placeholder="ej. Ahorro mensual"
+                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent" />
+                </div>
+                {/* Fecha */}
+                <div>
+                  <label className="text-muted text-xs mb-1 block">Fecha</label>
+                  <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent" />
+                </div>
+                <button type="submit" disabled={transferSaving || transferDe === transferA}
+                  className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
+                  style={{ background: '#60a5fa', color: 'white' }}>
+                  {transferSaving ? 'Guardando...' : 'Transferir'}
+                </button>
+              </form>
+            ) : (
             <form onSubmit={handleAddTxn} className="space-y-3">
               {/* Cantidad */}
               <div>
@@ -450,12 +526,13 @@ export default function TransaccionesPage({ user }: Props) {
                 type="submit"
                 disabled={saving}
                 className={`w-full font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 ${
-                  tipo === 'ingreso' ? 'bg-accent text-bg' : tipo === 'gasto' ? 'bg-danger text-white' : 'bg-muted text-white'
+                  tipo === 'ingreso' ? 'bg-accent text-bg' : 'bg-danger text-white'
                 }`}
               >
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
             </form>
+            )}
           </div>
         </div>
       )}

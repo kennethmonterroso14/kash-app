@@ -96,5 +96,28 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     return { data, error }
   }
 
-  return { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, refresh: fetchTxns }
+  const addTransferencia = async (params: {
+    deCuentaId: string
+    aCuentaId: string
+    cantidad: number   // centavos, positive
+    descripcion: string
+    fecha: string
+  }) => {
+    if (!userId) return { error: 'Sin usuario' }
+    const { deCuentaId, aCuentaId, cantidad, descripcion, fecha } = params
+    const base = { user_id: userId, categoria: 'Transferencia', tipo: 'ajuste' as const, descripcion, fecha }
+    const { data, error } = await supabase
+      .from('transacciones')
+      .insert([
+        { ...base, cuenta_id: deCuentaId, cantidad: -cantidad },
+        { ...base, cuenta_id: aCuentaId,  cantidad: +cantidad },
+      ])
+      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas')
+    if (!error && data) {
+      setTxns(prev => [...data, ...prev])
+    }
+    return { data, error }
+  }
+
+  return { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia, refresh: fetchTxns }
 }

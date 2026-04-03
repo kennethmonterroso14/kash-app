@@ -51,6 +51,7 @@ export const CAT_COLORS: Record<string, string> = {
   'Iglesia/Donaciones':  '#fde68a',
   'Suplementos':         '#86efac',
   'Transporte':          '#c4b5fd',
+  'Transferencia':       '#67e8f9',
 }
 
 export const MESES = [
