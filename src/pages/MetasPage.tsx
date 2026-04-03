@@ -21,7 +21,7 @@ export default function MetasPage({ userId }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   // Ahorro mensual compartido (en quetzales, para input)
-  const [ahorroMensualQ, setAhorroMensualQ] = useState(DEFAULT_AHORRO_MENSUAL_Q)
+  const [ahorroMensualQ, setAhorroMensualQ] = useState(String(DEFAULT_AHORRO_MENSUAL_Q))
 
   // Modal nueva meta
   const [showForm, setShowForm] = useState(false)
@@ -30,6 +30,9 @@ export default function MetasPage({ userId }: Props) {
   const [montoActualQ, setMontoActualQ] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // In-flight guard for Completar / Eliminar
+  const [operating, setOperating] = useState(false)
 
   // Eliminación en 2 pasos
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -43,7 +46,7 @@ export default function MetasPage({ userId }: Props) {
       setError(null)
       const { data, error: err } = await supabase
         .from('metas_ahorro')
-        .select('*')
+        .select('id, nombre, monto_objetivo, monto_actual, completada, created_at')
         .eq('user_id', userId)
         .eq('completada', false)
         .order('created_at', { ascending: true })
@@ -63,17 +66,22 @@ export default function MetasPage({ userId }: Props) {
 
   // ── Completar meta ───────────────────────────────────────────
   const handleCompletar = async (id: string) => {
-    const { error: err } = await supabase
-      .from('metas_ahorro')
-      .update({ completada: true })
-      .eq('id', id)
-      .eq('user_id', userId)
+    setOperating(true)
+    try {
+      const { error: err } = await supabase
+        .from('metas_ahorro')
+        .update({ completada: true })
+        .eq('id', id)
+        .eq('user_id', userId)
 
-    if (err) {
-      setError(err.message)
-      return
+      if (err) {
+        setError(err.message)
+        return
+      }
+      setMetas(prev => prev.filter(m => m.id !== id))
+    } finally {
+      setOperating(false)
     }
-    setMetas(prev => prev.filter(m => m.id !== id))
   }
 
   // ── Eliminar meta (2 pasos) ──────────────────────────────────
@@ -86,17 +94,22 @@ export default function MetasPage({ userId }: Props) {
 
     // Segundo tap: confirmar
     setPendingDelete(null)
-    const { error: err } = await supabase
-      .from('metas_ahorro')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId)
+    setOperating(true)
+    try {
+      const { error: err } = await supabase
+        .from('metas_ahorro')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId)
 
-    if (err) {
-      setError(err.message)
-      return
+      if (err) {
+        setError(err.message)
+        return
+      }
+      setMetas(prev => prev.filter(m => m.id !== id))
+    } finally {
+      setOperating(false)
     }
-    setMetas(prev => prev.filter(m => m.id !== id))
   }
 
   // ── Nueva meta ───────────────────────────────────────────────
@@ -106,10 +119,16 @@ export default function MetasPage({ userId }: Props) {
 
     const objetivo = parseFloat(montoObjetivoQ)
     const actual = parseFloat(montoActualQ || '0')
+    const objetivoCentavos = toCentavos(objetivo)
+    const actualCentavos = toCentavos(actual)
 
     if (!nombre.trim()) { setFormError('El nombre es requerido.'); return }
     if (isNaN(objetivo) || objetivo <= 0) { setFormError('El monto objetivo debe ser mayor a 0.'); return }
     if (isNaN(actual) || actual < 0) { setFormError('El monto ya tengo no puede ser negativo.'); return }
+    if (actualCentavos > objetivoCentavos) {
+      setFormError('El monto "Ya tengo" no puede superar el objetivo')
+      return
+    }
 
     setSaving(true)
     const { data, error: err } = await supabase
@@ -117,10 +136,10 @@ export default function MetasPage({ userId }: Props) {
       .insert({
         user_id: userId,
         nombre: nombre.trim(),
-        monto_objetivo: toCentavos(objetivo),
-        monto_actual: toCentavos(actual),
+        monto_objetivo: objetivoCentavos,
+        monto_actual: actualCentavos,
       })
-      .select()
+      .select('id, nombre, monto_objetivo, monto_actual, completada, created_at')
       .single()
 
     setSaving(false)
@@ -130,7 +149,7 @@ export default function MetasPage({ userId }: Props) {
       return
     }
 
-    setMetas(prev => [...prev, data as Meta])
+    if (data) setMetas(prev => [...prev, data as Meta])
     setNombre('')
     setMontoObjetivoQ('')
     setMontoActualQ('')
@@ -138,9 +157,7 @@ export default function MetasPage({ userId }: Props) {
   }
 
   // ── Helpers ──────────────────────────────────────────────────
-  const ahorroMensualCentavos = toCentavos(
-    isNaN(ahorroMensualQ) || ahorroMensualQ <= 0 ? 0 : ahorroMensualQ
-  )
+  const ahorroMensualCentavos = toCentavos(parseFloat(ahorroMensualQ) || 0)
 
   const calcEstimado = (meta: Meta): string => {
     if (ahorroMensualCentavos <= 0) return 'Ingresa un ahorro mensual'
@@ -180,7 +197,7 @@ export default function MetasPage({ userId }: Props) {
           min="1"
           step="100"
           value={ahorroMensualQ}
-          onChange={e => setAhorroMensualQ(parseFloat(e.target.value))}
+          onChange={e => setAhorroMensualQ(e.target.value)}
           className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
         />
       </div>
@@ -224,13 +241,15 @@ export default function MetasPage({ userId }: Props) {
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleCompletar(meta.id)}
-                    className="text-xs px-2 py-1 rounded-lg text-accent border border-accent/40 hover:bg-accent hover:text-bg transition-colors"
+                    disabled={operating}
+                    className="text-xs px-2 py-1 rounded-lg text-accent border border-accent/40 hover:bg-accent hover:text-bg transition-colors disabled:opacity-50"
                   >
                     Completar
                   </button>
                   <button
                     onClick={() => handleEliminar(meta.id)}
-                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${
+                    disabled={operating}
+                    className={`text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50 ${
                       pendingDelete === meta.id
                         ? 'bg-danger text-white'
                         : 'text-muted hover:text-danger'
