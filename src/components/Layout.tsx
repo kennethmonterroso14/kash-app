@@ -6,10 +6,11 @@ interface Props {
 }
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: '◈' },
-  { to: '/txns',      label: 'Movimientos', icon: '≡' },
-  { to: '/cuentas',   label: 'Cuentas', icon: '◎' },
-  { to: '/budget',    label: 'Presupuesto', icon: '◐' },
+  { to: '/dashboard',    label: 'Dashboard',    icon: '◈' },
+  { to: '/txns',         label: 'Movimientos',  icon: '≡' },
+  { to: '/cuentas',      label: 'Cuentas',      icon: '◎' },
+  { to: '/metas',        label: 'Metas',        icon: '◉' },
+  { to: '/proyecciones', label: 'Proyecciones', icon: '⟳' },
 ]
 
 export default function Layout({ children, onSignOut }: Props) {
