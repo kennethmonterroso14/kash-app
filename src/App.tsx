@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage'
 import TransaccionesPage from './pages/TransaccionesPage'
 import CuentasPage from './pages/CuentasPage'
 import BudgetPage from './pages/BudgetPage'
+import MetasPage from './pages/MetasPage'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/txns" element={<TransaccionesPage user={user} />} />
         <Route path="/cuentas" element={<CuentasPage user={user} />} />
         <Route path="/budget" element={<BudgetPage user={user} />} />
+        <Route path="/metas" element={<MetasPage userId={user.id} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>
