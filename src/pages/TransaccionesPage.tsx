@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
@@ -28,12 +28,46 @@ export default function TransaccionesPage({ user }: Props) {
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? '')
   const [saving, setSaving] = useState(false)
 
+  const [filterCuenta, setFilterCuenta] = useState<string>('') // '' = all
+  const [filterTipo, setFilterTipo]   = useState<string>('') // '' = all
+  const [filterBusqueda, setFilterBusqueda] = useState('')
+
   const [editingTxn, setEditingTxn] = useState<Transaccion | null>(null)
   const [editCantidad, setEditCantidad] = useState('')
   const [editDescripcion, setEditDescripcion] = useState('')
   const [editCategoria, setEditCategoria] = useState('')
   const [editFecha, setEditFecha] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+
+  const txnsFiltrados = useMemo(() => {
+    return txns.filter(t => {
+      if (filterCuenta && t.cuenta_id !== filterCuenta) return false
+      if (filterTipo && t.tipo !== filterTipo) return false
+      if (filterBusqueda && !t.descripcion.toLowerCase().includes(filterBusqueda.toLowerCase())) return false
+      return true
+    })
+  }, [txns, filterCuenta, filterTipo, filterBusqueda])
+
+  const handleExportCSV = () => {
+    const headers = ['fecha', 'descripcion', 'categoria', 'tipo', 'cantidad_Q', 'cuenta']
+    const getCuentaNombre = (id: string) => cuentas.find(c => c.id === id)?.nombre ?? id
+    const rows = txnsFiltrados.map(t => [
+      t.fecha,
+      `"${t.descripcion.replace(/"/g, '""')}"`,
+      t.categoria,
+      t.tipo,
+      (t.cantidad / 100).toFixed(2),
+      getCuentaNombre(t.cuenta_id),
+    ].join(','))
+    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `kash_${mes}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const cats = tipo === 'ingreso' ? CATEGORIAS_INGRESO
     : tipo === 'ajuste' ? ['Ajuste de cuenta']
@@ -130,25 +164,63 @@ export default function TransaccionesPage({ user }: Props) {
             className="text-muted hover:text-white p-1"
           >→</button>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-accent text-bg font-semibold text-sm px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportCSV}
+            disabled={txnsFiltrados.length === 0}
+            className="text-muted text-sm px-3 py-2 rounded-xl border border-muted/30 hover:text-white hover:border-muted transition-colors disabled:opacity-30"
+          >
+            ↓ CSV
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-accent text-bg font-semibold text-sm px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            + Agregar
+          </button>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <input
+          type="text"
+          placeholder="Buscar..."
+          value={filterBusqueda}
+          onChange={e => setFilterBusqueda(e.target.value)}
+          className="flex-1 min-w-32 bg-surface border border-muted/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-accent"
+        />
+        <select
+          value={filterTipo}
+          onChange={e => setFilterTipo(e.target.value)}
+          className="bg-surface border border-muted/30 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-accent"
         >
-          + Agregar
-        </button>
+          <option value="">Todos</option>
+          <option value="gasto">Gastos</option>
+          <option value="ingreso">Ingresos</option>
+          <option value="ajuste">Ajustes</option>
+        </select>
+        <select
+          value={filterCuenta}
+          onChange={e => setFilterCuenta(e.target.value)}
+          className="bg-surface border border-muted/30 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-accent"
+        >
+          <option value="">Todas</option>
+          {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
       </div>
 
       {/* Lista de transacciones */}
       {loading && <p className="text-muted text-center py-8">Cargando...</p>}
 
-      {!loading && txns.length === 0 && (
+      {!loading && txnsFiltrados.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center">
           <p className="text-muted">Sin movimientos en {mesLabel}</p>
         </div>
       )}
 
       <div className="space-y-2">
-        {txns.map(t => (
+        {txnsFiltrados.map(t => (
           <div key={t.id} className="bg-surface rounded-2xl px-4 py-3 flex items-center gap-3">
             <div
               className="w-2 h-2 rounded-full flex-shrink-0"
