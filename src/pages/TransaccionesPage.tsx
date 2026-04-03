@@ -13,7 +13,7 @@ type TipoTxn = 'gasto' | 'ingreso' | 'ajuste'
 export default function TransaccionesPage({ user }: Props) {
   const [mes, setMes] = useState(mesActual())
   const { cuentas } = useCuentas(user.id)
-  const { txns, loading, addTxn, deleteTxn, restoreTxn } = useTransacciones(user.id, mes)
+  const { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn } = useTransacciones(user.id, mes)
 
   const [showForm, setShowForm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -27,6 +27,13 @@ export default function TransaccionesPage({ user }: Props) {
   const [categoria, setCategoria] = useState('Comida/Restaurantes')
   const [cuentaId, setCuentaId] = useState(cuentas[0]?.id ?? '')
   const [saving, setSaving] = useState(false)
+
+  const [editingTxn, setEditingTxn] = useState<Transaccion | null>(null)
+  const [editCantidad, setEditCantidad] = useState('')
+  const [editDescripcion, setEditDescripcion] = useState('')
+  const [editCategoria, setEditCategoria] = useState('')
+  const [editFecha, setEditFecha] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   const cats = tipo === 'ingreso' ? CATEGORIAS_INGRESO
     : tipo === 'ajuste' ? ['Ajuste de cuenta']
@@ -63,6 +70,32 @@ export default function TransaccionesPage({ user }: Props) {
       setPendingDelete(id)
       setTimeout(() => setPendingDelete(p => p === id ? null : p), 3000)
     }
+  }
+
+  const handleEditOpen = (t: Transaccion) => {
+    setEditingTxn(t)
+    setEditCantidad(String(Math.abs(t.cantidad) / 100))
+    setEditDescripcion(t.descripcion)
+    setEditCategoria(t.categoria)
+    setEditFecha(t.fecha)
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTxn) return
+    const val = parseFloat(editCantidad)
+    if (isNaN(val) || val <= 0) return
+    setEditSaving(true)
+    const centavos = toCentavos(val)
+    const cantidadFinal = editingTxn.tipo === 'gasto' ? -centavos : centavos
+    await updateTxn(editingTxn.id, {
+      cantidad: cantidadFinal,
+      descripcion: editDescripcion,
+      categoria: editCategoria,
+      fecha: editFecha,
+    })
+    setEditingTxn(null)
+    setEditSaving(false)
   }
 
   const handleUndo = async () => {
@@ -129,6 +162,13 @@ export default function TransaccionesPage({ user }: Props) {
               {t.cantidad > 0 ? '+' : ''}{formatQ(t.cantidad)}
             </span>
             <button
+              onClick={() => handleEditOpen(t)}
+              className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors flex-shrink-0"
+              aria-label="Editar"
+            >
+              ✎
+            </button>
+            <button
               onClick={() => handleDelete(t.id)}
               className={`text-xs px-2 py-1 rounded-lg transition-colors flex-shrink-0 ${
                 pendingDelete === t.id
@@ -152,6 +192,89 @@ export default function TransaccionesPage({ user }: Props) {
           >
             Deshacer
           </button>
+        </div>
+      )}
+
+      {/* Modal editar */}
+      {editingTxn && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-end justify-center z-50"
+          onClick={e => { if (e.target === e.currentTarget) setEditingTxn(null) }}
+        >
+          <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-white font-semibold">Editar movimiento</h2>
+              <button onClick={() => setEditingTxn(null)} className="text-muted text-xl">×</button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-3">
+              {/* Cantidad */}
+              <div>
+                <label className="text-muted text-xs mb-1 block">
+                  Monto (Q) — {editingTxn.tipo}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={editCantidad}
+                  onChange={e => setEditCantidad(e.target.value)}
+                  required
+                  placeholder="0.00"
+                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label className="text-muted text-xs mb-1 block">Descripción</label>
+                <input
+                  type="text"
+                  value={editDescripcion}
+                  onChange={e => setEditDescripcion(e.target.value)}
+                  required
+                  placeholder="¿En qué?"
+                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              {/* Categoría */}
+              <div>
+                <label className="text-muted text-xs mb-1 block">Categoría</label>
+                <select
+                  value={editCategoria}
+                  onChange={e => setEditCategoria(e.target.value)}
+                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                >
+                  {(editingTxn.tipo === 'ingreso'
+                    ? CATEGORIAS_INGRESO
+                    : editingTxn.tipo === 'ajuste'
+                    ? ['Ajuste de cuenta', 'Transferencia']
+                    : CATEGORIAS_GASTO
+                  ).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <label className="text-muted text-xs mb-1 block">Fecha</label>
+                <input
+                  type="date"
+                  value={editFecha}
+                  onChange={e => setEditFecha(e.target.value)}
+                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={editSaving}
+                className="w-full font-semibold py-3 rounded-xl bg-accent text-bg hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {editSaving ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

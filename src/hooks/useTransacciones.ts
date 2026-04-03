@@ -78,5 +78,23 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     return { data, error }
   }
 
-  return { txns, loading, addTxn, deleteTxn, restoreTxn, refresh: fetchTxns }
+  const updateTxn = async (id: string, updates: {
+    cantidad: number
+    descripcion: string
+    categoria: string
+    fecha: string
+  }) => {
+    const { data, error } = await supabase
+      .from('transacciones')
+      .update(updates)
+      .eq('id', id)
+      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas')
+      .single()
+    if (!error && data) {
+      setTxns(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+    }
+    return { data, error }
+  }
+
+  return { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, refresh: fetchTxns }
 }
