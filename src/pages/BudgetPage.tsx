@@ -227,7 +227,7 @@ export default function BudgetPage({ userId }: Props) {
               <span className="text-white text-sm font-medium flex-1">{p.categoria}</span>
               <div className="flex items-center gap-1">
                 <span className={`text-xs font-mono font-semibold ${
-                  estado === 'excedido' ? 'text-danger' : estado === 'alerta' ? 'text-yellow-400' : 'text-accent'
+                  estado === 'excedido' ? 'text-danger' : estado === 'alerta' ? 'text-yellow-400' : 'text-success'
                 }`}>
                   {pct}%
                 </span>

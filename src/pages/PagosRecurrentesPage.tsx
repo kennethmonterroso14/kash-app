@@ -168,7 +168,7 @@ export default function PagosRecurrentesPage({ userId }: Props) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-white text-sm font-medium">{p.nombre}</span>
                   {estado === 'aplicado' && (
-                    <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">✓ aplicado</span>
+                    <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">✓ aplicado</span>
                   )}
                   {estado === 'pendiente' && (
                     <span className="text-xs bg-yellow-400/10 text-yellow-400 px-2 py-0.5 rounded-full">pendiente</span>

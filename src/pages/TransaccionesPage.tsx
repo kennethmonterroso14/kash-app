@@ -258,7 +258,7 @@ export default function TransaccionesPage({ user }: Props) {
               <p className="text-white text-sm truncate">{t.descripcion}</p>
               <p className="text-muted text-xs">{t.categoria} · {t.fecha}</p>
             </div>
-            <span className={`font-mono text-sm font-semibold flex-shrink-0 ${t.cantidad > 0 ? 'text-accent' : 'text-danger'}`}>
+            <span className={`font-mono text-sm font-semibold flex-shrink-0 ${t.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
               {t.cantidad > 0 ? '+' : ''}{formatQ(t.cantidad)}
             </span>
             <button

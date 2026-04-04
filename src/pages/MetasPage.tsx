@@ -263,14 +263,14 @@ export default function MetasPage({ userId }: Props) {
               {/* Barra de progreso */}
               <div className="w-full bg-bg rounded-full h-2">
                 <div
-                  className="bg-accent h-2 rounded-full transition-all"
+                  className="bg-success h-2 rounded-full transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
 
               {/* Montos y estimado */}
               <div className="flex items-center justify-between">
-                <span className="text-accent font-mono text-sm">
+                <span className="text-success font-mono text-sm">
                   {formatQ(meta.monto_actual)}
                   <span className="text-muted"> / {formatQ(meta.monto_objetivo)}</span>
                 </span>

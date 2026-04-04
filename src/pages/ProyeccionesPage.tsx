@@ -69,7 +69,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
   return (
     <div className="bg-surface border border-[#4a4f5e]/40 rounded-xl px-3 py-2 text-sm shadow-lg">
       <p className="text-[#4a4f5e] text-xs mb-0.5">{point.fechaDisplay}</p>
-      <p className="text-accent font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
+      <p className="text-success font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
     </div>
   )
 }
@@ -268,7 +268,7 @@ export default function ProyeccionesPage({ userId }: Props) {
                   <span className="text-sm font-bold text-white leading-tight">
                     {formatQ(m.patrimonio)}
                   </span>
-                  <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-accent' : 'text-danger'}`}>
+                  <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                     {m.growth >= 0 ? '+' : ''}{m.growth}%
                   </span>
                 </div>

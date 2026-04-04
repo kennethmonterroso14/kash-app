@@ -111,7 +111,7 @@ export default function DashboardPage({ user }: Props) {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface rounded-2xl p-4">
           <p className="text-muted text-xs mb-1">Ingresos</p>
-          <p className="text-accent font-mono font-semibold text-sm">{formatQ(stats.ingresos)}</p>
+          <p className="text-success font-mono font-semibold text-sm">{formatQ(stats.ingresos)}</p>
         </div>
         <div className="bg-surface rounded-2xl p-4">
           <p className="text-muted text-xs mb-1">Gastos</p>
@@ -119,7 +119,7 @@ export default function DashboardPage({ user }: Props) {
         </div>
         <div className="bg-surface rounded-2xl p-4">
           <p className="text-muted text-xs mb-1">Neto</p>
-          <p className={`font-mono font-semibold text-sm ${stats.neto >= 0 ? 'text-accent' : 'text-danger'}`}>
+          <p className={`font-mono font-semibold text-sm ${stats.neto >= 0 ? 'text-success' : 'text-danger'}`}>
             {formatQ(stats.neto)}
           </p>
         </div>
@@ -130,13 +130,13 @@ export default function DashboardPage({ user }: Props) {
         <div className="bg-surface rounded-2xl p-4">
           <div className="flex justify-between mb-2">
             <span className="text-muted text-sm">Tasa de ahorro</span>
-            <span className={`font-mono font-semibold text-sm ${stats.pctAhorro >= 25 ? 'text-accent' : 'text-danger'}`}>
+            <span className={`font-mono font-semibold text-sm ${stats.pctAhorro >= 25 ? 'text-success' : 'text-danger'}`}>
               {stats.pctAhorro}%
             </span>
           </div>
           <div className="h-2 bg-bg rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${stats.pctAhorro >= 25 ? 'bg-accent' : 'bg-danger'}`}
+              className={`h-full rounded-full transition-all ${stats.pctAhorro >= 25 ? 'bg-success' : 'bg-danger'}`}
               style={{ width: `${Math.min(stats.pctAhorro, 100)}%` }}
             />
           </div>
