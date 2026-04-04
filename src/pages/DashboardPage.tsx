@@ -8,7 +8,8 @@ import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { useResumen6Meses } from '../hooks/useResumen6Meses'
 import { useTarjetas } from '../hooks/useTarjetas'
-import { formatQ, calcEstadisticasMes, calcDisponibleReal } from '../lib/finanzas'
+import { useInversiones } from '../hooks/useInversiones'
+import { formatQ, calcEstadisticasMes, calcDisponibleReal, calcPatrimonioNeto } from '../lib/finanzas'
 import { CAT_COLORS, MESES, mesActual } from '../lib/constants'
 
 interface Props { user: User }
@@ -21,6 +22,7 @@ export default function DashboardPage({ user }: Props) {
   const { txns, loading } = useTransacciones(user.id, mes)
   const { data: resumen6 } = useResumen6Meses(user.id)
   const { resumenTCs, tarjetas } = useTarjetas(user.id)
+  const { resumen: resumenInv } = useInversiones(user.id)
 
   const stats = useMemo(() => calcEstadisticasMes(
     txns.map(t => ({ ...t, id: t.id, descripcion: t.descripcion }))
@@ -29,6 +31,11 @@ export default function DashboardPage({ user }: Props) {
   const disponibleReal = useMemo(
     () => calcDisponibleReal(totalPatrimonio, tarjetas),
     [totalPatrimonio, tarjetas]
+  )
+
+  const patrimonioNeto = useMemo(
+    () => calcPatrimonioNeto(totalPatrimonio, resumenInv.valor_total, tarjetas),
+    [totalPatrimonio, resumenInv.valor_total, tarjetas]
   )
 
   const [anio, mesNum] = mes.split('-').map(Number)
@@ -160,6 +167,44 @@ export default function DashboardPage({ user }: Props) {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Patrimonio Neto — solo si hay inversiones o TCs */}
+      {(resumenInv.capital_total > 0 || tarjetas.length > 0) && (
+        <div className="bg-surface rounded-2xl p-4">
+          <p className="text-muted text-xs uppercase tracking-widest mb-3">Patrimonio Neto</p>
+          <div className="space-y-1.5 text-sm">
+            {/* Activos */}
+            <div className="flex justify-between">
+              <span className="text-muted">Cuentas</span>
+              <span className="font-mono text-white">{formatQ(totalPatrimonio)}</span>
+            </div>
+            {resumenInv.valor_total > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted">Inversiones</span>
+                <span className="font-mono text-success">+{formatQ(resumenInv.valor_total)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-xs text-muted pt-0.5">
+              <span>Total activos</span>
+              <span className="font-mono text-white">{formatQ(patrimonioNeto.activos)}</span>
+            </div>
+            {/* Pasivos */}
+            {patrimonioNeto.pasivos > 0 && (
+              <div className="flex justify-between pt-1">
+                <span className="text-muted">Deuda TC</span>
+                <span className="font-mono text-danger">−{formatQ(patrimonioNeto.pasivos)}</span>
+              </div>
+            )}
+            {/* Neto */}
+            <div className="border-t border-muted/20 pt-1.5 flex justify-between">
+              <span className="text-white font-semibold">Patrimonio neto</span>
+              <span className={`font-mono font-bold ${patrimonioNeto.neto >= 0 ? 'text-success' : 'text-danger'}`}>
+                {formatQ(patrimonioNeto.neto)}
+              </span>
+            </div>
           </div>
         </div>
       )}
