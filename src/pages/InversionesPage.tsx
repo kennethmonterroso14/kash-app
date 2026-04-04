@@ -12,7 +12,7 @@ import { TIPOS_INVERSION, hoyGT } from '../lib/constants'
 
 interface Props { userId: string }
 
-type Pantalla = 'lista' | 'nueva' | 'actualizar_valor' | 'tipo_cambio'
+type Pantalla = 'lista' | 'nueva' | 'actualizar_valor' | 'tipo_cambio' | 'editar'
 
 const INFLACION_GT = 4   // % anual de referencia para Guatemala
 
@@ -22,6 +22,7 @@ export default function InversionesPage({ userId }: Props) {
     tipoCambioUSD, tipoCambioFecha, tieneUSD,
     loading, error,
     agregarInversion, actualizarValor, archivarInversion, actualizarTipoCambio,
+    actualizarInversion, fetchTipoCambioDesdeAPI,
   } = useInversiones(userId)
 
   // ── Navegación ──────────────────────────────────────────
@@ -48,6 +49,7 @@ export default function InversionesPage({ userId }: Props) {
   // ── Estado general ───────────────────────────────────────
   const [saving, setSaving]   = useState(false)
   const [errForm, setErrForm] = useState<string | null>(null)
+  const [fetchingRate, setFetchingRate] = useState(false)
 
   // Tipo de cambio desactualizado si tiene 7+ días sin actualizar
   const tipoCambioDesactualizado = (() => {
@@ -78,6 +80,19 @@ export default function InversionesPage({ userId }: Props) {
     setCapital(''); setMoneda('GTQ'); setFechaInicio(hoyGT()); setNotas('')
     setErrForm(null)
     setPantalla('nueva')
+  }
+
+  const abrirEditar = (inv: Inversion) => {
+    setNombre(inv.nombre)
+    setPlataforma(inv.plataforma ?? '')
+    setTipo(inv.tipo)
+    setCapital(String((inv.monto_invertido / 100).toFixed(2)))
+    setMoneda(inv.moneda)
+    setFechaInicio(inv.fecha_inicio)
+    setNotas(inv.notas ?? '')
+    setErrForm(null)
+    setSelId(inv.id)
+    setPantalla('editar')
   }
 
   // ── Handlers ────────────────────────────────────────────
@@ -145,6 +160,30 @@ export default function InversionesPage({ userId }: Props) {
       setPantalla('lista')
     } catch (e: unknown) {
       setErrForm(e instanceof Error ? e.message : 'Error al actualizar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditar = async () => {
+    if (!selId) return
+    setErrForm(null)
+    const cap = parseFloat(capital)
+    if (!nombre.trim())          return setErrForm('El nombre es requerido')
+    if (isNaN(cap) || cap <= 0)  return setErrForm('El capital debe ser mayor a 0')
+    try {
+      setSaving(true)
+      await actualizarInversion(selId, {
+        nombre:          nombre.trim(),
+        plataforma:      plataforma.trim() || undefined,
+        tipo,
+        monto_invertido: toCentavos(cap),
+        fecha_inicio:    fechaInicio,
+        notas:           notas.trim() || undefined,
+      })
+      setPantalla('lista')
+    } catch (e: unknown) {
+      setErrForm(e instanceof Error ? e.message : 'Error al guardar')
     } finally {
       setSaving(false)
     }
@@ -295,6 +334,13 @@ export default function InversionesPage({ userId }: Props) {
                   {inv.moneda === 'USD' && (
                     <span className="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">USD</span>
                   )}
+                  <button
+                    onClick={() => abrirEditar(inv)}
+                    className="text-muted hover:text-white transition-colors text-sm ml-0.5"
+                    title="Editar inversión"
+                  >
+                    ✎
+                  </button>
                 </div>
               </div>
 
@@ -493,6 +539,81 @@ export default function InversionesPage({ userId }: Props) {
         </div>
       )}
 
+      {/* Modal: Editar inversión */}
+      {pantalla === 'editar' && selInv && (
+        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
+          <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-white font-semibold">Editar inversión</h2>
+              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <input
+                placeholder="Nombre"
+                value={nombre} onChange={e => setNombre(e.target.value)}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              <input
+                placeholder="Plataforma (opcional)"
+                value={plataforma} onChange={e => setPlataforma(e.target.value)}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              <select
+                value={tipo} onChange={e => setTipo(e.target.value)}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+              >
+                {TIPOS_INVERSION.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <input
+                  placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
+                  value={capital} onChange={e => setCapital(e.target.value)}
+                  inputMode="decimal"
+                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                />
+                <div className="flex bg-bg border border-muted/30 rounded-xl overflow-hidden">
+                  {(['GTQ', 'USD'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setMoneda(m)}
+                      className={`px-3 py-3 text-sm font-medium transition-colors ${
+                        moneda === m ? 'bg-accent text-bg font-semibold' : 'text-muted hover:text-white'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-muted text-xs mb-1">Fecha de inicio</p>
+                <input
+                  type="date"
+                  value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
+                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                />
+              </div>
+              <textarea
+                placeholder="Notas (opcional)"
+                value={notas} onChange={e => setNotas(e.target.value)}
+                rows={2}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent resize-none"
+              />
+              {errForm && <p className="text-danger text-sm">{errForm}</p>}
+              <button
+                onClick={handleEditar}
+                disabled={saving}
+                className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity mt-1"
+              >
+                {saving ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Tipo de cambio USD */}
       {pantalla === 'tipo_cambio' && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
@@ -520,6 +641,25 @@ export default function InversionesPage({ userId }: Props) {
                 className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
               />
               {errForm && <p className="text-danger text-sm">{errForm}</p>}
+              <button
+                onClick={async () => {
+                  setErrForm(null)
+                  setFetchingRate(true)
+                  try {
+                    const centavos = await fetchTipoCambioDesdeAPI()
+                    setNuevoCambio(String((centavos / 100).toFixed(2)))
+                    setPantalla('lista')
+                  } catch (e: unknown) {
+                    setErrForm(e instanceof Error ? e.message : 'Error al obtener tipo de cambio')
+                  } finally {
+                    setFetchingRate(false)
+                  }
+                }}
+                disabled={fetchingRate || saving}
+                className="w-full py-3 rounded-xl bg-surface2 text-white text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {fetchingRate ? 'Consultando...' : '📡 Obtener tipo actual (API)'}
+              </button>
               <button
                 onClick={handleTipoCambio}
                 disabled={saving}

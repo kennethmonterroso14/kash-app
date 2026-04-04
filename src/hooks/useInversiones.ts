@@ -53,7 +53,9 @@ export function useInversiones(userId: string) {
       const msg = e instanceof Error
         ? e.message
         : (e as { message?: string })?.message ?? 'Error al cargar inversiones'
-      setError(msg)
+      setError(msg.includes('does not exist')
+        ? `${msg} — ¿Ejecutaste la migración SQL de Fase 7 en Supabase?`
+        : msg)
     } finally {
       setLoading(false)
     }
@@ -130,6 +132,36 @@ export function useInversiones(userId: string) {
     setInversiones(prev => prev.filter(i => i.id !== id))
   }
 
+  const actualizarInversion = async (id: string, updates: {
+    nombre?: string
+    plataforma?: string
+    tipo?: string
+    monto_invertido?: number   // centavos en la moneda de la inversión
+    fecha_inicio?: string
+    notas?: string
+  }) => {
+    if (updates.nombre !== undefined && !updates.nombre.trim()) throw new Error('El nombre es requerido')
+    if (updates.monto_invertido !== undefined && updates.monto_invertido <= 0) throw new Error('El capital debe ser mayor a 0')
+
+    // Si cambia el capital y el valor_actual === capital original (nunca actualizado),
+    // también actualizar valor_actual para mantener coherencia
+    const invActual = inversiones.find(i => i.id === id)
+    const dbUpdates: Record<string, unknown> = { ...updates }
+    if (updates.monto_invertido !== undefined && invActual && invActual.valor_actual === invActual.monto_invertido) {
+      dbUpdates.valor_actual = updates.monto_invertido
+    }
+
+    const { data, error } = await supabase
+      .from('inversiones')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select('id, nombre, plataforma, tipo, monto_invertido, valor_actual, moneda, fecha_inicio, fecha_ultimo_update, notas, activa')
+      .single()
+    if (error) throw new Error(`Error al actualizar: ${error.message}`)
+    setInversiones(prev => prev.map(i => i.id === id ? data : i))
+    return data
+  }
+
   const actualizarTipoCambio = async (nuevoCambio: number) => {
     // nuevoCambio: centavos GTQ por 1 USD (ej: 775 = Q7.75)
     if (nuevoCambio <= 0) throw new Error('El tipo de cambio debe ser mayor a 0')
@@ -141,6 +173,19 @@ export function useInversiones(userId: string) {
     if (error) throw new Error(`Error al actualizar tipo de cambio: ${error.message}`)
     setTipoCambioUSD(nuevoCambio)
     setTipoCambioFecha(ahora)
+  }
+
+  const fetchTipoCambioDesdeAPI = async (): Promise<number> => {
+    // Usa la API gratuita de exchangerate-api.com (sin API key, GTQ incluido)
+    const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD')
+    if (!res.ok) throw new Error('No se pudo conectar a la API de tipo de cambio')
+    const json = await res.json() as { rates: Record<string, number> }
+    const rateGTQ = json.rates['GTQ']
+    if (!rateGTQ || rateGTQ <= 0) throw new Error('GTQ no disponible en la API')
+    // Convertir a centavos (ej: 7.75 → 775)
+    const centavos = Math.round(rateGTQ * 100)
+    await actualizarTipoCambio(centavos)
+    return centavos
   }
 
   const resumen = useMemo(
@@ -169,6 +214,8 @@ export function useInversiones(userId: string) {
     actualizarValor,
     archivarInversion,
     actualizarTipoCambio,
+    actualizarInversion,
+    fetchTipoCambioDesdeAPI,
     recargar: cargar,
   }
 }

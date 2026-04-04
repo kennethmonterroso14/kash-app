@@ -339,7 +339,7 @@ export function calcRendimientoAnualizado(
 ): number {
   if (montoInvertido <= 0) throw new Error('monto_invertido debe ser > 0')
   const inicio = new Date(fechaInicio + 'T12:00:00')
-  const dias = Math.max(1, Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24)))
+  const dias = Math.max(30, Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24)))
   const ratio = valorActual / montoInvertido
   if (ratio <= 0) return -100
   return (Math.pow(ratio, 365 / dias) - 1) * 100
