@@ -166,10 +166,15 @@ export function useInversiones(userId: string) {
     // nuevoCambio: centavos GTQ por 1 USD (ej: 775 = Q7.75)
     if (nuevoCambio <= 0) throw new Error('El tipo de cambio debe ser mayor a 0')
     const ahora = new Date().toISOString()
+
+    // Usamos upsert para garantizar que la fila exista y la política RLS no
+    // bloquee silenciosamente el UPDATE (Supabase no devuelve error si 0 filas afectadas)
     const { error } = await supabase
       .from('profiles')
-      .update({ tipo_cambio_usd: nuevoCambio, tipo_cambio_actualizado_at: ahora })
-      .eq('id', userId)
+      .upsert(
+        { id: userId, tipo_cambio_usd: nuevoCambio, tipo_cambio_actualizado_at: ahora },
+        { onConflict: 'id' }
+      )
     if (error) throw new Error(`Error al actualizar tipo de cambio: ${error.message}`)
     setTipoCambioUSD(nuevoCambio)
     setTipoCambioFecha(ahora)
