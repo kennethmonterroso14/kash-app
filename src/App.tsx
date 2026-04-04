@@ -14,6 +14,7 @@ import ProyeccionesPage from './pages/ProyeccionesPage'
 import PerfilPage from './pages/PerfilPage'
 import PagosRecurrentesPage from './pages/PagosRecurrentesPage'
 import TarjetasPage from './pages/TarjetasPage'
+import InversionesPage from './pages/InversionesPage'
 import { useAutoApplyPagos } from './hooks/useAutoApplyPagos'
 
 export default function App() {
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
         <Route path="/pagos" element={<PagosRecurrentesPage userId={user.id} />} />
         <Route path="/tarjetas" element={<TarjetasPage userId={user.id} />} />
+        <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
         <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

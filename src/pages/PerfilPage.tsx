@@ -48,6 +48,7 @@ export default function PerfilPage({ user, onSignOut }: Props) {
       {/* Navigation shortcuts */}
       <div className="flex flex-col gap-2 mb-6">
         {[
+          { to: '/inversiones',  icon: '📈', label: 'Inversiones' },
           { to: '/tarjetas',     icon: '💳', label: 'Tarjetas de Crédito' },
           { to: '/pagos',        icon: '↻', label: 'Pagos Fijos' },
           { to: '/metas',        icon: '◉', label: 'Metas de ahorro' },
