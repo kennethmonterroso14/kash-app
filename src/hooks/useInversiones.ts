@@ -36,7 +36,7 @@ export function useInversiones(userId: string) {
         supabase
           .from('profiles')
           .select('tipo_cambio_usd, tipo_cambio_actualizado_at')
-          .eq('id', userId)
+          .eq('user_id', userId)
           .single(),
       ])
       if (invRes.error)  throw new Error(`inversiones: ${invRes.error.message}`)
@@ -170,7 +170,7 @@ export function useInversiones(userId: string) {
     const { error } = await supabase
       .from('profiles')
       .update({ tipo_cambio_usd: nuevoCambio, tipo_cambio_actualizado_at: ahora })
-      .eq('id', userId)
+      .eq('user_id', userId)
     if (error) throw new Error(`Error al actualizar tipo de cambio: ${error.message}`)
     setTipoCambioUSD(nuevoCambio)
     setTipoCambioFecha(ahora)
