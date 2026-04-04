@@ -39,8 +39,9 @@ export function useInversiones(userId: string) {
           .eq('id', userId)
           .single(),
       ])
-      if (invRes.error)   throw invRes.error
-      if (histRes.error)  throw histRes.error
+      if (invRes.error)    throw invRes.error
+      if (histRes.error)   throw histRes.error
+      if (perfilRes.error) throw perfilRes.error
       setInversiones(invRes.data ?? [])
       setHistorial(histRes.data ?? [])
       if (perfilRes.data) {
@@ -81,12 +82,13 @@ export function useInversiones(userId: string) {
     if (error) throw new Error(`Error al guardar: ${error.message}`)
 
     // Registrar primer punto en historial
-    await supabase.from('inversiones_historial').insert({
+    const { error: histErr } = await supabase.from('inversiones_historial').insert({
       inversion_id: data.id,
       user_id:      userId,
       valor:        data.valor_actual,
       fecha:        data.fecha_inicio,
     })
+    if (histErr) throw new Error(`Error al registrar historial: ${histErr.message}`)
 
     await cargar()   // refresca inversiones + historial
   }

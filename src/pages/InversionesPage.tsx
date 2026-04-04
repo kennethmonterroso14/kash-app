@@ -275,7 +275,9 @@ export default function InversionesPage({ userId }: Props) {
       {/* ── Lista de inversiones ─────────────────────────── */}
       <div className="flex flex-col gap-3">
         {inversiones.map(inv => {
-          const rend           = calcRendimientoAnualizado(inv.monto_invertido, inv.valor_actual, inv.fecha_inicio)
+          const rend           = inv.monto_invertido > 0
+            ? calcRendimientoAnualizado(inv.monto_invertido, inv.valor_actual, inv.fecha_inicio)
+            : 0
           const gananciaNativa = inv.valor_actual - inv.monto_invertido
           const gananciaGTQ    = valorEnGTQ(inv) - capitalEnGTQ(inv)
           const superaInflacion = rend > INFLACION_GT
