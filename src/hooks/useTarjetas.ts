@@ -60,9 +60,11 @@ export function useTarjetas(userId: string) {
       .select('id', { count: 'exact', head: true })
       .eq('tarjeta_id', id)
     if ((count ?? 0) > 0) {
-      await supabase.from('tarjetas_credito').update({ activa: false }).eq('id', id)
+      const { error } = await supabase.from('tarjetas_credito').update({ activa: false }).eq('id', id)
+      if (error) throw new Error(`Error al archivar: ${error.message}`)
     } else {
-      await supabase.from('tarjetas_credito').delete().eq('id', id)
+      const { error } = await supabase.from('tarjetas_credito').delete().eq('id', id)
+      if (error) throw new Error(`Error al eliminar: ${error.message}`)
     }
     setTarjetas(prev => prev.filter(tc => tc.id !== id))
   }
