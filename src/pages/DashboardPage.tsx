@@ -7,7 +7,8 @@ import {
 import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { useResumen6Meses } from '../hooks/useResumen6Meses'
-import { formatQ, calcEstadisticasMes } from '../lib/finanzas'
+import { useTarjetas } from '../hooks/useTarjetas'
+import { formatQ, calcEstadisticasMes, calcDisponibleReal } from '../lib/finanzas'
 import { CAT_COLORS, MESES, mesActual } from '../lib/constants'
 
 interface Props { user: User }
@@ -19,10 +20,16 @@ export default function DashboardPage({ user }: Props) {
   const { cuentas, totalPatrimonio } = useCuentas(user.id)
   const { txns, loading } = useTransacciones(user.id, mes)
   const { data: resumen6 } = useResumen6Meses(user.id)
+  const { resumenTCs, tarjetas } = useTarjetas(user.id)
 
   const stats = useMemo(() => calcEstadisticasMes(
     txns.map(t => ({ ...t, id: t.id, descripcion: t.descripcion }))
   ), [txns])
+
+  const disponibleReal = useMemo(
+    () => calcDisponibleReal(totalPatrimonio, tarjetas),
+    [totalPatrimonio, tarjetas]
+  )
 
   const [anio, mesNum] = mes.split('-').map(Number)
   const mesLabel = `${MESES[mesNum - 1]} ${anio}`
@@ -87,6 +94,69 @@ export default function DashboardPage({ user }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Disponible Real — solo si hay TCs registradas */}
+      {tarjetas.length > 0 && (
+        <div className="bg-surface rounded-2xl p-4">
+          <p className="text-muted text-xs uppercase tracking-widest mb-3">Disponible Real</p>
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted">Saldo en cuentas</span>
+              <span className="font-mono text-white">{formatQ(disponibleReal.saldo_cuentas)}</span>
+            </div>
+            {disponibleReal.deuda_tc_vencida > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted">Deuda TC vencida</span>
+                <span className="font-mono text-danger">−{formatQ(disponibleReal.deuda_tc_vencida)}</span>
+              </div>
+            )}
+            <div className="border-t border-muted/20 pt-1.5 flex justify-between">
+              <span className="text-white font-semibold text-sm">Disponible real</span>
+              <span className={`font-mono font-bold ${disponibleReal.disponible_real >= 0 ? 'text-success' : 'text-danger'}`}>
+                {formatQ(disponibleReal.disponible_real)}
+              </span>
+            </div>
+          </div>
+          {disponibleReal.advertencia && (
+            <p className="text-warning text-xs mt-3 bg-warning/10 rounded-lg p-2">
+              {disponibleReal.advertencia}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Mini-cards TC — scroll horizontal */}
+      {resumenTCs.length > 0 && (
+        <div>
+          <p className="text-muted text-xs uppercase tracking-widest mb-2">Tarjetas de crédito</p>
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            {resumenTCs.map(({ tc, resumen }) => (
+              <div key={tc.id} className="bg-surface rounded-xl p-3 flex-shrink-0 w-44 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tc.color }} />
+                  <p className="text-white text-xs font-semibold truncate">{tc.nombre}</p>
+                </div>
+                <div>
+                  <p className="text-muted text-xs">Disponible</p>
+                  <p className="font-mono text-sm text-white font-semibold">{formatQ(resumen.disponible)}</p>
+                </div>
+                <div className="h-1 bg-bg rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${
+                      resumen.estado === 'critico' ? 'bg-danger' :
+                      resumen.estado === 'alerta'  ? 'bg-warning' : 'bg-success'
+                    }`}
+                    style={{ width: `${Math.min(resumen.pct_uso, 100)}%` }}
+                  />
+                </div>
+                {tc.deuda_ciclo_anterior > 0 && (
+                  <p className="text-danger text-xs">⚠ Pago pendiente</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Selector de mes */}
       <div className="flex items-center justify-between">
