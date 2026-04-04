@@ -285,3 +285,122 @@ export function calcPatrimonioNeto(
   const tendencia = neto > 0 ? 'positiva' : neto < 0 ? 'negativa' : 'neutral'
   return { activos, pasivos, neto, tendencia }
 }
+
+// ─── INVERSIONES ─────────────────────────────────────
+
+export interface Inversion {
+  id: string
+  nombre: string
+  plataforma?: string
+  tipo: string
+  monto_invertido: number      // centavos en la moneda indicada
+  valor_actual: number         // centavos en la moneda indicada
+  moneda: 'GTQ' | 'USD'
+  fecha_inicio: string         // 'YYYY-MM-DD'
+  fecha_ultimo_update?: string
+  notas?: string
+  activa: boolean
+}
+
+export interface InversionHistorial {
+  id: string
+  inversion_id: string
+  valor: number                // centavos en la moneda de la inversión
+  fecha: string                // 'YYYY-MM-DD'
+}
+
+export interface ResumenPortafolio {
+  capital_total: number        // centavos GTQ
+  valor_total: number          // centavos GTQ
+  ganancia_total: number       // centavos GTQ (puede ser negativo)
+  ganancia_pct: number         // porcentaje
+  rendimiento_anualizado: number  // CAGR promedio ponderado, porcentaje
+}
+
+/**
+ * Convierte centavos USD a centavos GTQ.
+ * tipoCambioUSD: centavos GTQ por 1 USD (ej: 775 = Q7.75/USD)
+ * Ejemplo: usdToGTQ(10_000, 775) → 77_500  ($100 × Q7.75 = Q775)
+ */
+export function usdToGTQ(montoUSD_centavos: number, tipoCambioUSD: number): number {
+  return Math.round(montoUSD_centavos * tipoCambioUSD / 100)
+}
+
+/**
+ * Calcula el Compound Annual Growth Rate (CAGR) para una inversión.
+ * Retorna porcentaje (ej: 8.5 = 8.5%). Mínimo 1 día para evitar división por cero.
+ * Nota: opera sobre los valores nativos de la inversión (cualquier moneda).
+ */
+export function calcRendimientoAnualizado(
+  montoInvertido: number,  // centavos (moneda nativa)
+  valorActual: number,     // centavos (moneda nativa)
+  fechaInicio: string      // 'YYYY-MM-DD'
+): number {
+  if (montoInvertido <= 0) throw new Error('monto_invertido debe ser > 0')
+  const inicio = new Date(fechaInicio + 'T12:00:00')
+  const dias = Math.max(1, Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24)))
+  const ratio = valorActual / montoInvertido
+  if (ratio <= 0) return -100
+  return (Math.pow(ratio, 365 / dias) - 1) * 100
+}
+
+/**
+ * Calcula resumen del portafolio. Todos los valores de retorno están en GTQ centavos.
+ * Las inversiones en USD se convierten usando tipoCambioUSD antes de sumar.
+ * El rendimiento anualizado es CAGR ponderado por capital en GTQ.
+ */
+export function calcResumenPortafolio(
+  inversiones: Inversion[],
+  tipoCambioUSD: number = 775
+): ResumenPortafolio {
+  const activas = inversiones.filter(i => i.activa)
+  if (activas.length === 0) {
+    return { capital_total: 0, valor_total: 0, ganancia_total: 0, ganancia_pct: 0, rendimiento_anualizado: 0 }
+  }
+
+  const toGTQ = (inv: Inversion, val: number): number =>
+    inv.moneda === 'USD' ? usdToGTQ(val, tipoCambioUSD) : val
+
+  const capital_total = activas.reduce((s, i) => s + toGTQ(i, i.monto_invertido), 0)
+  const valor_total   = activas.reduce((s, i) => s + toGTQ(i, i.valor_actual),    0)
+  const ganancia_total  = valor_total - capital_total
+  const ganancia_pct    = capital_total > 0 ? (ganancia_total / capital_total) * 100 : 0
+
+  const rendimiento_anualizado = capital_total > 0
+    ? activas.reduce((sum, inv) => {
+        const pesoGTQ = toGTQ(inv, inv.monto_invertido) / capital_total
+        const rend = calcRendimientoAnualizado(inv.monto_invertido, inv.valor_actual, inv.fecha_inicio)
+        return sum + rend * pesoGTQ
+      }, 0)
+    : 0
+
+  return { capital_total, valor_total, ganancia_total, ganancia_pct, rendimiento_anualizado }
+}
+
+/**
+ * Computa la evolución total del portafolio para la gráfica.
+ * Para cada fecha única en historial, suma el último valor conocido de cada inversión
+ * (convirtiendo a GTQ). Inversiones sin historial previo a esa fecha usan monto_invertido.
+ */
+export function computeEvolucionPortafolio(
+  inversiones: Inversion[],
+  historial: InversionHistorial[],
+  tipoCambioUSD: number = 775
+): Array<{ fecha: string; valor_total: number }> {
+  const fechas = [...new Set(historial.map(h => h.fecha))].sort()
+  if (fechas.length === 0) return []
+
+  const toGTQ = (inv: Inversion, val: number): number =>
+    inv.moneda === 'USD' ? usdToGTQ(val, tipoCambioUSD) : val
+
+  return fechas.map(fecha => {
+    const valor_total = inversiones.filter(i => i.activa).reduce((sum, inv) => {
+      const entradas = historial
+        .filter(h => h.inversion_id === inv.id && h.fecha <= fecha)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha))
+      const val = entradas[0]?.valor ?? inv.monto_invertido
+      return sum + toGTQ(inv, val)
+    }, 0)
+    return { fecha, valor_total }
+  })
+}

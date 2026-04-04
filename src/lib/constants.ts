@@ -67,3 +67,12 @@ export const mesActual = (): string => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
+
+export const TIPOS_INVERSION = [
+  { value: 'fondo',     label: 'Fondo de inversión' },
+  { value: 'acciones',  label: 'Acciones / ETF' },
+  { value: 'cdp',       label: 'CDP / Depósito a plazo' },
+  { value: 'crypto',    label: 'Criptomonedas' },
+  { value: 'inmueble',  label: 'Inmueble / Bien raíz' },
+  { value: 'otro',      label: 'Otro' },
+] as const
