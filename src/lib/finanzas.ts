@@ -33,7 +33,7 @@ export interface Transaccion {
   fecha: string
   cantidad: number        // centavos, negativo = gasto
   categoria: string
-  tipo: 'ingreso' | 'gasto' | 'ajuste'
+  tipo: 'ingreso' | 'gasto' | 'ajuste' | 'gasto_tc' | 'pago_tc'
   descripcion: string
 }
 
@@ -63,7 +63,7 @@ export function calcEstadisticasMes(
     .reduce((sum, t) => sum + t.cantidad, 0)
 
   const gastos = transacciones
-    .filter(t => t.tipo === 'gasto')
+    .filter(t => t.tipo === 'gasto' || t.tipo === 'gasto_tc')
     .reduce((sum, t) => sum + Math.abs(t.cantidad), 0)
 
   const neto = ingresos - gastos
@@ -73,7 +73,7 @@ export function calcEstadisticasMes(
 
   const porCategoria: Record<string, number> = {}
   transacciones
-    .filter(t => t.tipo === 'gasto')
+    .filter(t => t.tipo === 'gasto' || t.tipo === 'gasto_tc')
     .forEach(t => {
       porCategoria[t.categoria] =
         (porCategoria[t.categoria] || 0) + Math.abs(t.cantidad)
@@ -171,4 +171,114 @@ export function calcEstadoPresupuesto(
     pct >= 100 ? 'excedido' : pct >= 75 ? 'alerta' : 'ok'
 
   return { pct, estado, restante }
+}
+
+// ─── TARJETAS DE CRÉDITO ─────────────────────────────────────
+
+export interface TarjetaCredito {
+  id: string
+  nombre: string
+  banco?: string
+  ultimos_4?: string
+  limite_credito: number       // centavos
+  deuda_actual: number         // centavos — ciclo abierto (no facturado aún)
+  deuda_ciclo_anterior: number // centavos — ya facturado, pendiente de pago
+  dia_cierre: number
+  dia_pago: number
+  color: string
+  activa: boolean
+}
+
+export interface ResumenTC {
+  disponible: number           // limite - deuda_actual
+  deuda_total: number          // deuda_actual + deuda_ciclo_anterior
+  pct_uso: number              // 0-100
+  estado: 'ok' | 'alerta' | 'critico'
+  dias_para_cierre: number
+  dias_para_pago: number
+  proximo_cierre: Date
+  proximo_pago: Date
+}
+
+export interface DisponibleReal {
+  saldo_cuentas: number
+  deuda_tc_vencida: number     // solo deuda_ciclo_anterior (ya hay que pagar)
+  deuda_tc_acumulando: number  // deuda_actual (ciclo abierto, aún no vence)
+  disponible_real: number      // saldo_cuentas - deuda_tc_vencida
+  advertencia: string | null
+}
+
+export interface PatrimonioNeto {
+  activos: number              // cuentas + inversiones
+  pasivos: number              // toda la deuda TC (actual + ciclo anterior)
+  neto: number
+  tendencia: 'positiva' | 'negativa' | 'neutral'
+}
+
+function _proximaFechaDelDia(desde: Date, dia: number): Date {
+  const d = new Date(desde)
+  d.setDate(dia)
+  if (d <= desde) d.setMonth(d.getMonth() + 1)
+  return d
+}
+
+export function calcResumenTC(tc: TarjetaCredito): ResumenTC {
+  const disponible = tc.limite_credito - tc.deuda_actual
+  const deuda_total = tc.deuda_actual + tc.deuda_ciclo_anterior
+  const pct_uso = Math.round((tc.deuda_actual / tc.limite_credito) * 100)
+  const estado = pct_uso >= 90 ? 'critico' : pct_uso >= 70 ? 'alerta' : 'ok'
+
+  const hoy = new Date()
+  const proximo_cierre = _proximaFechaDelDia(hoy, tc.dia_cierre)
+  const proximo_pago   = _proximaFechaDelDia(hoy, tc.dia_pago)
+  const MS_DIA = 1000 * 60 * 60 * 24
+
+  return {
+    disponible,
+    deuda_total,
+    pct_uso,
+    estado,
+    dias_para_cierre: Math.ceil((proximo_cierre.getTime() - hoy.getTime()) / MS_DIA),
+    dias_para_pago:   Math.ceil((proximo_pago.getTime()   - hoy.getTime()) / MS_DIA),
+    proximo_cierre,
+    proximo_pago,
+  }
+}
+
+export function calcDisponibleReal(
+  saldoCuentas: number,
+  tarjetas: TarjetaCredito[]
+): DisponibleReal {
+  const deuda_tc_vencida    = tarjetas.reduce((s, tc) => s + tc.deuda_ciclo_anterior, 0)
+  const deuda_tc_acumulando = tarjetas.reduce((s, tc) => s + tc.deuda_actual, 0)
+  const disponible_real     = saldoCuentas - deuda_tc_vencida
+
+  const advertencia =
+    disponible_real < 0
+      ? `Tus deudas vencidas de TC (${formatQ(deuda_tc_vencida)}) superan tu saldo en cuentas`
+      : deuda_tc_vencida > saldoCuentas * 0.5
+      ? `Más del 50% de tu saldo está comprometido con pagos de TC pendientes`
+      : null
+
+  return {
+    saldo_cuentas: saldoCuentas,
+    deuda_tc_vencida,
+    deuda_tc_acumulando,
+    disponible_real,
+    advertencia,
+  }
+}
+
+export function calcPatrimonioNeto(
+  saldoCuentas: number,
+  valorInversiones: number,
+  tarjetas: TarjetaCredito[]
+): PatrimonioNeto {
+  const activos  = saldoCuentas + valorInversiones
+  const pasivos  = tarjetas.reduce(
+    (s, tc) => s + tc.deuda_actual + tc.deuda_ciclo_anterior, 0
+  )
+  const neto     = activos - pasivos
+  const tendencia = neto > 0 ? 'positiva' : neto < 0 ? 'negativa' : 'neutral'
+  return { activos, pasivos, neto, tendencia }
 }
