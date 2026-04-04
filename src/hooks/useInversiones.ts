@@ -39,17 +39,21 @@ export function useInversiones(userId: string) {
           .eq('id', userId)
           .single(),
       ])
-      if (invRes.error)    throw invRes.error
-      if (histRes.error)   throw histRes.error
-      if (perfilRes.error) throw perfilRes.error
+      if (invRes.error)  throw new Error(`inversiones: ${invRes.error.message}`)
+      if (histRes.error) throw new Error(`historial: ${histRes.error.message}`)
       setInversiones(invRes.data ?? [])
       setHistorial(histRes.data ?? [])
-      if (perfilRes.data) {
+      // La query de profiles es no-fatal: si falla (ej. columna aún no migrada)
+      // usamos los defaults y no bloqueamos la página
+      if (!perfilRes.error && perfilRes.data) {
         setTipoCambioUSD(perfilRes.data.tipo_cambio_usd ?? 775)
         setTipoCambioFecha(perfilRes.data.tipo_cambio_actualizado_at ?? null)
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al cargar inversiones')
+      const msg = e instanceof Error
+        ? e.message
+        : (e as { message?: string })?.message ?? 'Error al cargar inversiones'
+      setError(msg)
     } finally {
       setLoading(false)
     }
