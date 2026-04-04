@@ -4,13 +4,14 @@ import { hoyGT } from '../lib/constants'
 
 export interface Transaccion {
   id: string
-  cuenta_id: string
+  cuenta_id: string | null
   fecha: string
   cantidad: number   // centavos
   descripcion: string
   categoria: string
-  tipo: 'ingreso' | 'gasto' | 'ajuste'
+  tipo: 'ingreso' | 'gasto' | 'ajuste' | 'gasto_tc' | 'pago_tc'
   notas?: string
+  tarjeta_id?: string | null
 }
 
 export function useTransacciones(userId: string | undefined, mes: string) {
@@ -24,7 +25,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     const hasta = `${mes}-31`
     const { data } = await supabase
       .from('transacciones')
-      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas')
+      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')
       .eq('user_id', userId)
       .gte('fecha', desde)
       .lte('fecha', hasta)
@@ -88,7 +89,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .from('transacciones')
       .update(updates)
       .eq('id', id)
-      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas')
+      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')
       .single()
     if (!error && data) {
       setTxns(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
@@ -112,7 +113,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
         { ...base, cuenta_id: deCuentaId, cantidad: -cantidad },
         { ...base, cuenta_id: aCuentaId,  cantidad: +cantidad },
       ])
-      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas')
+      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')
     if (!error && data) {
       setTxns(prev => [...data, ...prev])
     }

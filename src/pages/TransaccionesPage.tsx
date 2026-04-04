@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
+import { useTarjetas } from '../hooks/useTarjetas'
 import { formatQ } from '../lib/finanzas'
 import { toCentavos } from '../lib/finanzas'
 import { CAT_COLORS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, MESES, hoyGT, mesActual } from '../lib/constants'
@@ -9,7 +10,7 @@ import { CAT_COLORS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, MESES, hoyGT, mesActu
 interface Props { user: User }
 
 type TipoTxn = 'gasto' | 'ingreso' | 'ajuste'
-type TipoForm = 'gasto' | 'ingreso' | 'transferencia'
+type TipoForm = 'gasto' | 'ingreso' | 'transferencia' | 'gasto_tc'
 
 export default function TransaccionesPage({ user }: Props) {
   const [mes, setMes] = useState(mesActual())
@@ -33,6 +34,14 @@ export default function TransaccionesPage({ user }: Props) {
     if (!cuentaId && cuentas.length > 0) setCuentaId(cuentas[0].id)
   }, [cuentas, cuentaId])
   const [saving, setSaving] = useState(false)
+  const { resumenTCs, registrarCargo } = useTarjetas(user.id)
+  const [tcId, setTcId] = useState('')
+
+  // Default primera TC cuando carguen
+  useEffect(() => {
+    if (!tcId && resumenTCs.length > 0) setTcId(resumenTCs[0].tc.id)
+  }, [resumenTCs, tcId])
+
   const [transferDe, setTransferDe] = useState('')
   const [transferA, setTransferA]   = useState('')
   const [transferSaving, setTransferSaving] = useState(false)
@@ -66,7 +75,7 @@ export default function TransaccionesPage({ user }: Props) {
       t.categoria,
       t.tipo,
       (t.cantidad / 100).toFixed(2),
-      getCuentaNombre(t.cuenta_id),
+      t.cuenta_id ? getCuentaNombre(t.cuenta_id) : (t.tarjeta_id ?? 'TC'),
     ].join(','))
     const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -83,9 +92,32 @@ export default function TransaccionesPage({ user }: Props) {
   const handleAddTxn = async (e: React.FormEvent) => {
     e.preventDefault()
     if (tipo === 'transferencia') return
-    const val = parseFloat(cantidad)
-    if (isNaN(val) || val <= 0 || !descripcion || !cuentaId) return
     setSaving(true)
+
+    if (tipo === 'gasto_tc') {
+      if (!tcId) { setSaving(false); return }
+      const monto = parseFloat(cantidad)
+      if (isNaN(monto) || monto <= 0) { setSaving(false); return }
+      try {
+        await registrarCargo({
+          tarjeta_id:  tcId,
+          monto:       toCentavos(monto),
+          descripcion: descripcion.trim() || categoria,
+          categoria,
+          fecha,
+        })
+        setShowForm(false)
+        setCantidad(''); setDescripcion(''); setCategoria(CATEGORIAS_GASTO[0])
+      } catch (e: unknown) {
+        console.error('Error registrando cargo TC:', e)
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
+    const val = parseFloat(cantidad)
+    if (isNaN(val) || val <= 0 || !descripcion || !cuentaId) { setSaving(false); return }
 
     const centavos = toCentavos(val)
     const cantidadFinal = tipo === 'gasto' ? -centavos : centavos
@@ -392,7 +424,7 @@ export default function TransaccionesPage({ user }: Props) {
 
             {/* Tipo */}
             <div className="flex gap-1 bg-bg rounded-xl p-1">
-              {(['gasto', 'ingreso', 'transferencia'] as TipoForm[]).map(t => (
+              {(['gasto', 'ingreso', 'gasto_tc', 'transferencia'] as TipoForm[]).map(t => (
                 <button
                   key={t}
                   onClick={() => {
@@ -403,14 +435,17 @@ export default function TransaccionesPage({ user }: Props) {
                       setTransferA('')
                     }
                   }}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                     tipo === t
-                      ? t === 'ingreso' ? 'bg-accent text-bg' : t === 'gasto' ? 'bg-danger text-white' : 'text-white'
+                      ? t === 'ingreso'  ? 'bg-accent text-bg'
+                      : t === 'gasto'    ? 'bg-danger text-white'
+                      : t === 'gasto_tc' ? 'bg-warning/20 text-warning'
+                      :                    'text-white'
                       : 'text-muted'
                   }`}
                   style={tipo === t && t === 'transferencia' ? { background: '#60a5fa' } : undefined}
                 >
-                  {t}
+                  {t === 'gasto' ? 'Gasto' : t === 'ingreso' ? 'Ingreso' : t === 'gasto_tc' ? 'Cargo TC' : 'Transferencia'}
                 </button>
               ))}
             </div>
@@ -492,7 +527,7 @@ export default function TransaccionesPage({ user }: Props) {
                 />
               </div>
 
-              {/* Categoría + Cuenta */}
+              {/* Categoría + Cuenta/TC */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-muted text-xs mb-1 block">Categoría</label>
@@ -505,16 +540,50 @@ export default function TransaccionesPage({ user }: Props) {
                   </select>
                 </div>
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Cuenta</label>
-                  <select
-                    value={cuentaId}
-                    onChange={e => setCuentaId(e.target.value)}
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
-                  >
-                    {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
+                  {tipo === 'gasto_tc' ? (
+                    <>
+                      <label className="text-muted text-xs mb-1 block">Tarjeta</label>
+                      <select
+                        value={tcId}
+                        onChange={e => setTcId(e.target.value)}
+                        className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                      >
+                        {resumenTCs.length === 0
+                          ? <option value="">Sin tarjetas</option>
+                          : resumenTCs.map(({ tc, resumen }) => (
+                            <option key={tc.id} value={tc.id}>
+                              {tc.nombre} — {formatQ(resumen.disponible)}
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <label className="text-muted text-xs mb-1 block">Cuenta</label>
+                      <select
+                        value={cuentaId}
+                        onChange={e => setCuentaId(e.target.value)}
+                        className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                      >
+                        {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                      </select>
+                    </>
+                  )}
                 </div>
               </div>
+              {tipo === 'gasto_tc' && tcId && (() => {
+                const sel = resumenTCs.find(r => r.tc.id === tcId)
+                const monto = parseFloat(cantidad)
+                if (!sel || isNaN(monto) || monto <= 0) return null
+                const tras = sel.tc.limite_credito - sel.tc.deuda_actual - toCentavos(monto)
+                return (
+                  <p className={`text-xs font-mono ${tras >= 0 ? 'text-success' : 'text-danger'}`}>
+                    Disponible tras cargo: {formatQ(Math.max(0, tras))}
+                    {tras < 0 ? ' ⚠ excede disponible' : ''}
+                  </p>
+                )
+              })()}
 
               {/* Fecha */}
               <div>
@@ -531,10 +600,12 @@ export default function TransaccionesPage({ user }: Props) {
                 type="submit"
                 disabled={saving}
                 className={`w-full font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 ${
-                  tipo === 'ingreso' ? 'bg-accent text-bg' : 'bg-danger text-white'
+                  tipo === 'ingreso'  ? 'bg-accent text-bg'
+                  : tipo === 'gasto_tc' ? 'bg-warning/20 text-warning border border-warning/40'
+                  : 'bg-danger text-white'
                 }`}
               >
-                {saving ? 'Guardando...' : 'Guardar'}
+                {saving ? 'Guardando...' : tipo === 'gasto_tc' ? 'Registrar cargo' : 'Guardar'}
               </button>
             </form>
             )}
