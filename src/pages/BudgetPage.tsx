@@ -219,7 +219,7 @@ export default function BudgetPage({ userId }: Props) {
       {presupuestos.map(p => {
         const gastado = gastadoPorCat[p.categoria] ?? 0
         const { pct, estado, restante } = calcEstadoPresupuesto(gastado, p.monto_limite)
-        const barColor = estado === 'excedido' ? '#ff7c5c' : estado === 'alerta' ? '#fbbf24' : '#c8f564'
+        const barColor = estado === 'excedido' ? '#f87171' : estado === 'alerta' ? '#fbbf24' : '#4ade80'
 
         return (
           <div key={p.id} className="bg-surface rounded-2xl p-4">
