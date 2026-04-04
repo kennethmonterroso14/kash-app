@@ -7,7 +7,7 @@ import { CATEGORIAS_GASTO, hoyGT } from '../lib/constants'
 
 interface Props { userId: string }
 
-type Pantalla = 'lista' | 'nueva_tc' | 'cargo' | 'pago' | 'cerrar'
+type Pantalla = 'lista' | 'nueva_tc' | 'editar_tc' | 'cargo' | 'pago' | 'cerrar'
 
 const COLORES_TC = [
   '#7c6af7', '#4ade80', '#f87171', '#fbbf24',
@@ -17,7 +17,7 @@ const COLORES_TC = [
 export default function TarjetasPage({ userId }: Props) {
   const {
     resumenTCs, totalDeuda, loading, error,
-    agregarTC, archivarTC, cerrarCiclo,
+    agregarTC, actualizarTC, archivarTC, cerrarCiclo,
     registrarCargo, registrarPago,
   } = useTarjetas(userId)
   const { cuentas } = useCuentas(userId)
@@ -70,6 +70,21 @@ export default function TarjetasPage({ userId }: Props) {
     setPantalla('nueva_tc')
   }
 
+  const abrirEditarTC = (tcId: string) => {
+    const tc = resumenTCs.find(r => r.tc.id === tcId)?.tc
+    if (!tc) return
+    setTcNombre(tc.nombre)
+    setTcBanco(tc.banco ?? '')
+    setTcUlt4(tc.ultimos_4 ?? '')
+    setTcLimite(String((tc.limite_credito / 100).toFixed(2)))
+    setTcCierre(String(tc.dia_cierre))
+    setTcPago(String(tc.dia_pago))
+    setTcColor(tc.color)
+    setErrTC(null)
+    setTcSelId(tcId)
+    setPantalla('editar_tc')
+  }
+
   const abrirCargo = (tcId: string) => {
     setCargoMonto(''); setCargoCat(CATEGORIAS_GASTO[0])
     setCargoDesc(''); setCargoFecha(hoyGT()); setErrCargo(null)
@@ -84,16 +99,26 @@ export default function TarjetasPage({ userId }: Props) {
   }
 
   // ── Handlers ───────────────────────────────────────────────────
+  // Valida que el día de pago sea >= 5 días después del cierre.
+  // Si pag < cie el pago cae en el mes siguiente (ej: cierre=24, pago=21 → ~27 días) → siempre válido.
+  const validarFechasTC = (cie: number, pag: number): string | null => {
+    if (pag >= cie && pag < cie + 5) {
+      return 'El día de pago debe ser al menos 5 días después del cierre (o en el mes siguiente)'
+    }
+    return null
+  }
+
   const handleNuevaTC = async () => {
     setErrTC(null)
     const lim = parseFloat(tcLimite)
     const cie = parseInt(tcCierre)
     const pag = parseInt(tcPago)
-    if (!tcNombre.trim())                       return setErrTC('El nombre es requerido')
-    if (isNaN(lim) || lim <= 0)                 return setErrTC('El límite debe ser mayor a Q0')
-    if (isNaN(cie) || cie < 1 || cie > 31)      return setErrTC('Día de cierre inválido (1-31)')
-    if (isNaN(pag) || pag < 1 || pag > 31)      return setErrTC('Día de pago inválido (1-31)')
-    if (pag < cie + 5)                          return setErrTC('El día de pago debe ser al menos 5 días después del cierre')
+    if (!tcNombre.trim())                  return setErrTC('El nombre es requerido')
+    if (isNaN(lim) || lim <= 0)            return setErrTC('El límite debe ser mayor a Q0')
+    if (isNaN(cie) || cie < 1 || cie > 31) return setErrTC('Día de cierre inválido (1-31)')
+    if (isNaN(pag) || pag < 1 || pag > 31) return setErrTC('Día de pago inválido (1-31)')
+    const errFecha = validarFechasTC(cie, pag)
+    if (errFecha) return setErrTC(errFecha)
     try {
       setSavingTC(true)
       await agregarTC({
@@ -110,6 +135,46 @@ export default function TarjetasPage({ userId }: Props) {
       setErrTC(e instanceof Error ? e.message : 'Error al guardar')
     } finally {
       setSavingTC(false)
+    }
+  }
+
+  const handleEditarTC = async () => {
+    if (!tcSelId) return
+    setErrTC(null)
+    const lim = parseFloat(tcLimite)
+    const cie = parseInt(tcCierre)
+    const pag = parseInt(tcPago)
+    if (!tcNombre.trim())                  return setErrTC('El nombre es requerido')
+    if (isNaN(lim) || lim <= 0)            return setErrTC('El límite debe ser mayor a Q0')
+    if (isNaN(cie) || cie < 1 || cie > 31) return setErrTC('Día de cierre inválido (1-31)')
+    if (isNaN(pag) || pag < 1 || pag > 31) return setErrTC('Día de pago inválido (1-31)')
+    const errFecha = validarFechasTC(cie, pag)
+    if (errFecha) return setErrTC(errFecha)
+    try {
+      setSavingTC(true)
+      await actualizarTC(tcSelId, {
+        nombre:         tcNombre.trim(),
+        banco:          tcBanco.trim() || undefined,
+        ultimos_4:      tcUlt4.replace(/\D/g, '').slice(0, 4) || undefined,
+        limite_credito: toCentavos(lim),
+        dia_cierre:     cie,
+        dia_pago:       pag,
+        color:          tcColor,
+      })
+      setPantalla('lista')
+    } catch (e: unknown) {
+      setErrTC(e instanceof Error ? e.message : 'Error al actualizar')
+    } finally {
+      setSavingTC(false)
+    }
+  }
+
+  const handleArchivarTC = async (tcId: string) => {
+    try {
+      await archivarTC(tcId)
+      setPantalla('lista')
+    } catch (e: unknown) {
+      setErrTC(e instanceof Error ? e.message : 'Error al archivar')
     }
   }
 
@@ -182,8 +247,7 @@ export default function TarjetasPage({ userId }: Props) {
     return tc.limite_credito - tc.deuda_actual - toCentavos(monto)
   }
 
-  // Supress unused warning — archivarTC available for future use
-  void archivarTC
+  // archivarTC used via handleArchivarTC inside modals
 
   if (loading) {
     return (
@@ -243,13 +307,22 @@ export default function TarjetasPage({ userId }: Props) {
                   )}
                 </div>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                resumen.estado === 'critico' ? 'bg-danger/10 text-danger' :
-                resumen.estado === 'alerta'  ? 'bg-warning/10 text-warning' :
-                                               'bg-success/10 text-success'
-              }`}>
-                {resumen.pct_uso}% usado
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  resumen.estado === 'critico' ? 'bg-danger/10 text-danger' :
+                  resumen.estado === 'alerta'  ? 'bg-warning/10 text-warning' :
+                                                 'bg-success/10 text-success'
+                }`}>
+                  {resumen.pct_uso}% usado
+                </span>
+                <button
+                  onClick={() => abrirEditarTC(tc.id)}
+                  className="text-muted hover:text-white transition-colors text-sm leading-none px-1"
+                  title="Editar tarjeta"
+                >
+                  ✎
+                </button>
+              </div>
             </div>
 
             {/* Disponible */}
@@ -390,6 +463,84 @@ export default function TarjetasPage({ userId }: Props) {
                 className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity mt-2"
               >
                 {savingTC ? 'Guardando...' : 'Agregar tarjeta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar TC */}
+      {pantalla === 'editar_tc' && tcSel && (
+        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
+          <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-white font-semibold">Editar tarjeta</h2>
+              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <input
+                placeholder="Nombre (ej: Visa BAC Personal)"
+                value={tcNombre} onChange={e => setTcNombre(e.target.value)}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              <input
+                placeholder="Banco (opcional)"
+                value={tcBanco} onChange={e => setTcBanco(e.target.value)}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              <input
+                placeholder="Últimos 4 dígitos (opcional)"
+                value={tcUlt4} onChange={e => setTcUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                inputMode="numeric" maxLength={4}
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              <input
+                placeholder="Límite de crédito (Q)"
+                value={tcLimite} onChange={e => setTcLimite(e.target.value)}
+                inputMode="decimal"
+                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+              />
+              <div className="flex gap-2">
+                <input
+                  placeholder="Día de cierre"
+                  value={tcCierre} onChange={e => setTcCierre(e.target.value)}
+                  inputMode="numeric"
+                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                />
+                <input
+                  placeholder="Día de pago"
+                  value={tcPago} onChange={e => setTcPago(e.target.value)}
+                  inputMode="numeric"
+                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <p className="text-muted text-xs mb-2">Color de la tarjeta</p>
+                <div className="flex gap-2 flex-wrap">
+                  {COLORES_TC.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setTcColor(c)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${tcColor === c ? 'border-white scale-110' : 'border-transparent'}`}
+                      style={{ background: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+              {errTC && <p className="text-danger text-sm">{errTC}</p>}
+              <button
+                onClick={handleEditarTC}
+                disabled={savingTC}
+                className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity mt-2"
+              >
+                {savingTC ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+              <button
+                onClick={() => handleArchivarTC(tcSel.tc.id)}
+                disabled={savingTC}
+                className="w-full py-2 rounded-xl bg-transparent text-danger/70 text-xs hover:text-danger transition-colors"
+              >
+                Archivar tarjeta
               </button>
             </div>
           </div>

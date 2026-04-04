@@ -202,9 +202,9 @@ export interface ResumenTC {
 
 export interface DisponibleReal {
   saldo_cuentas: number
-  deuda_tc_vencida: number     // solo deuda_ciclo_anterior (ya hay que pagar)
+  deuda_tc_vencida: number     // deuda_ciclo_anterior (ya hay que pagar)
   deuda_tc_acumulando: number  // deuda_actual (ciclo abierto, aún no vence)
-  disponible_real: number      // saldo_cuentas - deuda_tc_vencida
+  disponible_real: number      // saldo_cuentas - deuda_tc_vencida - deuda_tc_acumulando
   advertencia: string | null
 }
 
@@ -251,13 +251,16 @@ export function calcDisponibleReal(
 ): DisponibleReal {
   const deuda_tc_vencida    = tarjetas.reduce((s, tc) => s + tc.deuda_ciclo_anterior, 0)
   const deuda_tc_acumulando = tarjetas.reduce((s, tc) => s + tc.deuda_actual, 0)
-  const disponible_real     = saldoCuentas - deuda_tc_vencida
+  const deuda_total_tc      = deuda_tc_vencida + deuda_tc_acumulando
+  const disponible_real     = saldoCuentas - deuda_total_tc
 
   const advertencia =
     disponible_real < 0
-      ? `Tus deudas vencidas de TC (${formatQ(deuda_tc_vencida)}) superan tu saldo en cuentas`
-      : deuda_tc_vencida > saldoCuentas * 0.5
+      ? `Tu deuda total de TC (${formatQ(deuda_total_tc)}) supera tu saldo en cuentas`
+      : deuda_tc_vencida > 0 && deuda_tc_vencida > saldoCuentas * 0.5
       ? `Más del 50% de tu saldo está comprometido con pagos de TC pendientes`
+      : deuda_total_tc > saldoCuentas * 0.8
+      ? `Tu deuda total de TC representa más del 80% de tu saldo disponible`
       : null
 
   return {

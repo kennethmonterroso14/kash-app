@@ -54,6 +54,31 @@ export function useTarjetas(userId: string) {
     return data
   }
 
+  const actualizarTC = async (id: string, updates: {
+    nombre?: string
+    banco?: string
+    ultimos_4?: string
+    limite_credito?: number   // centavos
+    dia_cierre?: number
+    dia_pago?: number
+    color?: string
+  }) => {
+    if (updates.nombre !== undefined && !updates.nombre.trim())            throw new Error('El nombre es requerido')
+    if (updates.limite_credito !== undefined && updates.limite_credito <= 0) throw new Error('El límite debe ser mayor a Q0')
+    if (updates.dia_cierre !== undefined && (updates.dia_cierre < 1 || updates.dia_cierre > 31)) throw new Error('Día de cierre inválido')
+    if (updates.dia_pago   !== undefined && (updates.dia_pago   < 1 || updates.dia_pago   > 31)) throw new Error('Día de pago inválido')
+
+    const { data, error } = await supabase
+      .from('tarjetas_credito')
+      .update(updates)
+      .eq('id', id)
+      .select('id, nombre, banco, ultimos_4, limite_credito, deuda_actual, deuda_ciclo_anterior, dia_cierre, dia_pago, color, activa')
+      .single()
+    if (error) throw new Error(`Error al actualizar: ${error.message}`)
+    setTarjetas(prev => prev.map(tc => tc.id === id ? data : tc))
+    return data
+  }
+
   const archivarTC = async (id: string) => {
     const { count } = await supabase
       .from('transacciones')
@@ -140,6 +165,7 @@ export function useTarjetas(userId: string) {
     loading,
     error,
     agregarTC,
+    actualizarTC,
     archivarTC,
     cerrarCiclo,
     registrarCargo,

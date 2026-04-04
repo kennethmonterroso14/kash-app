@@ -22,7 +22,9 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     if (!userId) return
     setLoading(true)
     const desde = `${mes}-01`
-    const hasta = `${mes}-31`
+    const [y, m] = mes.split('-').map(Number)
+    const ultimoDia = new Date(y, m, 0).getDate()   // día 0 del mes siguiente = último día del mes actual
+    const hasta = `${mes}-${String(ultimoDia).padStart(2, '0')}`
     const { data } = await supabase
       .from('transacciones')
       .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')

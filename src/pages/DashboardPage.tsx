@@ -110,6 +110,12 @@ export default function DashboardPage({ user }: Props) {
                 <span className="font-mono text-danger">−{formatQ(disponibleReal.deuda_tc_vencida)}</span>
               </div>
             )}
+            {disponibleReal.deuda_tc_acumulando > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted">Deuda TC acumulando</span>
+                <span className="font-mono text-warning">−{formatQ(disponibleReal.deuda_tc_acumulando)}</span>
+              </div>
+            )}
             <div className="border-t border-muted/20 pt-1.5 flex justify-between">
               <span className="text-white font-semibold text-sm">Disponible real</span>
               <span className={`font-mono font-bold ${disponibleReal.disponible_real >= 0 ? 'text-success' : 'text-danger'}`}>
