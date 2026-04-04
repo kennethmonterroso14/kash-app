@@ -28,6 +28,9 @@ describe('usdToGTQ', () => {
   it('retorna 0 para monto 0', () => {
     expect(usdToGTQ(0, 775)).toBe(0)
   })
+  it('lanza error si tipoCambioUSD es 0', () => {
+    expect(() => usdToGTQ(10_000, 0)).toThrow('tipoCambioUSD debe ser > 0')
+  })
 })
 
 // ── calcRendimientoAnualizado ───────────────────────────
@@ -121,5 +124,19 @@ describe('computeEvolucionPortafolio', () => {
     const inv2: Inversion = { ...inv, id: '2', monto_invertido: 50_000, valor_actual: 55_000 }
     const result = computeEvolucionPortafolio([inv, inv2], hist)
     expect(result[0].valor_total).toBe(105_000 + 50_000)
+  })
+  it('convierte inversiones USD a GTQ en el valor total', () => {
+    const usdInv: Inversion = {
+      id: '2', nombre: 'B', tipo: 'acciones',
+      monto_invertido: 10_000, valor_actual: 11_000,
+      moneda: 'USD', fecha_inicio: '2026-01-01', activa: true,
+    }
+    const usdHist: InversionHistorial[] = [
+      { id: 'u1', inversion_id: '2', valor: 10_000, fecha: '2026-02-01' },
+    ]
+    // tipoCambioUSD = 775 → $100 = Q775 → usdToGTQ(10_000, 775) = 77_500
+    const result = computeEvolucionPortafolio([inv, usdInv], [...hist, ...usdHist], 775)
+    const feb = result.find(r => r.fecha === '2026-02-01')
+    expect(feb?.valor_total).toBe(105_000 + usdToGTQ(10_000, 775))  // GTQ inv + USD inv converted
   })
 })

@@ -323,6 +323,7 @@ export interface ResumenPortafolio {
  * Ejemplo: usdToGTQ(10_000, 775) → 77_500  ($100 × Q7.75 = Q775)
  */
 export function usdToGTQ(montoUSD_centavos: number, tipoCambioUSD: number): number {
+  if (tipoCambioUSD <= 0) throw new Error('tipoCambioUSD debe ser > 0')
   return Math.round(montoUSD_centavos * tipoCambioUSD / 100)
 }
 
@@ -368,6 +369,7 @@ export function calcResumenPortafolio(
 
   const rendimiento_anualizado = capital_total > 0
     ? activas.reduce((sum, inv) => {
+        if (inv.monto_invertido <= 0) return sum   // guard: skip invalid investments
         const pesoGTQ = toGTQ(inv, inv.monto_invertido) / capital_total
         const rend = calcRendimientoAnualizado(inv.monto_invertido, inv.valor_actual, inv.fecha_inicio)
         return sum + rend * pesoGTQ
