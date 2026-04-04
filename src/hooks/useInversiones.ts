@@ -167,13 +167,11 @@ export function useInversiones(userId: string) {
     if (nuevoCambio <= 0) throw new Error('El tipo de cambio debe ser mayor a 0')
     const ahora = new Date().toISOString()
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
       .update({ tipo_cambio_usd: nuevoCambio, tipo_cambio_actualizado_at: ahora })
       .eq('id', userId)
-      .select('id')
     if (error) throw new Error(`Error al actualizar tipo de cambio: ${error.message}`)
-    if (!data || data.length === 0) throw new Error('No se pudo guardar el tipo de cambio — verifica las políticas RLS de la tabla profiles (falta política UPDATE para el usuario)')
     setTipoCambioUSD(nuevoCambio)
     setTipoCambioFecha(ahora)
   }
