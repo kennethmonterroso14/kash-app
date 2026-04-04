@@ -73,7 +73,7 @@ export default function TransaccionesPage({ user }: Props) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `kash_${mes}.csv`
+    a.download = `vorta_${mes}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
