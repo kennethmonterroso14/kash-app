@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom'
+import AlertasBanner from './AlertasBanner'
 
 interface Props {
   children: React.ReactNode
   onSignOut: () => void
+  userId: string
 }
 
 const NAV = [
@@ -13,7 +15,7 @@ const NAV = [
   { to: '/perfil',    label: 'Perfil',      icon: '◐' },
 ]
 
-export default function Layout({ children, onSignOut }: Props) {
+export default function Layout({ children, onSignOut, userId }: Props) {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       {/* Header */}
@@ -26,6 +28,9 @@ export default function Layout({ children, onSignOut }: Props) {
           Salir
         </button>
       </header>
+
+      {/* Alertas globales */}
+      <AlertasBanner userId={userId} />
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto pb-24">
