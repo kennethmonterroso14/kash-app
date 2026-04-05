@@ -4,8 +4,11 @@ import {
   calcRendimientoAnualizado,
   calcResumenPortafolio,
   computeEvolucionPortafolio,
+  calcFechasCiclo,
+  calcAlertasTC,
   type Inversion,
   type InversionHistorial,
+  type TarjetaCredito,
 } from './finanzas'
 
 const HOY = '2026-04-04'
@@ -138,5 +141,95 @@ describe('computeEvolucionPortafolio', () => {
     const result = computeEvolucionPortafolio([inv, usdInv], [...hist, ...usdHist], 775)
     const feb = result.find(r => r.fecha === '2026-02-01')
     expect(feb?.valor_total).toBe(105_000 + usdToGTQ(10_000, 775))  // GTQ inv + USD inv converted
+  })
+})
+
+// ── calcFechasCiclo ─────────────────────────────────────────
+describe('calcFechasCiclo', () => {
+  it('cierre este mes cuando hoy es antes del dia_cierre', () => {
+    // Hoy 10 de abril, cierre día 20 → cierre este mes (abril)
+    const hoy = new Date(2026, 3, 10)   // 10 abril 2026
+    const r = calcFechasCiclo(20, 5, hoy)
+    expect(r.fecha_cierre).toBe('2026-04-20')
+    expect(r.fecha_inicio).toBe('2026-03-21')  // dia 21 de marzo (20+1)
+    expect(r.fecha_pago).toBe('2026-05-05')    // diaPago(5) <= diaCierre(20) → mes siguiente
+  })
+
+  it('cierre mes siguiente cuando hoy es >= dia_cierre', () => {
+    // Hoy 20 de abril (= dia_cierre), cierre → mayo
+    const hoy = new Date(2026, 3, 20)
+    const r = calcFechasCiclo(20, 5, hoy)
+    expect(r.fecha_cierre).toBe('2026-05-20')
+    expect(r.fecha_inicio).toBe('2026-04-21')
+    expect(r.fecha_pago).toBe('2026-06-05')
+  })
+
+  it('pago en el mismo mes del cierre cuando diaPago > diaCierre', () => {
+    // cierre día 15, pago día 25 → pago mismo mes que cierre
+    const hoy = new Date(2026, 3, 10)
+    const r = calcFechasCiclo(15, 25, hoy)
+    expect(r.fecha_cierre).toBe('2026-04-15')
+    expect(r.fecha_pago).toBe('2026-04-25')
+  })
+
+  it('maneja cruce de año correctamente', () => {
+    // Hoy 20 de diciembre, cierre día 15 → cierre enero del año siguiente
+    const hoy = new Date(2026, 11, 20)
+    const r = calcFechasCiclo(15, 5, hoy)
+    expect(r.fecha_cierre).toBe('2027-01-15')
+    expect(r.fecha_inicio).toBe('2026-12-16')
+    expect(r.fecha_pago).toBe('2027-02-05')
+  })
+})
+
+// ── calcAlertasTC ───────────────────────────────────────────
+describe('calcAlertasTC', () => {
+  // Solo campos requeridos por la interface TarjetaCredito
+  const TC_BASE: TarjetaCredito = {
+    id: '1', nombre: 'Visa BAC',
+    limite_credito: 1_000_000,
+    deuda_actual: 0, deuda_ciclo_anterior: 0,
+    dia_cierre: 20, dia_pago: 5,
+    color: '', activa: true,
+  }
+
+  it('retorna lista vacía si no hay alertas', () => {
+    // Hoy 10 abril, cierre 20 → 10 días, sin deuda anterior
+    const hoy = new Date(2026, 3, 10)
+    expect(calcAlertasTC([TC_BASE], hoy)).toHaveLength(0)
+  })
+
+  it('detecta cierre próximo cuando faltan ≤3 días', () => {
+    // Hoy 17 de abril, cierre 20 → 3 días
+    const hoy = new Date(2026, 3, 17)
+    const alertas = calcAlertasTC([TC_BASE], hoy)
+    expect(alertas).toHaveLength(1)
+    expect(alertas[0].tipo).toBe('cierre_proximo')
+    expect(alertas[0].diasRestantes).toBe(3)
+  })
+
+  it('detecta pago vencido cuando hay deuda_ciclo_anterior y pasó el dia_pago', () => {
+    // Hoy 10 de mayo, dia_pago=5, deuda anterior > 0 → vencido
+    const tc = { ...TC_BASE, deuda_ciclo_anterior: 300_000 }
+    const hoy = new Date(2026, 4, 10)   // 10 mayo
+    const alertas = calcAlertasTC([tc], hoy)
+    expect(alertas).toHaveLength(1)
+    expect(alertas[0].tipo).toBe('pago_vencido')
+    expect(alertas[0].monto).toBe(300_000)
+  })
+
+  it('NO detecta pago vencido si aún no llegó el dia_pago', () => {
+    // Hoy 3 de mayo, dia_pago=5 → todavía hay tiempo
+    const tc = { ...TC_BASE, deuda_ciclo_anterior: 300_000 }
+    const hoy = new Date(2026, 4, 3)
+    expect(calcAlertasTC([tc], hoy)).toHaveLength(0)
+  })
+
+  it('pago_vencido va antes que cierre_proximo en el array', () => {
+    const tc = { ...TC_BASE, deuda_ciclo_anterior: 100_000, dia_cierre: 21, dia_pago: 5 }
+    // Hoy 18 mayo: cierre 21 → 3 días; dia_pago 5 → pasó
+    const hoy = new Date(2026, 4, 18)
+    const alertas = calcAlertasTC([tc], hoy)
+    expect(alertas[0].tipo).toBe('pago_vencido')
   })
 })

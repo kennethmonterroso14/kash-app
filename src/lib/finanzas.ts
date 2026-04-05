@@ -406,3 +406,109 @@ export function computeEvolucionPortafolio(
     return { fecha, valor_total }
   })
 }
+
+// ─── CICLOS DE TARJETA DE CRÉDITO ────────────────────────────────
+
+export interface CicloTC {
+  id: string
+  tarjeta_id: string
+  user_id: string
+  fecha_inicio: string   // 'YYYY-MM-DD'
+  fecha_cierre: string   // 'YYYY-MM-DD'
+  fecha_pago: string     // 'YYYY-MM-DD'
+  total_cargos: number   // centavos
+  total_pagos: number    // centavos
+  saldo_final: number    // centavos
+  estado: 'abierto' | 'cerrado' | 'pagado'
+}
+
+export interface AlertaTC {
+  tipo: 'cierre_proximo' | 'pago_vencido'
+  tc: TarjetaCredito
+  diasRestantes?: number   // para cierre_proximo (0-3)
+  monto?: number           // para pago_vencido (centavos)
+}
+
+/**
+ * Calcula las fechas de un nuevo ciclo de TC dado el día de cierre y pago.
+ * Siempre retorna el ciclo vigente a partir de `hoy`.
+ *
+ * Reglas:
+ * - Si hoy < dia_cierre: el cierre es este mes → inicio = dia_cierre+1 del mes anterior
+ * - Si hoy >= dia_cierre: el cierre es el mes siguiente → inicio = dia_cierre+1 de este mes
+ * - El pago siempre cae DESPUÉS del cierre:
+ *   si diaPago > diaCierre: mismo mes que el cierre
+ *   si diaPago <= diaCierre: mes siguiente al cierre
+ */
+export function calcFechasCiclo(
+  diaCierre: number,
+  diaPago: number,
+  hoy: Date = new Date()
+): { fecha_inicio: string; fecha_cierre: string; fecha_pago: string } {
+  const año = hoy.getFullYear()
+  const mes = hoy.getMonth() + 1   // 1-12
+  const dia = hoy.getDate()
+
+  // Mes del próximo cierre
+  let cierreAño = año
+  let cierreMes = mes
+  if (dia >= diaCierre) {
+    cierreMes += 1
+    if (cierreMes > 12) { cierreMes = 1; cierreAño += 1 }
+  }
+  const fechaCierre = `${cierreAño}-${String(cierreMes).padStart(2, '0')}-${String(diaCierre).padStart(2, '0')}`
+
+  // Inicio = día después del cierre anterior (usar Date para manejar overflow de días)
+  let inicioAño = cierreAño
+  let inicioMes = cierreMes - 1
+  if (inicioMes < 1) { inicioMes = 12; inicioAño -= 1 }
+  const inicioDate = new Date(inicioAño, inicioMes - 1, diaCierre + 1)
+  const fechaInicio = inicioDate.toLocaleDateString('en-CA')
+
+  // Pago: después del cierre
+  let pagoAño = cierreAño
+  let pagoMes = cierreMes
+  if (diaPago <= diaCierre) {
+    pagoMes += 1
+    if (pagoMes > 12) { pagoMes = 1; pagoAño += 1 }
+  }
+  const fechaPago = `${pagoAño}-${String(pagoMes).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
+
+  return { fecha_inicio: fechaInicio, fecha_cierre: fechaCierre, fecha_pago: fechaPago }
+}
+
+/**
+ * Genera alertas para tarjetas con cierre próximo (≤3 días) o pago vencido.
+ * Pago vencido = deuda_ciclo_anterior > 0 Y hoy >= dia_pago de este mes.
+ * Las alertas de pago vencido van primero (mayor urgencia).
+ */
+export function calcAlertasTC(
+  tarjetas: TarjetaCredito[],
+  hoy: Date = new Date()
+): AlertaTC[] {
+  const MS_DIA = 1000 * 60 * 60 * 24
+  const alertas: AlertaTC[] = []
+
+  for (const tc of tarjetas) {
+    // Pago vencido
+    if (tc.deuda_ciclo_anterior > 0) {
+      const diaPagoEsteMes = new Date(hoy.getFullYear(), hoy.getMonth(), tc.dia_pago)
+      if (hoy >= diaPagoEsteMes) {
+        alertas.push({ tipo: 'pago_vencido', tc, monto: tc.deuda_ciclo_anterior })
+      }
+    }
+    // Cierre próximo
+    const proximoCierre = _proximaFechaDelDia(hoy, tc.dia_cierre)
+    const dias = Math.ceil((proximoCierre.getTime() - hoy.getTime()) / MS_DIA)
+    if (dias <= 3) {
+      alertas.push({ tipo: 'cierre_proximo', tc, diasRestantes: dias })
+    }
+  }
+
+  // Pago vencido primero
+  return alertas.sort((a, b) => {
+    if (a.tipo === 'pago_vencido' && b.tipo !== 'pago_vencido') return -1
+    if (b.tipo === 'pago_vencido' && a.tipo !== 'pago_vencido') return 1
+    return 0
+  })
+}
