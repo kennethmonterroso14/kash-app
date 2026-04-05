@@ -1,7 +1,7 @@
 // src/hooks/useTarjetas.ts
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { calcResumenTC, type TarjetaCredito } from '../lib/finanzas'
+import { calcResumenTC, calcFechasCiclo, type TarjetaCredito } from '../lib/finanzas'
 
 export type { TarjetaCredito }
 
@@ -100,8 +100,8 @@ export function useTarjetas(userId: string) {
     await cargar()
   }
 
-  // Registrar un cargo en la TC (gasto_tc)
-  // cuenta_id es null porque el cargo no debita ninguna cuenta bancaria aún
+  // Registrar un cargo en la TC.
+  // Auto-crea el ciclo abierto si no existe para esta TC.
   const registrarCargo = async (input: {
     tarjeta_id: string
     monto: number        // centavos, positivo
@@ -109,20 +109,58 @@ export function useTarjetas(userId: string) {
     categoria: string
     fecha: string
   }) => {
+    // 1. Buscar la TC para obtener dia_cierre y dia_pago
+    const tc = tarjetas.find(t => t.id === input.tarjeta_id)
+    if (!tc) throw new Error('Tarjeta no encontrada')
+
+    // 2. Buscar ciclo abierto para esta TC
+    const { data: ciclosAbiertos, error: cicloErr } = await supabase
+      .from('ciclos_tc')
+      .select('id')
+      .eq('tarjeta_id', input.tarjeta_id)
+      .eq('estado', 'abierto')
+      .limit(1)
+    if (cicloErr) throw new Error(`Error al buscar ciclo: ${cicloErr.message}`)
+
+    let cicloId: string
+
+    if (ciclosAbiertos && ciclosAbiertos.length > 0) {
+      // Ciclo abierto existe — reutilizarlo
+      cicloId = ciclosAbiertos[0].id
+    } else {
+      // Crear ciclo nuevo automáticamente
+      const fechas = calcFechasCiclo(tc.dia_cierre, tc.dia_pago)
+      const { data: nuevoCiclo, error: createErr } = await supabase
+        .from('ciclos_tc')
+        .insert({
+          tarjeta_id:   input.tarjeta_id,
+          user_id:      userId,
+          fecha_inicio: fechas.fecha_inicio,
+          fecha_cierre: fechas.fecha_cierre,
+          fecha_pago:   fechas.fecha_pago,
+          estado:       'abierto',
+        })
+        .select('id')
+        .single()
+      if (createErr) throw new Error(`Error al crear ciclo: ${createErr.message}`)
+      cicloId = nuevoCiclo.id
+    }
+
+    // 3. Insertar la transacción con ciclo_id
     const { error } = await supabase
       .from('transacciones')
       .insert({
         user_id:     userId,
-        cuenta_id:   null,
         tarjeta_id:  input.tarjeta_id,
-        cantidad:    -Math.abs(input.monto),   // negativo = gasto
+        ciclo_id:    cicloId,
+        cantidad:    -Math.abs(input.monto),
         descripcion: input.descripcion,
         categoria:   input.categoria,
         tipo:        'gasto_tc',
         fecha:       input.fecha,
       })
     if (error) throw new Error(`Error al registrar cargo: ${error.message}`)
-    await cargar()   // refrescar deuda_actual en la card
+    await cargar()
   }
 
   // Registrar un pago de TC desde una cuenta bancaria (pago_tc)
