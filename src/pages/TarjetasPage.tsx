@@ -1,5 +1,6 @@
 // src/pages/TarjetasPage.tsx
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { useCuentas } from '../hooks/useCuentas'
 import { formatQ, toCentavos, type TarjetaCredito } from '../lib/finanzas'
@@ -21,6 +22,7 @@ export default function TarjetasPage({ userId }: Props) {
     registrarCargo, registrarPago,
   } = useTarjetas(userId)
   const { cuentas } = useCuentas(userId)
+  const navigate = useNavigate()
 
   // ── Navegación entre pantallas ─────────────────────────────────
   const [pantalla, setPantalla] = useState<Pantalla>('lista')
@@ -392,6 +394,12 @@ export default function TarjetasPage({ userId }: Props) {
                 Cerrar ciclo
               </button>
             </div>
+            <button
+              onClick={() => navigate(`/tarjetas/${tc.id}/historial`)}
+              className="text-xs text-muted hover:text-white transition-colors py-1"
+            >
+              Ver historial →
+            </button>
           </div>
         ))}
       </div>
