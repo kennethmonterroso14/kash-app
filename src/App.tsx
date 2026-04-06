@@ -13,6 +13,7 @@ import MetasPage from './pages/MetasPage'
 import ProyeccionesPage from './pages/ProyeccionesPage'
 import PerfilPage from './pages/PerfilPage'
 import PagosRecurrentesPage from './pages/PagosRecurrentesPage'
+import CategoriasPage from './pages/CategoriasPage'
 import TarjetasPage from './pages/TarjetasPage'
 import TarjetaHistorialPage from './pages/TarjetaHistorialPage'
 import InversionesPage from './pages/InversionesPage'
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage userId={user.id} />} />
         <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
         <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
+        <Route path="/categorias" element={<CategoriasPage userId={user.id} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>

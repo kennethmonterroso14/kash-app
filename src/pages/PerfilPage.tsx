@@ -51,6 +51,7 @@ export default function PerfilPage({ user, onSignOut }: Props) {
           { to: '/inversiones',  icon: '📈', label: 'Inversiones' },
           { to: '/tarjetas',     icon: '💳', label: 'Tarjetas de Crédito' },
           { to: '/pagos',        icon: '↻', label: 'Pagos Fijos' },
+          { to: '/categorias',   icon: '🏷️', label: 'Categorías' },
           { to: '/metas',        icon: '◉', label: 'Metas de ahorro' },
           { to: '/proyecciones', icon: '⟳', label: 'Proyecciones' },
         ].map(({ to, icon, label }) => (
