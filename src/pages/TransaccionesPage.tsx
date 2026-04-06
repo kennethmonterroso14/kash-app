@@ -5,7 +5,8 @@ import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { formatQ } from '../lib/finanzas'
 import { toCentavos } from '../lib/finanzas'
-import { CAT_COLORS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, MESES, hoyGT, mesActual } from '../lib/constants'
+import { MESES, hoyGT, mesActual } from '../lib/constants'
+import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { user: User }
 
@@ -34,6 +35,7 @@ export default function TransaccionesPage({ user }: Props) {
     if (!cuentaId && cuentas.length > 0) setCuentaId(cuentas[0].id)
   }, [cuentas, cuentaId])
   const [saving, setSaving] = useState(false)
+  const { categoriasGasto, categoriasIngreso, coloresCategorias } = useCategorias(user.id)
   const { resumenTCs, registrarCargo } = useTarjetas(user.id)
   const [tcId, setTcId] = useState('')
 
@@ -87,7 +89,7 @@ export default function TransaccionesPage({ user }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  const cats = tipo === 'ingreso' ? CATEGORIAS_INGRESO : CATEGORIAS_GASTO
+  const cats = tipo === 'ingreso' ? categoriasIngreso : categoriasGasto
 
   const handleAddTxn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,7 +109,7 @@ export default function TransaccionesPage({ user }: Props) {
           fecha,
         })
         setShowForm(false)
-        setCantidad(''); setDescripcion(''); setCategoria(CATEGORIAS_GASTO[0])
+        setCantidad(''); setDescripcion(''); setCategoria(categoriasGasto[0])
       } catch (e: unknown) {
         console.error('Error registrando cargo TC:', e)
       } finally {
@@ -284,7 +286,7 @@ export default function TransaccionesPage({ user }: Props) {
           <div key={t.id} className="bg-surface rounded-2xl px-4 py-3 flex items-center gap-3">
             <div
               className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ background: CAT_COLORS[t.categoria] ?? '#6b7590' }}
+              style={{ background: coloresCategorias[t.categoria] ?? '#6b7590' }}
             />
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm truncate">{t.descripcion}</p>
@@ -379,10 +381,10 @@ export default function TransaccionesPage({ user }: Props) {
                   className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
                 >
                   {(editingTxn.tipo === 'ingreso'
-                    ? CATEGORIAS_INGRESO
+                    ? categoriasIngreso
                     : editingTxn.tipo === 'ajuste'
                     ? ['Ajuste de cuenta', 'Transferencia']
-                    : CATEGORIAS_GASTO
+                    : categoriasGasto
                   ).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>

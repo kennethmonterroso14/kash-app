@@ -10,13 +10,15 @@ import { useResumen6Meses } from '../hooks/useResumen6Meses'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { useInversiones } from '../hooks/useInversiones'
 import { formatQ, calcEstadisticasMes, calcDisponibleReal, calcPatrimonioNeto } from '../lib/finanzas'
-import { CAT_COLORS, MESES, mesActual } from '../lib/constants'
+import { MESES, mesActual } from '../lib/constants'
+import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { user: User }
 
 const MAX_SLICE = 5  // top N categories in donut, rest → "Otros"
 
 export default function DashboardPage({ user }: Props) {
+  const { coloresCategorias } = useCategorias(user.id)
   const [mes, setMes] = useState(mesActual())
   const { cuentas, totalPatrimonio } = useCuentas(user.id)
   const { txns, loading } = useTransacciones(user.id, mes)
@@ -50,7 +52,7 @@ export default function DashboardPage({ user }: Props) {
     const top = entries.slice(0, MAX_SLICE)
     const otrosTotal = entries.slice(MAX_SLICE).reduce((s, [, v]) => s + v, 0)
     if (otrosTotal > 0) top.push(['Otros', otrosTotal])
-    return top.map(([cat, value]) => ({ cat, value, fill: CAT_COLORS[cat] ?? '#6b7590' }))
+    return top.map(([cat, value]) => ({ cat, value, fill: coloresCategorias[cat] ?? '#6b7590' }))
   }, [stats.porCategoria])
 
   // Bar chart — centavos → quetzales for display

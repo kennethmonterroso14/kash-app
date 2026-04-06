@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { formatQ, toCentavos, calcEstadoPresupuesto } from '../lib/finanzas'
-import { CATEGORIAS_GASTO, MESES, mesActual } from '../lib/constants'
+import { MESES, mesActual } from '../lib/constants'
+import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { userId: string }
 
@@ -14,6 +15,7 @@ interface Presupuesto {
 }
 
 export default function BudgetPage({ userId }: Props) {
+  const { categoriasGasto } = useCategorias(userId)
   const [mes, setMes] = useState(mesActual())
   const { txns } = useTransacciones(userId, mes)
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
@@ -65,8 +67,8 @@ export default function BudgetPage({ userId }: Props) {
   // Categories available to add (not already budgeted)
   const categoriasDisponibles = useMemo(() => {
     const budgeted = new Set(presupuestos.map(p => p.categoria))
-    return CATEGORIAS_GASTO.filter(c => !budgeted.has(c))
-  }, [presupuestos])
+    return categoriasGasto.filter(c => !budgeted.has(c))
+  }, [presupuestos, categoriasGasto])
 
   const handlePrevMes = () => {
     const d = new Date(anio, mesNum - 2, 1)

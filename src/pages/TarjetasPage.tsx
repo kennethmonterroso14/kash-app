@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { useCuentas } from '../hooks/useCuentas'
 import { formatQ, toCentavos, type TarjetaCredito } from '../lib/finanzas'
-import { CATEGORIAS_GASTO, hoyGT } from '../lib/constants'
+import { hoyGT } from '../lib/constants'
+import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { userId: string }
 
@@ -16,6 +17,7 @@ const COLORES_TC = [
 ]
 
 export default function TarjetasPage({ userId }: Props) {
+  const { categoriasGasto } = useCategorias(userId)
   const {
     resumenTCs, totalDeuda, loading, error,
     agregarTC, actualizarTC, archivarTC, cerrarCiclo,
@@ -42,7 +44,7 @@ export default function TarjetasPage({ userId }: Props) {
 
   // ── Form "Nuevo cargo" ─────────────────────────────────────────
   const [cargoMonto,   setCargoMonto]   = useState('')
-  const [cargoCat,     setCargoCat]     = useState(CATEGORIAS_GASTO[0])
+  const [cargoCat,     setCargoCat]     = useState(categoriasGasto[0])
   const [cargoDesc,    setCargoDesc]    = useState('')
   const [cargoFecha,   setCargoFecha]   = useState(hoyGT())
   const [savingCargo,  setSavingCargo]  = useState(false)
@@ -88,7 +90,7 @@ export default function TarjetasPage({ userId }: Props) {
   }
 
   const abrirCargo = (tcId: string) => {
-    setCargoMonto(''); setCargoCat(CATEGORIAS_GASTO[0])
+    setCargoMonto(''); setCargoCat(categoriasGasto[0])
     setCargoDesc(''); setCargoFecha(hoyGT()); setErrCargo(null)
     setTcSelId(tcId); setPantalla('cargo')
   }
@@ -599,7 +601,7 @@ export default function TarjetasPage({ userId }: Props) {
               <div>
                 <p className="text-muted text-xs mb-2">Categoría</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {CATEGORIAS_GASTO.map(c => (
+                  {categoriasGasto.map(c => (
                     <button
                       key={c}
                       onClick={() => setCargoCat(c)}

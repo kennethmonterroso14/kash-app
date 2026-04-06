@@ -2,13 +2,15 @@ import { useState, useMemo } from 'react'
 import { usePagosRecurrentes } from '../hooks/usePagosRecurrentes'
 import { useCuentas } from '../hooks/useCuentas'
 import { formatQ, toCentavos } from '../lib/finanzas'
-import { CATEGORIAS_GASTO, hoyGT } from '../lib/constants'
+import { hoyGT } from '../lib/constants'
+import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { userId: string }
 
 const DIAS = Array.from({ length: 28 }, (_, i) => i + 1)
 
 export default function PagosRecurrentesPage({ userId }: Props) {
+  const { categoriasGasto } = useCategorias(userId)
   const { pagos, loading, addPago, updatePago, deletePago } = usePagosRecurrentes(userId)
   const { cuentas } = useCuentas(userId)
 
@@ -266,7 +268,7 @@ export default function PagosRecurrentesPage({ userId }: Props) {
                   onChange={e => setAddCategoria(e.target.value)}
                   className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
                 >
-                  {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
+                  {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               {addError && <p className="text-danger text-xs">{addError}</p>}
@@ -345,7 +347,7 @@ export default function PagosRecurrentesPage({ userId }: Props) {
                   onChange={e => setEditCategoria(e.target.value)}
                   className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
                 >
-                  {CATEGORIAS_GASTO.map(c => <option key={c} value={c}>{c}</option>)}
+                  {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               {editError && <p className="text-danger text-xs">{editError}</p>}
