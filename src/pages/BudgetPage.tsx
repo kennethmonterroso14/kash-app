@@ -65,6 +65,7 @@ export default function BudgetPage({ userId }: Props) {
   useEffect(() => {
     setIntentoCopia(false)
     setBannerCopia(null)
+    setExpandedId(null)
   }, [mes])
 
   // Clear banner timer on unmount
@@ -321,8 +322,18 @@ export default function BudgetPage({ userId }: Props) {
         return (
           <div
             key={p.id}
+            role="button"
+            tabIndex={0}
+            aria-expanded={expandedId === p.id}
+            aria-label={`${p.categoria} — ver transacciones`}
             className="bg-surface rounded-2xl p-4 cursor-pointer"
             onClick={() => setExpandedId(prev => prev === p.id ? null : p.id)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setExpandedId(prev => prev === p.id ? null : p.id)
+              }
+            }}
           >
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
