@@ -37,6 +37,9 @@ export default function BudgetPage({ userId }: Props) {
   // Delete state (2-step)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
+  const [intentoCopia, setIntentoCopia] = useState(false)
+  const [bannerCopia, setBannerCopia] = useState<{ n: number; ids: string[] } | null>(null)
+
   const [anio, mesNum] = mes.split('-').map(Number)
   const mesLabel = `${MESES[mesNum - 1]} ${anio}`
   const mesInicio = `${mes}-01`
@@ -54,6 +57,54 @@ export default function BudgetPage({ userId }: Props) {
         setLoading(false)
       })
   }, [userId, mesInicio])
+
+  // Reset carry-over flag when month changes
+  useEffect(() => {
+    setIntentoCopia(false)
+    setBannerCopia(null)
+  }, [mes])
+
+  // Auto-copy previous month's budgets when current month is empty
+  useEffect(() => {
+    if (presupuestos.length > 0 || loading || intentoCopia) return
+
+    // Calculate previous month start date
+    const prevDate = new Date(anio, mesNum - 2, 1)
+    const mesPrevInicio = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`
+
+    ;(async () => {
+      const { data: prevRows } = await supabase
+        .from('presupuestos')
+        .select('categoria, monto_limite')
+        .eq('user_id', userId)
+        .eq('mes', mesPrevInicio)
+        .eq('activo', true)
+
+      // Mark attempted regardless — prevents infinite loop
+      setIntentoCopia(true)
+
+      if (!prevRows || prevRows.length === 0) return
+
+      const inserts = prevRows.map(r => ({
+        user_id: userId,
+        categoria: r.categoria,
+        monto_limite: r.monto_limite,
+        mes: mesInicio,
+        activo: true,
+      }))
+
+      const { data: inserted } = await supabase
+        .from('presupuestos')
+        .insert(inserts)
+        .select('id, categoria, monto_limite, mes')
+
+      if (!inserted || inserted.length === 0) return
+
+      setPresupuestos(inserted)
+      setBannerCopia({ n: inserted.length, ids: inserted.map(r => r.id) })
+      setTimeout(() => setBannerCopia(null), 4000)
+    })()
+  }, [presupuestos.length, loading, intentoCopia, anio, mesNum, userId, mesInicio])
 
   // Gastos por categoría del mes
   const gastadoPorCat = useMemo(() => {
@@ -177,6 +228,13 @@ export default function BudgetPage({ userId }: Props) {
     }
   }
 
+  const handleUndo = async () => {
+    if (!bannerCopia) return
+    await supabase.from('presupuestos').delete().in('id', bannerCopia.ids)
+    setPresupuestos([])
+    setBannerCopia(null)
+  }
+
   if (loading) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
@@ -202,6 +260,21 @@ export default function BudgetPage({ userId }: Props) {
           + Categoría
         </button>
       </div>
+
+      {/* Carry-over banner */}
+      {bannerCopia && (
+        <div className="flex justify-between items-center bg-accent text-bg rounded-xl px-4 py-2.5">
+          <span className="text-sm font-medium">
+            Se copiaron {bannerCopia.n} presupuestos del mes anterior
+          </span>
+          <button
+            onClick={handleUndo}
+            className="text-xs font-semibold bg-bg/20 rounded-lg px-3 py-1 ml-3 hover:bg-bg/30 transition-colors"
+          >
+            ↩ Deshacer
+          </button>
+        </div>
+      )}
 
       {/* Empty state */}
       {presupuestos.length === 0 && (
