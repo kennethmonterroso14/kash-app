@@ -41,6 +41,8 @@ export default function BudgetPage({ userId }: Props) {
   const [bannerCopia, setBannerCopia] = useState<{ n: number; ids: string[] } | null>(null)
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
   const [anio, mesNum] = mes.split('-').map(Number)
   const mesLabel = `${MESES[mesNum - 1]} ${anio}`
   const mesInicio = `${mes}-01`
@@ -317,9 +319,18 @@ export default function BudgetPage({ userId }: Props) {
         const barColor = estado === 'excedido' ? '#f87171' : estado === 'alerta' ? '#fbbf24' : '#4ade80'
 
         return (
-          <div key={p.id} className="bg-surface rounded-2xl p-4">
+          <div
+            key={p.id}
+            className="bg-surface rounded-2xl p-4 cursor-pointer"
+            onClick={() => setExpandedId(prev => prev === p.id ? null : p.id)}
+          >
             <div className="flex justify-between items-center mb-2">
-              <span className="text-white text-sm font-medium flex-1">{p.categoria}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white text-sm font-medium">{p.categoria}</span>
+                <span className={`text-xs ${expandedId === p.id ? 'text-accent' : 'text-muted'}`}>
+                  {expandedId === p.id ? '▴' : '▾'}
+                </span>
+              </div>
               <div className="flex items-center gap-1">
                 <span className={`text-xs font-mono font-semibold ${
                   estado === 'excedido' ? 'text-danger' : estado === 'alerta' ? 'text-yellow-400' : 'text-success'
@@ -327,14 +338,14 @@ export default function BudgetPage({ userId }: Props) {
                   {pct}%
                 </span>
                 <button
-                  onClick={() => openEdit(p)}
+                  onClick={e => { e.stopPropagation(); openEdit(p) }}
                   className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors"
                   aria-label="Editar"
                 >
                   ✎
                 </button>
                 <button
-                  onClick={() => handleDelete(p.id)}
+                  onClick={e => { e.stopPropagation(); handleDelete(p.id) }}
                   className={`text-xs px-2 py-1 rounded-lg transition-colors ${
                     pendingDelete === p.id
                       ? 'bg-danger text-white'
@@ -358,6 +369,40 @@ export default function BudgetPage({ userId }: Props) {
               </span>
             </div>
             <div className="text-xs text-muted mt-0.5 text-right">Límite: {formatQ(p.monto_limite)}</div>
+            {expandedId === p.id && (() => {
+              const txsCat = txns
+                .filter(t => t.tipo === 'gasto' && t.categoria === p.categoria)
+                .sort((a, b) => b.fecha.localeCompare(a.fecha))
+              return (
+                <div className="border-t border-muted/20 mt-3 pt-3">
+                  <p className="text-muted text-xs uppercase tracking-wider mb-2">
+                    {txsCat.length} transacciones
+                  </p>
+                  {txsCat.length === 0 ? (
+                    <p className="text-muted text-xs text-center py-2">
+                      Sin gastos registrados en este mes
+                    </p>
+                  ) : (
+                    <div>
+                      {txsCat.map(t => (
+                        <div
+                          key={t.id}
+                          className="flex justify-between items-start py-2 border-b border-muted/10 last:border-0"
+                        >
+                          <div>
+                            <p className="text-white text-xs">{t.descripcion}</p>
+                            <p className="text-muted text-xs">{t.fecha}</p>
+                          </div>
+                          <span className="text-danger text-xs font-mono font-semibold ml-4 flex-shrink-0">
+                            −{formatQ(Math.abs(t.cantidad))}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )
       })}
