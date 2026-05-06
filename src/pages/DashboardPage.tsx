@@ -20,6 +20,7 @@ const MAX_SLICE = 5  // top N categories in donut, rest → "Otros"
 export default function DashboardPage({ user }: Props) {
   const { coloresCategorias } = useCategorias(user.id)
   const [mes, setMes] = useState(mesActual())
+  const [patrimonioOculto, setPatrimonioOculto] = useState(false)
   const { cuentas, totalPatrimonio } = useCuentas(user.id)
   const { txns, loading } = useTransacciones(user.id, mes)
   const { data: resumen6 } = useResumen6Meses(user.id)
@@ -87,21 +88,61 @@ export default function DashboardPage({ user }: Props) {
     )
   }
 
+  const EyeIcon = () => (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round"
+      className="text-muted flex-shrink-0"
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  )
+
+  const EyeOffIcon = () => (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round"
+      className="text-muted flex-shrink-0"
+    >
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  )
+
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
       {/* Patrimonio total */}
       <div className="bg-surface rounded-2xl p-5">
-        <p className="text-muted text-xs uppercase tracking-widest mb-1">Patrimonio total</p>
-        <p className="text-3xl font-mono font-bold text-white">{formatQ(totalPatrimonio)}</p>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {cuentas.map(c => (
-            <div key={c.id} className="flex items-center gap-1.5 bg-bg rounded-lg px-2 py-1">
-              <div className="w-2 h-2 rounded-full" style={{ background: c.color }} />
-              <span className="text-xs text-muted">{c.nombre}</span>
-              <span className="text-xs font-mono text-white">{formatQ(c.saldo)}</span>
+        <button
+          onClick={() => setPatrimonioOculto(v => !v)}
+          className="w-full flex justify-between items-center mb-1"
+        >
+          <p className="text-muted text-xs uppercase tracking-widest">Patrimonio total</p>
+          <div className="flex items-center gap-2">
+            {patrimonioOculto && (
+              <span className="text-muted font-mono tracking-widest text-sm">••••••</span>
+            )}
+            {patrimonioOculto ? <EyeOffIcon /> : <EyeIcon />}
+          </div>
+        </button>
+        {!patrimonioOculto && (
+          <>
+            <p className="text-3xl font-mono font-bold text-white">{formatQ(totalPatrimonio)}</p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {cuentas.map(c => (
+                <div key={c.id} className="flex items-center gap-1.5 bg-bg rounded-lg px-2 py-1">
+                  <div className="w-2 h-2 rounded-full" style={{ background: c.color }} />
+                  <span className="text-xs text-muted">{c.nombre}</span>
+                  <span className="text-xs font-mono text-white">{formatQ(c.saldo)}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       {/* Disponible Real — solo si hay TCs registradas */}
