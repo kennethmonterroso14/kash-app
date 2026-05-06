@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { formatQ, toCentavos, calcEstadoPresupuesto } from '../lib/finanzas'
@@ -39,6 +39,7 @@ export default function BudgetPage({ userId }: Props) {
 
   const [intentoCopia, setIntentoCopia] = useState(false)
   const [bannerCopia, setBannerCopia] = useState<{ n: number; ids: string[] } | null>(null)
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [anio, mesNum] = mes.split('-').map(Number)
   const mesLabel = `${MESES[mesNum - 1]} ${anio}`
@@ -64,11 +65,18 @@ export default function BudgetPage({ userId }: Props) {
     setBannerCopia(null)
   }, [mes])
 
+  // Clear banner timer on unmount
+  useEffect(() => {
+    return () => {
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
+    }
+  }, [])
+
   // Auto-copy previous month's budgets when current month is empty
   useEffect(() => {
     if (presupuestos.length > 0 || loading || intentoCopia) return
 
-    // Calculate previous month start date
+    let ignore = false
     const prevDate = new Date(anio, mesNum - 2, 1)
     const mesPrevInicio = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`
 
@@ -80,7 +88,7 @@ export default function BudgetPage({ userId }: Props) {
         .eq('mes', mesPrevInicio)
         .eq('activo', true)
 
-      // Mark attempted regardless — prevents infinite loop
+      if (ignore) return
       setIntentoCopia(true)
 
       if (!prevRows || prevRows.length === 0) return
@@ -98,12 +106,16 @@ export default function BudgetPage({ userId }: Props) {
         .insert(inserts)
         .select('id, categoria, monto_limite, mes')
 
+      if (ignore) return
       if (!inserted || inserted.length === 0) return
 
       setPresupuestos(inserted)
       setBannerCopia({ n: inserted.length, ids: inserted.map(r => r.id) })
-      setTimeout(() => setBannerCopia(null), 4000)
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
+      bannerTimerRef.current = setTimeout(() => setBannerCopia(null), 4000)
     })()
+
+    return () => { ignore = true }
   }, [presupuestos.length, loading, intentoCopia, anio, mesNum, userId, mesInicio])
 
   // Gastos por categoría del mes
@@ -230,7 +242,15 @@ export default function BudgetPage({ userId }: Props) {
 
   const handleUndo = async () => {
     if (!bannerCopia) return
-    await supabase.from('presupuestos').delete().in('id', bannerCopia.ids)
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current)
+      bannerTimerRef.current = null
+    }
+    const { error } = await supabase.from('presupuestos').delete().in('id', bannerCopia.ids)
+    if (error) {
+      console.error('Undo failed:', error.message)
+      return
+    }
     setPresupuestos([])
     setBannerCopia(null)
   }
