@@ -256,6 +256,8 @@ export default function BudgetPage({ userId }: Props) {
     }
     setPresupuestos([])
     setBannerCopia(null)
+    // intentoCopia stays true — prevents re-copy in the same month session.
+    // Navigating to another month and back resets it via the mes-reset effect.
   }
 
   if (loading) {
@@ -291,6 +293,7 @@ export default function BudgetPage({ userId }: Props) {
             Se copiaron {bannerCopia.n} presupuestos del mes anterior
           </span>
           <button
+            type="button"
             onClick={handleUndo}
             className="text-xs font-semibold bg-bg/20 rounded-lg px-3 py-1 ml-3 hover:bg-bg/30 transition-colors"
           >
@@ -325,7 +328,9 @@ export default function BudgetPage({ userId }: Props) {
             role="button"
             tabIndex={0}
             aria-expanded={expandedId === p.id}
-            aria-label={`${p.categoria} — ver transacciones`}
+            aria-label={expandedId === p.id
+              ? `${p.categoria} — ocultar transacciones`
+              : `${p.categoria} — ver transacciones`}
             className="bg-surface rounded-2xl p-4 cursor-pointer"
             onClick={() => setExpandedId(prev => prev === p.id ? null : p.id)}
             onKeyDown={e => {
