@@ -119,12 +119,16 @@ export default function MetasPage({ userId }: Props) {
 
     const objetivo = parseFloat(montoObjetivoQ)
     const actual = parseFloat(montoActualQ || '0')
+
+    // Validar ANTES de convertir: toCentavos lanza con NaN o negativos,
+    // y Infinity pasaria silenciosamente hasta el insert.
+    if (!nombre.trim()) { setFormError('El nombre es requerido.'); return }
+    if (!Number.isFinite(objetivo) || objetivo <= 0) { setFormError('El monto objetivo debe ser mayor a 0.'); return }
+    if (!Number.isFinite(actual) || actual < 0) { setFormError('El monto ya tengo no puede ser negativo.'); return }
+
     const objetivoCentavos = toCentavos(objetivo)
     const actualCentavos = toCentavos(actual)
 
-    if (!nombre.trim()) { setFormError('El nombre es requerido.'); return }
-    if (isNaN(objetivo) || objetivo <= 0) { setFormError('El monto objetivo debe ser mayor a 0.'); return }
-    if (isNaN(actual) || actual < 0) { setFormError('El monto ya tengo no puede ser negativo.'); return }
     if (actualCentavos > objetivoCentavos) {
       setFormError('El monto "Ya tengo" no puede superar el objetivo')
       return
@@ -157,7 +161,12 @@ export default function MetasPage({ userId }: Props) {
   }
 
   // ── Helpers ──────────────────────────────────────────────────
-  const ahorroMensualCentavos = toCentavos(parseFloat(ahorroMensualQ) || 0)
+  // toCentavos lanza con NaN/negativos y no hay ErrorBoundary: una excepcion
+  // aqui (en el render) dejaria la app en blanco. Validar antes de convertir.
+  const ahorroQ = parseFloat(ahorroMensualQ)
+  const ahorroMensualCentavos = Number.isFinite(ahorroQ) && ahorroQ > 0
+    ? toCentavos(ahorroQ)
+    : 0
 
   const calcEstimado = (meta: Meta): string => {
     if (ahorroMensualCentavos <= 0) return 'Ingresa un ahorro mensual'

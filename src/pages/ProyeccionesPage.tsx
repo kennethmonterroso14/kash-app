@@ -78,7 +78,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 
 export default function ProyeccionesPage({ userId }: Props) {
   const gradientId = useId()
-  const { totalPatrimonio, loading } = useCuentas(userId)
+  const { totalPatrimonio, loading, error: cuentasError } = useCuentas(userId)
 
   const [ahorroMensualQ, setAhorroMensualQ] = useState(2000)
   const [rendimientoPct, setRendimientoPct] = useState(7)
@@ -90,8 +90,13 @@ export default function ProyeccionesPage({ userId }: Props) {
 
   const puntos = useMemo(() => {
     if (loading) return []
-    const ahorroMensual = toCentavos(Math.max(0, ahorroMensualQ))
-    const rendimientoAnual = Math.max(0, Math.min(1, rendimientoPct / 100))
+    // Number(e.target.value) puede devolver Infinity ("1e999"): toCentavos lo
+    // deja pasar y formatQ lanza despues durante el render, dejando la app en
+    // blanco (no hay ErrorBoundary). Sanear antes de convertir.
+    const ahorroQ = Number.isFinite(ahorroMensualQ) ? Math.max(0, ahorroMensualQ) : 0
+    const pctSeguro = Number.isFinite(rendimientoPct) ? rendimientoPct : 0
+    const ahorroMensual = toCentavos(ahorroQ)
+    const rendimientoAnual = Math.max(0, Math.min(1, pctSeguro / 100))
     return proyectarPatrimonio({
       patrimonioActual: totalPatrimonio,
       ahorroMensual,
@@ -147,9 +152,16 @@ export default function ProyeccionesPage({ userId }: Props) {
             Patrimonio actual:{' '}
             {loading
               ? <span className="animate-pulse">cargando…</span>
-              : <span className="text-white font-semibold">{formatQ(totalPatrimonio)}</span>
+              : cuentasError
+                ? <span className="text-danger">no disponible</span>
+                : <span className="text-white font-semibold">{formatQ(totalPatrimonio)}</span>
             }
           </p>
+          {cuentasError && (
+            <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-3 mt-3">
+              No se pudieron cargar tus cuentas: {cuentasError}. La proyección parte de Q0.00.
+            </p>
+          )}
         </div>
 
         {/* Inputs */}

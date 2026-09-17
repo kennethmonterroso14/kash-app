@@ -7,8 +7,16 @@ import {
   calcResumenPortafolio,
   computeEvolucionPortafolio,
 } from '../lib/finanzas'
+import { hoyGT } from '../lib/constants'
 
 export type { Inversion, InversionHistorial }
+
+// Agrega la pista de migración cuando el error viene de una tabla/columna
+// inexistente. PostgREST usa dos redacciones distintas según el caso.
+const conHintMigracion = (msg: string): string =>
+  msg.includes('does not exist') || msg.includes('Could not find the table')
+    ? `${msg} — ¿Ejecutaste la migración SQL de Fase 7 en Supabase?`
+    : msg
 
 export function useInversiones(userId: string) {
   const [inversiones, setInversiones]         = useState<Inversion[]>([])
@@ -21,6 +29,7 @@ export function useInversiones(userId: string) {
   const cargar = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const [invRes, histRes, perfilRes] = await Promise.all([
         supabase
           .from('inversiones')
@@ -39,12 +48,21 @@ export function useInversiones(userId: string) {
           .eq('user_id', userId)
           .single(),
       ])
-      if (invRes.error)  throw new Error(`inversiones: ${invRes.error.message}`)
-      if (histRes.error) throw new Error(`historial: ${histRes.error.message}`)
+      if (invRes.error) throw new Error(`inversiones: ${invRes.error.message}`)
+      // Las inversiones se comprometen ANTES de cualquier throw: el historial
+      // solo alimenta la gráfica, así que si falla degradamos la gráfica pero
+      // no borramos la lista (el patrimonio neto seguiría siendo correcto).
       setInversiones(invRes.data ?? [])
-      setHistorial(histRes.data ?? [])
+      if (histRes.error) {
+        setHistorial([])
+        setError(conHintMigracion(`historial: ${histRes.error.message}`))
+      } else {
+        setHistorial(histRes.data ?? [])
+      }
       // La query de profiles es no-fatal: si falla (ej. columna aún no migrada)
-      // usamos los defaults y no bloqueamos la página
+      // usamos los defaults y no bloqueamos la página. Al dejar tipoCambioFecha
+      // en null, la UI marca el tipo de cambio como "sin verificar" en lugar de
+      // presentar el default de 775 como vigente.
       if (!perfilRes.error && perfilRes.data) {
         setTipoCambioUSD(perfilRes.data.tipo_cambio_usd ?? 775)
         setTipoCambioFecha(perfilRes.data.tipo_cambio_actualizado_at ?? null)
@@ -53,9 +71,7 @@ export function useInversiones(userId: string) {
       const msg = e instanceof Error
         ? e.message
         : (e as { message?: string })?.message ?? 'Error al cargar inversiones'
-      setError(msg.includes('does not exist')
-        ? `${msg} — ¿Ejecutaste la migración SQL de Fase 7 en Supabase?`
-        : msg)
+      setError(conHintMigracion(msg))
     } finally {
       setLoading(false)
     }
@@ -94,33 +110,76 @@ export function useInversiones(userId: string) {
       valor:        data.valor_actual,
       fecha:        data.fecha_inicio,
     })
-    if (histErr) throw new Error(`Error al registrar historial: ${histErr.message}`)
+    if (histErr) {
+      // El par insert(inversiones) + insert(historial) no es atómico desde el
+      // cliente: si el segundo falla, compensamos borrando la inversión recién
+      // creada. Sin esto un reintento del usuario duplicaría la inversión.
+      const { error: delErr } = await supabase.from('inversiones').delete().eq('id', data.id)
+      await cargar()   // reconverge el estado local con la DB
+      throw new Error(delErr
+        ? `Error al registrar historial: ${histErr.message}. No se pudo deshacer la inversión (${delErr.message}): revísala en la lista antes de reintentar.`
+        : `Error al registrar historial: ${histErr.message}`)
+    }
 
     await cargar()   // refresca inversiones + historial
   }
 
   const actualizarValor = async (id: string, nuevoValor: number, fecha: string) => {
     if (nuevoValor < 0) throw new Error('El valor no puede ser negativo')
+    if (fecha > hoyGT()) throw new Error('La fecha no puede ser futura')
+    const inv = inversiones.find(i => i.id === id)
+    if (inv && fecha < inv.fecha_inicio) {
+      throw new Error('La fecha no puede ser anterior al inicio de la inversión')
+    }
+
+    // 1. El historial es la fuente de verdad: un punto por fecha. Si ya existe
+    //    un punto en esa fecha lo reemplazamos (corrección), en lugar de
+    //    insertar un duplicado que dejaría la gráfica indeterminada.
+    const { data: existente, error: selErr } = await supabase
+      .from('inversiones_historial')
+      .select('id')
+      .eq('inversion_id', id)
+      .eq('user_id', userId)
+      .eq('fecha', fecha)
+      .maybeSingle()
+    if (selErr) throw new Error(`Error en historial: ${selErr.message}`)
+
+    if (existente) {
+      const { error: histUpdErr } = await supabase
+        .from('inversiones_historial')
+        .update({ valor: nuevoValor })
+        .eq('id', existente.id)
+      if (histUpdErr) throw new Error(`Error en historial: ${histUpdErr.message}`)
+    } else {
+      const { error: histErr } = await supabase
+        .from('inversiones_historial')
+        .insert({ inversion_id: id, user_id: userId, valor: nuevoValor, fecha })
+      if (histErr) throw new Error(`Error en historial: ${histErr.message}`)
+    }
+
+    // 2. valor_actual / fecha_ultimo_update son una proyección del punto más
+    //    reciente del historial: así registrar un valor retroactivo agrega un
+    //    punto al pasado sin borrar la valuación vigente.
+    const { data: ultimo, error: ultErr } = await supabase
+      .from('inversiones_historial')
+      .select('valor, fecha')
+      .eq('inversion_id', id)
+      .eq('user_id', userId)
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (ultErr) throw new Error(`Error en historial: ${ultErr.message}`)
 
     const { error: updErr } = await supabase
       .from('inversiones')
-      .update({ valor_actual: nuevoValor, fecha_ultimo_update: fecha })
+      .update({
+        valor_actual:        ultimo?.valor ?? nuevoValor,
+        fecha_ultimo_update: ultimo?.fecha ?? fecha,
+      })
       .eq('id', id)
     if (updErr) throw new Error(`Error al actualizar: ${updErr.message}`)
 
-    const { error: histErr } = await supabase
-      .from('inversiones_historial')
-      .insert({ inversion_id: id, user_id: userId, valor: nuevoValor, fecha })
-    if (histErr) throw new Error(`Error en historial: ${histErr.message}`)
-
-    // Optimistic update
-    setInversiones(prev =>
-      prev.map(i => i.id === id ? { ...i, valor_actual: nuevoValor, fecha_ultimo_update: fecha } : i)
-    )
-    setHistorial(prev => [
-      ...prev,
-      { id: crypto.randomUUID(), inversion_id: id, valor: nuevoValor, fecha },
-    ])
+    await cargar()   // el valor vigente lo decide la DB, no un optimistic update
   }
 
   const archivarInversion = async (id: string) => {
@@ -151,6 +210,21 @@ export function useInversiones(userId: string) {
       dbUpdates.valor_actual = updates.monto_invertido
     }
 
+    // Si se reescribe valor_actual hay que corregir también el primer punto del
+    // historial (el de fecha_inicio), o la gráfica queda contradiciendo al
+    // resumen. Se hace ANTES del update de inversiones: así un fallo deja todo
+    // sin tocar y el reintento es limpio.
+    const nuevoValorInicial = dbUpdates.valor_actual as number | undefined
+    if (invActual && nuevoValorInicial !== undefined) {
+      const { error: histErr } = await supabase
+        .from('inversiones_historial')
+        .update({ valor: nuevoValorInicial })
+        .eq('inversion_id', id)
+        .eq('user_id', userId)
+        .eq('fecha', invActual.fecha_inicio)
+      if (histErr) throw new Error(`Error al sincronizar historial: ${histErr.message}`)
+    }
+
     const { data, error } = await supabase
       .from('inversiones')
       .update(dbUpdates)
@@ -159,6 +233,7 @@ export function useInversiones(userId: string) {
       .single()
     if (error) throw new Error(`Error al actualizar: ${error.message}`)
     setInversiones(prev => prev.map(i => i.id === id ? data : i))
+    await cargar()   // refresca también el historial (la gráfica)
     return data
   }
 

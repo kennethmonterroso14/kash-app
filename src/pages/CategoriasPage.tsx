@@ -30,13 +30,14 @@ export default function CategoriasPage({ userId }: Props) {
   const [saving, setSaving]           = useState(false)
   const [saveError, setSaveError]     = useState<string | null>(null)
   const [confirmDel, setConfirmDel]   = useState<string | null>(null)
+  const [delError, setDelError]       = useState<string | null>(null)
 
   const handleAgregar = async () => {
     const n = nombre.trim()
     if (!n) return
     // No duplicates with base categories
     const allBase = [...CATEGORIAS_GASTO, ...CATEGORIAS_INGRESO]
-    if (allBase.includes(n)) {
+    if (allBase.some(base => base.toLowerCase() === n.toLowerCase())) {
       setSaveError('Esa categoría ya existe en las categorías base.')
       return
     }
@@ -59,11 +60,14 @@ export default function CategoriasPage({ userId }: Props) {
   }
 
   const handleEliminar = async (id: string) => {
+    setDelError(null)
     try {
       await eliminarCategoria(id)
       setConfirmDel(null)
     } catch (e: unknown) {
-      console.error(e)
+      // Un borrado fallido no puede quedar silencioso: la fila sigue en la
+      // lista y el usuario creeria que se elimino.
+      setDelError(e instanceof Error ? e.message : 'No se pudo eliminar la categoría')
     }
   }
 
@@ -137,6 +141,10 @@ export default function CategoriasPage({ userId }: Props) {
               </button>
             </div>
           </div>
+        )}
+
+        {delError && (
+          <p className="text-danger text-xs bg-danger/10 rounded-xl p-3 mb-3">{delError}</p>
         )}
 
         {loading ? (

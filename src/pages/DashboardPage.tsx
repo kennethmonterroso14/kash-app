@@ -44,6 +44,51 @@ const EyeOffIcon = () => (
   </svg>
 )
 
+/**
+ * Monto de dinero que respeta el modo privado: cuando `oculto` es true muestra
+ * •••••• con un equivalente accesible en lugar de la cifra.
+ */
+const Monto = ({ oculto, valor, className = '', signo = '' }: {
+  oculto: boolean
+  valor: number
+  className?: string
+  signo?: string
+}) => (
+  oculto ? (
+    <span className="font-mono tracking-widest text-muted">
+      ••••••<span className="sr-only">oculto</span>
+    </span>
+  ) : (
+    <span className={`font-mono ${className}`}>{signo}{formatQ(valor)}</span>
+  )
+)
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PieCustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null
+  const { cat, value } = payload[0].payload
+  return (
+    <div style={{ background: '#12151c', borderRadius: 10, padding: '6px 10px', fontSize: 12 }}>
+      <span style={{ color: '#e2e8f0' }}>{cat}: {formatQ(value)}</span>
+    </div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BarCustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: '#12151c', borderRadius: 10, padding: '6px 10px', fontSize: 12 }}>
+      <p style={{ color: '#94a3b8', marginBottom: 4 }}>{label}</p>
+      {payload.map((p: { name: string; value: number; color: string }) => (
+        <p key={p.name} style={{ color: p.color }}>
+          {p.name}: {`Q${Number(p.value).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export default function DashboardPage({ user }: Props) {
   const { coloresCategorias } = useCategorias(user.id)
   const [mes, setMes] = useState(mesActual())
@@ -79,9 +124,16 @@ export default function DashboardPage({ user }: Props) {
     if (entries.length === 0) return []
     const top = entries.slice(0, MAX_SLICE)
     const otrosTotal = entries.slice(MAX_SLICE).reduce((s, [, v]) => s + v, 0)
-    if (otrosTotal > 0) top.push(['Otros', otrosTotal])
+    if (otrosTotal > 0) {
+      // 'Otros' también es una categoría real: si ya está en el top hay que
+      // sumarle la cola en lugar de agregar una segunda rebanada idéntica.
+      const i = top.findIndex(([c]) => c === 'Otros')
+      if (i >= 0) top[i] = ['Otros', top[i][1] + otrosTotal]
+      else top.push(['Otros', otrosTotal])
+      top.sort(([, a], [, b]) => b - a)  // la rebanada fusionada puede haber cambiado de lugar
+    }
     return top.map(([cat, value]) => ({ cat, value, fill: coloresCategorias[cat] ?? '#6b7590' }))
-  }, [stats.porCategoria])
+  }, [stats.porCategoria, coloresCategorias])
 
   // Bar chart — centavos → quetzales for display
   const barData = resumen6.map(r => ({
@@ -89,31 +141,6 @@ export default function DashboardPage({ user }: Props) {
     Ingresos: +(r.ingresos / 100).toFixed(2),
     Gastos:   +(r.gastos   / 100).toFixed(2),
   }))
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const PieCustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.length) return null
-    const { cat, value } = payload[0].payload
-    return (
-      <div style={{ background: '#12151c', borderRadius: 10, padding: '6px 10px', fontSize: 12 }}>
-        <span style={{ color: '#e2e8f0' }}>{cat}: {formatQ(value)}</span>
-      </div>
-    )
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const BarCustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div style={{ background: '#12151c', borderRadius: 10, padding: '6px 10px', fontSize: 12 }}>
-        <p style={{ color: '#94a3b8', marginBottom: 4 }}>{label}</p>
-        {payload.map((p: { name: string; value: number; color: string }) => (
-          <p key={p.name} style={{ color: p.color }}>
-            {p.name}: {`Q${Number(p.value).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`}
-          </p>
-        ))}
-      </div>
-    )
-  }
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
@@ -123,7 +150,7 @@ export default function DashboardPage({ user }: Props) {
           type="button"
           onClick={() => setPatrimonioOculto(v => !v)}
           aria-pressed={patrimonioOculto}
-          aria-label={patrimonioOculto ? 'Mostrar patrimonio total' : 'Ocultar patrimonio total'}
+          aria-label={patrimonioOculto ? 'Mostrar saldos' : 'Ocultar saldos'}
           className="w-full flex justify-between items-center mb-1"
         >
           <p className="text-muted text-xs uppercase tracking-widest">Patrimonio total</p>
@@ -157,28 +184,31 @@ export default function DashboardPage({ user }: Props) {
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-muted">Saldo en cuentas</span>
-              <span className="font-mono text-white">{formatQ(disponibleReal.saldo_cuentas)}</span>
+              <Monto oculto={patrimonioOculto} valor={disponibleReal.saldo_cuentas} className="text-white" />
             </div>
             {disponibleReal.deuda_tc_vencida > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted">Deuda TC vencida</span>
-                <span className="font-mono text-danger">−{formatQ(disponibleReal.deuda_tc_vencida)}</span>
+                <Monto oculto={patrimonioOculto} valor={disponibleReal.deuda_tc_vencida} className="text-danger" signo="−" />
               </div>
             )}
             {disponibleReal.deuda_tc_acumulando > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted">Deuda TC acumulando</span>
-                <span className="font-mono text-warning">−{formatQ(disponibleReal.deuda_tc_acumulando)}</span>
+                <Monto oculto={patrimonioOculto} valor={disponibleReal.deuda_tc_acumulando} className="text-warning" signo="−" />
               </div>
             )}
             <div className="border-t border-muted/20 pt-1.5 flex justify-between">
               <span className="text-white font-semibold text-sm">Disponible real</span>
-              <span className={`font-mono font-bold ${disponibleReal.disponible_real >= 0 ? 'text-success' : 'text-danger'}`}>
-                {formatQ(disponibleReal.disponible_real)}
-              </span>
+              <Monto
+                oculto={patrimonioOculto}
+                valor={disponibleReal.disponible_real}
+                className={`font-bold ${disponibleReal.disponible_real >= 0 ? 'text-success' : 'text-danger'}`}
+              />
             </div>
           </div>
-          {disponibleReal.advertencia && (
+          {/* La advertencia cita el monto de deuda → también se oculta en modo privado */}
+          {!patrimonioOculto && disponibleReal.advertencia && (
             <p className="text-warning text-xs mt-3 bg-warning/10 rounded-lg p-2">
               {disponibleReal.advertencia}
             </p>
@@ -227,31 +257,33 @@ export default function DashboardPage({ user }: Props) {
             {/* Activos */}
             <div className="flex justify-between">
               <span className="text-muted">Cuentas</span>
-              <span className="font-mono text-white">{formatQ(totalPatrimonio)}</span>
+              <Monto oculto={patrimonioOculto} valor={totalPatrimonio} className="text-white" />
             </div>
             {resumenInv.valor_total > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted">Inversiones</span>
-                <span className="font-mono text-success">+{formatQ(resumenInv.valor_total)}</span>
+                <Monto oculto={patrimonioOculto} valor={resumenInv.valor_total} className="text-success" signo="+" />
               </div>
             )}
             <div className="flex justify-between text-xs text-muted pt-0.5">
               <span>Total activos</span>
-              <span className="font-mono text-white">{formatQ(patrimonioNeto.activos)}</span>
+              <Monto oculto={patrimonioOculto} valor={patrimonioNeto.activos} className="text-white" />
             </div>
             {/* Pasivos */}
             {patrimonioNeto.pasivos > 0 && (
               <div className="flex justify-between pt-1">
                 <span className="text-muted">Deuda TC</span>
-                <span className="font-mono text-danger">−{formatQ(patrimonioNeto.pasivos)}</span>
+                <Monto oculto={patrimonioOculto} valor={patrimonioNeto.pasivos} className="text-danger" signo="−" />
               </div>
             )}
             {/* Neto */}
             <div className="border-t border-muted/20 pt-1.5 flex justify-between">
               <span className="text-white font-semibold">Patrimonio neto</span>
-              <span className={`font-mono font-bold ${patrimonioNeto.neto >= 0 ? 'text-success' : 'text-danger'}`}>
-                {formatQ(patrimonioNeto.neto)}
-              </span>
+              <Monto
+                oculto={patrimonioOculto}
+                valor={patrimonioNeto.neto}
+                className={`font-bold ${patrimonioNeto.neto >= 0 ? 'text-success' : 'text-danger'}`}
+              />
             </div>
           </div>
         </div>
@@ -340,8 +372,8 @@ export default function DashboardPage({ user }: Props) {
           </ResponsiveContainer>
           {/* Leyenda */}
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
-            {donutData.map(({ cat, value, fill }) => (
-              <div key={cat} className="flex items-center gap-1.5">
+            {donutData.map(({ cat, value, fill }, i) => (
+              <div key={i} className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: fill }} />
                 <span className="text-xs text-muted">{cat}</span>
                 <span className="text-xs font-mono text-white">{formatQ(value)}</span>

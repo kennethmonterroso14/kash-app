@@ -51,9 +51,11 @@ export default function InversionesPage({ userId }: Props) {
   const [errForm, setErrForm] = useState<string | null>(null)
   const [fetchingRate, setFetchingRate] = useState(false)
 
-  // Tipo de cambio desactualizado si tiene 7+ días sin actualizar
+  // Tipo de cambio desactualizado si tiene 7+ días sin actualizar.
+  // Sin fecha registrada nunca se verificó (o no se pudo leer el perfil): se
+  // marca igual, para no presentar el default de Q7.75 como vigente.
   const tipoCambioDesactualizado = (() => {
-    if (!tipoCambioFecha) return false
+    if (!tipoCambioFecha) return true
     const dias = Math.floor((Date.now() - new Date(tipoCambioFecha).getTime()) / (1000 * 60 * 60 * 24))
     return dias >= 7
   })()
@@ -87,7 +89,8 @@ export default function InversionesPage({ userId }: Props) {
     setPlataforma(inv.plataforma ?? '')
     setTipo(inv.tipo)
     setCapital(String((inv.monto_invertido / 100).toFixed(2)))
-    setMoneda(inv.moneda)
+    // La moneda no se edita: el capital, el valor y el historial están
+    // guardados en la moneda original (ver modal "Editar inversión").
     setFechaInicio(inv.fecha_inicio)
     setNotas(inv.notas ?? '')
     setErrForm(null)
@@ -125,6 +128,10 @@ export default function InversionesPage({ userId }: Props) {
     setErrForm(null)
     const val = parseFloat(nuevoValor)
     if (isNaN(val) || val < 0) return setErrForm('El valor debe ser 0 o mayor')
+    if (fechaUpdate > hoyGT())
+      return setErrForm('La fecha no puede ser futura')
+    if (selInv && fechaUpdate < selInv.fecha_inicio)
+      return setErrForm('La fecha no puede ser anterior al inicio de la inversión')
     try {
       setSaving(true)
       await actualizarValor(selId, toCentavos(val), fechaUpdate)
@@ -302,8 +309,8 @@ export default function InversionesPage({ userId }: Props) {
         </div>
       )}
 
-      {/* ── Empty state ─────────────────────────────────── */}
-      {inversiones.length === 0 && (
+      {/* ── Empty state (solo si la carga fue exitosa) ──── */}
+      {inversiones.length === 0 && !error && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">📈</p>
           <p className="text-muted text-sm">No tienes inversiones registradas</p>
@@ -516,8 +523,13 @@ export default function InversionesPage({ userId }: Props) {
                 <input
                   type="date"
                   value={fechaUpdate} onChange={e => setFechaUpdate(e.target.value)}
+                  min={selInv.fecha_inicio}
+                  max={hoyGT()}
                   className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
                 />
+                <p className="text-textDim text-xs mt-1">
+                  Una fecha anterior agrega un punto al historial sin reemplazar el valor vigente.
+                </p>
               </div>
               {errForm && <p className="text-danger text-sm">{errForm}</p>}
               <button
@@ -568,30 +580,26 @@ export default function InversionesPage({ userId }: Props) {
               </select>
               <div className="flex gap-2">
                 <input
-                  placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
+                  placeholder={`Capital inicial (${selInv.moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
                   value={capital} onChange={e => setCapital(e.target.value)}
                   inputMode="decimal"
                   className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
                 />
-                <div className="flex bg-bg border border-muted/30 rounded-xl overflow-hidden">
-                  {(['GTQ', 'USD'] as const).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setMoneda(m)}
-                      className={`px-3 py-3 text-sm font-medium transition-colors ${
-                        moneda === m ? 'bg-accent text-bg font-semibold' : 'text-muted hover:text-white'
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
+                {/* La moneda es de solo lectura: cambiarla reinterpretaría el
+                    capital, el valor actual y todo el historial ya guardados. */}
+                <div className="flex items-center px-4 py-3 bg-surface2 border border-muted/30 rounded-xl text-muted text-sm font-medium">
+                  {selInv.moneda}
                 </div>
               </div>
+              <p className="text-textDim text-xs -mt-1">
+                La moneda no se puede cambiar: el capital y el historial están guardados en {selInv.moneda}.
+              </p>
               <div>
                 <p className="text-muted text-xs mb-1">Fecha de inicio</p>
                 <input
                   type="date"
                   value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
+                  max={hoyGT()}
                   className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
                 />
               </div>
@@ -625,13 +633,13 @@ export default function InversionesPage({ userId }: Props) {
             <div className="bg-bg rounded-xl p-3 mb-4">
               <p className="text-muted text-xs">Tipo de cambio actual</p>
               <p className="text-white font-mono">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
-              {tipoCambioFecha && (
-                <p className={`text-xs mt-0.5 ${tipoCambioDesactualizado ? 'text-warning' : 'text-textDim'}`}>
-                  {tipoCambioDesactualizado
-                    ? '⚠️ Sin actualizar hace más de 7 días'
-                    : `Actualizado: ${new Date(tipoCambioFecha).toLocaleDateString('es-GT')}`}
-                </p>
-              )}
+              <p className={`text-xs mt-0.5 ${tipoCambioDesactualizado ? 'text-warning' : 'text-textDim'}`}>
+                {!tipoCambioFecha
+                  ? '⚠️ Sin verificar — confirma el tipo de cambio'
+                  : tipoCambioDesactualizado
+                  ? '⚠️ Sin actualizar hace más de 7 días'
+                  : `Actualizado: ${new Date(tipoCambioFecha).toLocaleDateString('es-GT')}`}
+              </p>
             </div>
             <div className="flex flex-col gap-3">
               <input

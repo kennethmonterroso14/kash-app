@@ -15,7 +15,7 @@ const COLORES = [
 ]
 
 export default function CuentasPage({ user }: Props) {
-  const { cuentas, loading, totalPatrimonio } = useCuentas(user.id)
+  const { cuentas, loading, error: cuentasError, totalPatrimonio } = useCuentas(user.id)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -34,8 +34,13 @@ export default function CuentasPage({ user }: Props) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
-    const saldoQ = parseFloat(saldoInput)
-    if (!nombre.trim() || isNaN(saldoQ) || saldoQ < 0) return
+    // Dejar el saldo en blanco significa Q0.00, no "no hacer nada".
+    const saldoQ = saldoInput.trim() === '' ? 0 : parseFloat(saldoInput)
+    if (!nombre.trim()) { setError('El nombre es requerido'); return }
+    if (!Number.isFinite(saldoQ) || saldoQ < 0) {
+      setError('Ingresa un saldo válido (0 o mayor)')
+      return
+    }
     setSaving(true)
     setError('')
 
@@ -57,11 +62,27 @@ export default function CuentasPage({ user }: Props) {
         cuenta_id: cuenta.id,
         fecha: hoyGT(),
         cantidad: saldoCentavos,
-        descripcion: `Saldo inicial ${cuenta.nombre}`,
+        descripcion: `Saldo inicial ${cuenta.nombre}`.slice(0, 200),
         categoria: 'Ajuste de cuenta',
         tipo: 'ajuste',
       })
-      if (txnError) { setError(txnError.message); setSaving(false); return }
+      if (txnError) {
+        // Compensar: sin esto la cuenta queda huérfana en Q0.00 y un reintento
+        // la duplica. No hay transacciones que la referencien, así que el
+        // `on delete restrict` de transacciones no se dispara.
+        const { error: rollbackError } = await supabase
+          .from('cuentas')
+          .delete()
+          .eq('id', cuenta.id)
+          .eq('user_id', user.id)
+        setError(
+          rollbackError
+            ? `${txnError.message} — la cuenta "${cuenta.nombre}" quedó creada con saldo Q0.00; ajusta su saldo manualmente.`
+            : txnError.message
+        )
+        setSaving(false)
+        return
+      }
     }
 
     // Reset form
@@ -79,7 +100,7 @@ export default function CuentasPage({ user }: Props) {
     e.preventDefault()
     if (!ajustandoCuenta) return
     const val = parseFloat(ajusteInput)
-    if (isNaN(val) || val === 0) { setAjusteError('Ingresa un monto distinto de cero'); return }
+    if (!Number.isFinite(val) || val === 0) { setAjusteError('Ingresa un monto distinto de cero'); return }
     setAjusteSaving(true)
     setAjusteError('')
     const { error: txnError } = await supabase.from('transacciones').insert({
@@ -104,7 +125,9 @@ export default function CuentasPage({ user }: Props) {
       <div className="bg-surface rounded-2xl p-5 flex justify-between items-start">
         <div>
           <p className="text-muted text-xs uppercase tracking-widest mb-1">Patrimonio total</p>
-          <p className="text-3xl font-mono font-bold text-white">{formatQ(totalPatrimonio)}</p>
+          <p className="text-3xl font-mono font-bold text-white">
+            {cuentasError ? '—' : formatQ(totalPatrimonio)}
+          </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -116,7 +139,13 @@ export default function CuentasPage({ user }: Props) {
 
       {loading && <p className="text-muted text-center py-8">Cargando...</p>}
 
-      {!loading && cuentas.length === 0 && (
+      {cuentasError && (
+        <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-3">
+          No se pudieron cargar tus cuentas: {cuentasError}
+        </p>
+      )}
+
+      {!loading && !cuentasError && cuentas.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center">
           <p className="text-white font-medium mb-1">Sin cuentas aún</p>
           <p className="text-muted text-sm mb-4">Agrega tu primera cuenta para empezar a registrar movimientos.</p>
@@ -210,6 +239,7 @@ export default function CuentasPage({ user }: Props) {
                   value={nombre}
                   onChange={e => setNombre(e.target.value)}
                   required
+                  maxLength={80}
                   placeholder="ej. BI Ahorros"
                   className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
                 />
