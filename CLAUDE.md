@@ -52,7 +52,8 @@ table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`v
 
 Pages are glue: local `useState` for modals/forms, hooks for data, `finanzas.ts` for numbers.
 
-**App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase magic link) →
+**App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase email + password —
+`signInWithPassword` / `signUp`, *not* a magic link) →
 `SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` is the header +
 global `AlertasBanner` + 5-item bottom nav (Dashboard · Movimientos · Cuentas · Presupuesto ·
 Perfil); everything else (Inversiones, Tarjetas, Pagos Fijos, Categorías, Metas, Proyecciones) is
