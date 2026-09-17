@@ -29,22 +29,25 @@
 --     (`create policy if not exists` no existe en PostgreSQL, un índice se
 --     creaba antes que su columna, `create trigger` sin guard).
 --
--- ⚠️  TRES TABLAS FUERON RECONSTRUIDAS A PARTIR DEL CÓDIGO CLIENTE, no de un
---     dump de la base real: `inversiones`, `pagos_recurrentes` y
---     `categorias_usuario` nunca tuvieron DDL comiteado en ningún lado
---     (ni en este archivo ni en los planes). Sus columnas se infirieron de
---     src/hooks/useInversiones.ts, src/hooks/usePagosRecurrentes.ts,
---     src/hooks/useAutoApplyPagos.ts y src/hooks/useCategorias.ts.
---     Los bloques están marcados con "INFERIDO". Verificar contra la base
---     real antes de tratarlos como verdad:
---         select table_name, column_name, data_type, is_nullable, column_default
---           from information_schema.columns
---          where table_schema = 'public'
---            and table_name in ('inversiones','pagos_recurrentes','categorias_usuario')
---          order by table_name, ordinal_position;
---     Como están dentro de `create table if not exists`, sus constraints NO
---     se aplican a una tabla que ya existe: re-ejecutar este archivo sobre la
---     base desplegada no puede fallar por datos que no cumplan lo inferido.
+-- `inversiones`, `pagos_recurrentes` y `categorias_usuario` nunca tuvieron DDL
+-- comiteado en ningún lado (ni acá ni en los planes). Se reconstruyeron del
+-- código cliente y después se VERIFICARON contra la base real por
+-- introspección de information_schema (columnas, tipos, nullability y
+-- defaults). Lo que esa introspección no cubre y sigue sin confirmar:
+--   • la longitud máxima de las columnas `character varying`
+--   • qué check/unique constraints existen realmente
+-- Para cerrar eso:
+--     select tc.table_name, tc.constraint_name, tc.constraint_type,
+--            cc.check_clause
+--       from information_schema.table_constraints tc
+--       left join information_schema.check_constraints cc
+--              on cc.constraint_name = tc.constraint_name
+--      where tc.table_schema = 'public'
+--      order by tc.table_name;
+-- Como están dentro de `create table if not exists`, las constraints de este
+-- archivo NO se aplican a una tabla que ya existe: re-ejecutarlo sobre la base
+-- desplegada no puede fallar por datos que no las cumplan (y por eso el
+-- cliente no da por hecho que existan).
 --
 -- Money: SIEMPRE centavos enteros (bigint). Nunca quetzales, nunca float.
 -- ══════════════════════════════════════════════════════════════════════
@@ -86,10 +89,10 @@ end $$;
 -- ══════════════════════════════════════════════════════════════════════
 
 -- ─── PERFILES ─────────────────────────────────────────────────────────
--- Ojo (drift conocido, no se corrige acá): esta tabla tiene su propio `id`
--- y un `user_id` único hacia auth.users. SetupPage y useInversiones filtran
--- por `user_id`; PerfilPage filtra por `id`. Solo uno de los dos puede
--- coincidir con la tabla real — revisar antes de agregar más queries.
+-- Esta tabla tiene su propio `id` y un `user_id` único hacia auth.users.
+-- CONFIRMADO contra la base real: la relación con el usuario es `user_id`, y
+-- todas las queries del cliente filtran por ahí. PerfilPage filtraba por `id`
+-- (nunca coincidía, el nombre no cargaba) y quedó corregida.
 create table if not exists profiles (
   id          uuid primary key default uuid_generate_v4(),
   user_id     uuid references auth.users(id) on delete cascade not null unique,
@@ -317,51 +320,60 @@ create table if not exists metas_ahorro (
   constraint actual_no_negativo check (monto_actual >= 0)
 );
 
--- ─── PAGOS RECURRENTES ────── INFERIDO del código cliente ─────────────
+-- ─── PAGOS RECURRENTES ───── verificado contra la base real ───────────
 -- Fuente: src/hooks/usePagosRecurrentes.ts (select/insert/update),
 --         src/hooks/useAutoApplyPagos.ts, src/pages/PagosRecurrentesPage.tsx.
 --   • `monto` se guarda POSITIVO: useAutoApplyPagos inserta `cantidad: -p.monto`.
 --   • `dia_del_mes` 1-28 (el selector de la UI es Array.from({length: 28})).
 --   • `activo` es borrado lógico: deletePago hace update({activo: false}).
 --   • `ultima_aplicacion` es la idempotencia del auto-apply (date o NULL).
+-- Verificada contra la base real por introspección (information_schema).
+-- Ojo: `created_at` es NULLABLE y `dia_del_mes` es `integer` en producción; no
+-- se sabe si la tabla real tiene el check 1-28, así que el cliente recorta el
+-- día al último del mes en lugar de confiar en la constraint.
 create table if not exists pagos_recurrentes (
-  id                 uuid primary key default uuid_generate_v4(),
+  id                 uuid primary key default gen_random_uuid(),
   user_id            uuid references auth.users(id) on delete cascade not null,
   nombre             text not null,
   monto              bigint not null,          -- centavos, positivo
-  dia_del_mes        smallint not null,
+  dia_del_mes        integer not null,
   cuenta_id          uuid references cuentas(id) on delete restrict not null,
-  categoria          varchar(50) not null,
+  categoria          text not null,
   activo             boolean not null default true,
   ultima_aplicacion  date,
-  created_at         timestamptz not null default now(),
+  created_at         timestamptz default now(),
 
   constraint pago_rec_monto_positivo check (monto > 0),
   constraint pago_rec_dia_valido     check (dia_del_mes between 1 and 28)
 );
 
--- ─── CATEGORÍAS DE USUARIO ── INFERIDO del código cliente ─────────────
+-- ─── CATEGORÍAS DE USUARIO ─ verificado contra la base real ───────────
 -- Fuente: src/hooks/useCategorias.ts (select 'id, nombre, tipo, color'
 --         ordenado por created_at; insert {user_id, nombre, tipo, color}),
 --         src/pages/CategoriasPage.tsx (nombre maxLength 50).
+-- Verificada contra la base real por introspección (information_schema).
+-- `nombre` y `color` son character varying en producción (no se capturó su
+-- longitud máxima); `tipo` tiene default 'gasto' y `color` no tiene default.
 create table if not exists categorias_usuario (
   id          uuid primary key default uuid_generate_v4(),
   user_id     uuid references auth.users(id) on delete cascade not null,
   nombre      varchar(50) not null,
-  tipo        text not null,               -- 'gasto' | 'ingreso' | 'ambos'
-  color       text not null default '#6b7590',
+  tipo        text not null default 'gasto',   -- 'gasto' | 'ingreso' | 'ambos'
+  color       varchar(50) not null,
   created_at  timestamptz not null default now(),
 
   constraint cat_usuario_tipo_valido check (tipo in ('gasto', 'ingreso', 'ambos'))
 );
 
--- ─── INVERSIONES ──────────── INFERIDO del código cliente ─────────────
+-- ─── INVERSIONES ─────────── verificado contra la base real ───────────
 -- Fuente: src/hooks/useInversiones.ts (select/insert/update de todas las
 --         columnas), src/lib/constants.ts TIPOS_INVERSION.
 --   • Centavos en la MONEDA de la inversión (no convertidos a GTQ).
 --   • `activa` es borrado lógico: archivarInversion hace update({activa:false}).
 --   • `tipo` ∈ fondo|acciones|cdp|crypto|inmueble|otro (TIPOS_INVERSION).
 --     Se deja como text sin check para no romper filas ya existentes.
+-- Verificada contra la base real por introspección (information_schema):
+-- coincide, salvo que en producción `valor_actual` no tiene default.
 create table if not exists inversiones (
   id                   uuid primary key default uuid_generate_v4(),
   user_id              uuid references auth.users(id) on delete cascade not null,

@@ -40,11 +40,18 @@ export function useAutoApplyPagos(userId: string | undefined) {
     const diaHoy = parseInt(hoy.split('-')[2], 10)
     const [anio, mesNum] = hoy.split('-').map(Number)     // mesNum es 1-based
 
-    // dia_del_mes está restringido a 1-28, así que no hace falta recortar por
-    // la longitud del mes.
+    // El día se recorta al último real del mes destino. La UI solo ofrece 1-28,
+    // pero la tabla en producción tiene `dia_del_mes integer` y no se puede dar
+    // por hecho que exista el check 1-28: con un 31 guardado, pegar el día a un
+    // `YYYY-MM` produciría '2026-02-31', que Postgres rechaza, y el pago no se
+    // aplicaría nunca.
     const vencimientoEn = (mesIndex: number, dia: number) => {
       const d = new Date(anio, mesIndex, 1)
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+      const a = d.getFullYear()
+      const m = d.getMonth() + 1
+      const ultimoDia = new Date(a, m, 0).getDate()
+      const diaReal = Math.min(dia, ultimoDia)
+      return `${a}-${String(m).padStart(2, '0')}-${String(diaReal).padStart(2, '0')}`
     }
 
     ;(async () => {
@@ -63,8 +70,12 @@ export function useAutoApplyPagos(userId: string | undefined) {
 
       for (const p of pagos) {
         // Último vencimiento ya pasado: este mes si el día ya llegó, si no el
-        // del mes anterior.
-        const venc = p.dia_del_mes <= diaHoy
+        // del mes anterior. El día se compara recortado al mes en curso, para
+        // que un dia_del_mes 31 en febrero cuente como vencido el día 28 y no
+        // se corra un mes entero.
+        const ultimoDiaEsteMes = new Date(anio, mesNum, 0).getDate()
+        const vencEsteMes = Math.min(p.dia_del_mes, ultimoDiaEsteMes)
+        const venc = vencEsteMes <= diaHoy
           ? vencimientoEn(mesNum - 1, p.dia_del_mes)
           : vencimientoEn(mesNum - 2, p.dia_del_mes)
 

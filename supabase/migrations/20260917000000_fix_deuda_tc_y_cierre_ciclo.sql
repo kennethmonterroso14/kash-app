@@ -83,7 +83,17 @@ alter table transacciones
 -- PASO 2 (D1) — Backfill del reparto de las filas existentes
 --
 -- Antes de correr esto conviene guardarse la lista de pagos afectados, que
--- después ya no se puede distinguir:
+-- después ya no se puede distinguir. OJO: esta consulta va ANTES de todo, y en
+-- ese momento las columnas aplicado_* todavía no existen (las crea el PASO 1),
+-- así que NO se puede filtrar por ellas:
+--
+--   select id, fecha, tarjeta_id, cantidad
+--     from transacciones
+--    where tipo = 'pago_tc'
+--    order by fecha;
+--
+-- Si ya corriste el PASO 1, el equivalente es filtrar por los que todavía no
+-- tienen reparto:
 --
 --   select id, fecha, tarjeta_id, cantidad
 --     from transacciones
