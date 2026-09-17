@@ -26,11 +26,11 @@ export default class ErrorBoundary extends Component<Props, State> {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="bg-surface rounded-2xl p-6 max-w-sm space-y-3">
-          <p className="text-white font-semibold">Algo salió mal</p>
-          <p className="text-muted text-sm">
+          <p className="text-text font-semibold">Algo salió mal</p>
+          <p className="text-textDim text-sm">
             La pantalla no se pudo mostrar. Tus datos no se modificaron.
           </p>
-          <p className="text-muted text-xs font-mono break-words bg-bg rounded-xl px-3 py-2">
+          <p className="text-textDim text-xs font-mono break-words bg-bg rounded-xl px-3 py-2">
             {error.message}
           </p>
           <button

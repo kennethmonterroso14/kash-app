@@ -64,8 +64,8 @@ function CustomTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
   return (
-    <div className="bg-surface border border-muted/40 rounded-xl px-3 py-2 text-sm shadow-lg">
-      <p className="text-muted text-xs mb-0.5">{point.fechaDisplay}</p>
+    <div className="bg-surface border border-canto rounded-xl px-3 py-2 text-sm shadow-lg">
+      <p className="text-textDim text-xs mb-0.5">{point.fechaDisplay}</p>
       <p className="text-success font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
     </div>
   )
@@ -141,19 +141,19 @@ export default function ProyeccionesPage() {
   // ─── Render ──────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-bg text-white pb-24">
+    <div className="min-h-screen bg-bg text-text pb-24">
       <div className="max-w-lg mx-auto px-4 pt-8 space-y-5">
 
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Proyecciones</h1>
-          <p className="text-muted text-sm mt-1">
+          <p className="text-textDim text-sm mt-1">
             Patrimonio actual:{' '}
             {loading
               ? <span className="animate-pulse">cargando…</span>
               : cuentasError
                 ? <span className="text-danger">no disponible</span>
-                : <span className="text-white font-semibold">{formatQ(totalPatrimonio)}</span>
+                : <span className="text-text font-semibold">{formatQ(totalPatrimonio)}</span>
             }
           </p>
           {cuentasError && (
@@ -168,7 +168,7 @@ export default function ProyeccionesPage() {
 
           {/* Ahorro mensual */}
           <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
               Ahorro mensual (Q)
             </label>
             <input
@@ -177,13 +177,13 @@ export default function ProyeccionesPage() {
               step={100}
               value={ahorroMensualQ}
               onChange={e => setAhorroMensualQ(Number(e.target.value))}
-              className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/60 transition-colors"
+              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
             />
           </div>
 
           {/* Rendimiento anual */}
           <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
               Rendimiento anual (%)
             </label>
             <input
@@ -193,13 +193,13 @@ export default function ProyeccionesPage() {
               step={0.5}
               value={rendimientoPct}
               onChange={e => setRendimientoPct(Number(e.target.value))}
-              className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/60 transition-colors"
+              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
             />
           </div>
 
           {/* Horizonte segmented control */}
           <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
               Horizonte
             </label>
             <div className="flex bg-bg rounded-xl p-1 gap-1">
@@ -210,7 +210,7 @@ export default function ProyeccionesPage() {
                   className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                     horizonteIdx === i
                       ? 'bg-accent text-bg'
-                      : 'text-muted hover:text-white'
+                      : 'text-textDim hover:text-text'
                   }`}
                 >
                   {opt.label}
@@ -222,7 +222,7 @@ export default function ProyeccionesPage() {
 
         {/* Chart */}
         <div className="bg-surface rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">
+          <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-4">
             Crecimiento proyectado
           </h2>
           {chartData.length > 0 ? (
@@ -236,13 +236,13 @@ export default function ProyeccionesPage() {
                 </defs>
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: colores.muted, fontSize: 11 }}
+                  tick={{ fill: colores.textDim, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={formatYAxis}
-                  tick={{ fill: colores.muted, fontSize: 11 }}
+                  tick={{ fill: colores.textDim, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   width={54}
@@ -260,7 +260,7 @@ export default function ProyeccionesPage() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-60 flex items-center justify-center text-muted text-sm">
+            <div className="h-60 flex items-center justify-center text-textDim text-sm">
               Cargando proyección…
             </div>
           )}
@@ -269,14 +269,14 @@ export default function ProyeccionesPage() {
         {/* Milestone summary cards */}
         {milestones.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">
+            <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-3">
               Metas proyectadas
             </h2>
             <div className="grid grid-cols-3 gap-3">
               {milestones.map(m => (
                 <div key={m.label} className="bg-surface rounded-2xl p-4 flex flex-col gap-1">
-                  <span className="text-xs text-muted">{m.label}</span>
-                  <span className="text-sm font-bold text-white leading-tight">
+                  <span className="text-xs text-textDim">{m.label}</span>
+                  <span className="text-sm font-bold text-text leading-tight">
                     {formatQ(m.patrimonio)}
                   </span>
                   <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-success' : 'text-danger'}`}>

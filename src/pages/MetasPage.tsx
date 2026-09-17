@@ -189,7 +189,7 @@ export default function MetasPage() {
     <div className="max-w-lg mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-white font-semibold text-lg">Metas de ahorro</h1>
+        <h1 className="text-text font-semibold text-lg">Metas de ahorro</h1>
         <button
           onClick={() => setShowForm(true)}
           className="bg-accent text-bg font-semibold text-sm px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
@@ -200,14 +200,14 @@ export default function MetasPage() {
 
       {/* Ahorro mensual compartido */}
       <div className="bg-surface rounded-2xl px-4 py-4 mb-5">
-        <label className="text-muted text-xs mb-1 block">Ahorro mensual estimado (Q)</label>
+        <label className="text-textDim text-xs mb-1 block">Ahorro mensual estimado (Q)</label>
         <input
           type="number"
           min="1"
           step="100"
           value={ahorroMensualQ}
           onChange={e => setAhorroMensualQ(e.target.value)}
-          className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+          className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent"
         />
       </div>
 
@@ -218,13 +218,13 @@ export default function MetasPage() {
 
       {/* Loading */}
       {loading && (
-        <p className="text-muted text-center py-8">Cargando metas...</p>
+        <p className="text-textDim text-center py-8">Cargando metas...</p>
       )}
 
       {/* Empty state */}
       {!loading && metas.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center space-y-4">
-          <p className="text-muted">No tienes metas de ahorro activas.</p>
+          <p className="text-textDim">No tienes metas de ahorro activas.</p>
           <button
             onClick={() => setShowForm(true)}
             className="bg-accent text-bg font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity"
@@ -246,7 +246,7 @@ export default function MetasPage() {
             <div key={meta.id} className="bg-surface rounded-2xl px-4 py-4 space-y-3">
               {/* Nombre */}
               <div className="flex items-start justify-between gap-2">
-                <p className="text-white font-medium">{meta.nombre}</p>
+                <p className="text-text font-medium">{meta.nombre}</p>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => handleCompletar(meta.id)}
@@ -260,8 +260,8 @@ export default function MetasPage() {
                     disabled={operating}
                     className={`text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50 ${
                       pendingDelete === meta.id
-                        ? 'bg-danger text-white'
-                        : 'text-muted hover:text-danger'
+                        ? 'bg-danger text-text'
+                        : 'text-textDim hover:text-danger'
                     }`}
                   >
                     {pendingDelete === meta.id ? 'Confirmar' : '×'}
@@ -281,12 +281,12 @@ export default function MetasPage() {
               <div className="flex items-center justify-between">
                 <span className="text-success font-mono text-sm">
                   {formatQ(meta.monto_actual)}
-                  <span className="text-muted"> / {formatQ(meta.monto_objetivo)}</span>
+                  <span className="text-textDim"> / {formatQ(meta.monto_objetivo)}</span>
                 </span>
-                <span className="text-muted text-xs">{pct}%</span>
+                <span className="text-textDim text-xs">{pct}%</span>
               </div>
 
-              <p className="text-muted text-xs">{estimado}</p>
+              <p className="text-textDim text-xs">{estimado}</p>
             </div>
           )
         })}
@@ -300,27 +300,27 @@ export default function MetasPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Nueva meta</h2>
-              <button onClick={() => setShowForm(false)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Nueva meta</h2>
+              <button onClick={() => setShowForm(false)} className="text-textDim text-xl">×</button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {/* Nombre */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Nombre de la meta</label>
+                <label className="text-textDim text-xs mb-1 block">Nombre de la meta</label>
                 <input
                   type="text"
                   value={nombre}
                   onChange={e => setNombre(e.target.value)}
                   required
                   placeholder="Ej: Viaje a Europa"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Monto objetivo */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Monto objetivo (Q)</label>
+                <label className="text-textDim text-xs mb-1 block">Monto objetivo (Q)</label>
                 <input
                   type="number"
                   min="0.01"
@@ -329,13 +329,13 @@ export default function MetasPage() {
                   onChange={e => setMontoObjetivoQ(e.target.value)}
                   required
                   placeholder="0.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white font-mono text-xl focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text font-mono text-xl focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Ya tengo */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Ya tengo (Q)</label>
+                <label className="text-textDim text-xs mb-1 block">Ya tengo (Q)</label>
                 <input
                   type="number"
                   min="0"
@@ -343,7 +343,7 @@ export default function MetasPage() {
                   value={montoActualQ}
                   onChange={e => setMontoActualQ(e.target.value)}
                   placeholder="0.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white font-mono text-xl focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text font-mono text-xl focus:outline-none focus:border-accent"
                 />
               </div>
 

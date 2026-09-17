@@ -127,8 +127,8 @@ export default function CuentasPage() {
       {/* Total + botón agregar */}
       <div className="bg-surface rounded-2xl p-5 flex justify-between items-start">
         <div>
-          <p className="text-muted text-xs uppercase tracking-widest mb-1">Patrimonio total</p>
-          <p className="text-3xl font-mono font-bold text-white">
+          <p className="text-textDim text-xs uppercase tracking-widest mb-1">Patrimonio total</p>
+          <p className="text-3xl font-mono font-bold text-text">
             {cuentasError ? '—' : formatQ(totalPatrimonio)}
           </p>
         </div>
@@ -140,7 +140,7 @@ export default function CuentasPage() {
         </button>
       </div>
 
-      {loading && <p className="text-muted text-center py-8">Cargando...</p>}
+      {loading && <p className="text-textDim text-center py-8">Cargando...</p>}
 
       {cuentasError && (
         <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-3">
@@ -150,8 +150,8 @@ export default function CuentasPage() {
 
       {!loading && !cuentasError && cuentas.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center">
-          <p className="text-white font-medium mb-1">Sin cuentas aún</p>
-          <p className="text-muted text-sm mb-4">Agrega tu primera cuenta para empezar a registrar movimientos.</p>
+          <p className="text-text font-medium mb-1">Sin cuentas aún</p>
+          <p className="text-textDim text-sm mb-4">Agrega tu primera cuenta para empezar a registrar movimientos.</p>
           <button
             onClick={() => setShowForm(true)}
             className="bg-accent text-bg font-semibold px-6 py-2 rounded-xl hover:opacity-90"
@@ -167,15 +167,15 @@ export default function CuentasPage() {
           <div key={c.id} className="bg-surface rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-3 h-3 rounded-full" style={{ background: c.color }} />
-              <span className="text-muted text-xs capitalize">{c.tipo}</span>
+              <span className="text-textDim text-xs capitalize">{c.tipo}</span>
             </div>
-            <p className="text-white text-sm font-medium mb-1">{c.nombre}</p>
-            <p className={`font-mono font-semibold ${c.saldo >= 0 ? 'text-white' : 'text-danger'}`}>
+            <p className="text-text text-sm font-medium mb-1">{c.nombre}</p>
+            <p className={`font-mono font-semibold ${c.saldo >= 0 ? 'text-text' : 'text-danger'}`}>
               {formatQ(c.saldo)}
             </p>
             <button
               onClick={() => { setAjustandoCuenta({ id: c.id, nombre: c.nombre }); setAjusteInput(''); setAjusteError('') }}
-              className="mt-2 text-xs text-muted hover:text-accent transition-colors"
+              className="mt-2 text-xs text-textDim hover:text-accent transition-colors"
             >
               ± Ajustar saldo
             </button>
@@ -191,13 +191,13 @@ export default function CuentasPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Ajustar — {ajustandoCuenta.nombre}</h2>
-              <button onClick={() => setAjustandoCuenta(null)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Ajustar — {ajustandoCuenta.nombre}</h2>
+              <button onClick={() => setAjustandoCuenta(null)} className="text-textDim text-xl">×</button>
             </div>
-            <p className="text-muted text-sm">Ingresa un valor positivo para sumar o negativo para restar del saldo.</p>
+            <p className="text-textDim text-sm">Ingresa un valor positivo para sumar o negativo para restar del saldo.</p>
             <form onSubmit={handleAjuste} className="space-y-3">
               <div>
-                <label className="text-muted text-xs mb-1 block">Monto (Q)</label>
+                <label className="text-textDim text-xs mb-1 block">Monto (Q)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -205,7 +205,7 @@ export default function CuentasPage() {
                   onChange={e => setAjusteInput(e.target.value)}
                   required
                   placeholder="ej. -500.00 o 200.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent"
                 />
               </div>
               {ajusteError && <p className="text-danger text-xs">{ajusteError}</p>}
@@ -229,14 +229,14 @@ export default function CuentasPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Nueva cuenta</h2>
-              <button onClick={() => setShowForm(false)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Nueva cuenta</h2>
+              <button onClick={() => setShowForm(false)} className="text-textDim text-xl">×</button>
             </div>
 
             <form onSubmit={handleAdd} className="space-y-4">
               {/* Nombre */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Nombre</label>
+                <label className="text-textDim text-xs mb-1 block">Nombre</label>
                 <input
                   type="text"
                   value={nombre}
@@ -244,24 +244,24 @@ export default function CuentasPage() {
                   required
                   maxLength={80}
                   placeholder="ej. BI Ahorros"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Tipo + Saldo inicial */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Tipo</label>
+                  <label className="text-textDim text-xs mb-1 block">Tipo</label>
                   <select
                     value={tipo}
                     onChange={e => setTipo(e.target.value as typeof TIPO_OPCIONES[number])}
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent capitalize"
+                    className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent capitalize"
                   >
                     {TIPO_OPCIONES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Saldo actual (Q)</label>
+                  <label className="text-textDim text-xs mb-1 block">Saldo actual (Q)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -269,14 +269,14 @@ export default function CuentasPage() {
                     value={saldoInput}
                     onChange={e => setSaldoInput(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white font-mono focus:outline-none focus:border-accent"
+                    className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text font-mono focus:outline-none focus:border-accent"
                   />
                 </div>
               </div>
 
               {/* Color */}
               <div>
-                <label className="text-muted text-xs mb-2 block">Color</label>
+                <label className="text-textDim text-xs mb-2 block">Color</label>
                 <div className="flex flex-wrap gap-2">
                   {COLORES.map(c => (
                     <button

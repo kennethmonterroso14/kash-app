@@ -19,7 +19,7 @@ const EyeIcon = () => (
     width="16" height="16" viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="1.5"
     strokeLinecap="round" strokeLinejoin="round"
-    className="text-muted flex-shrink-0"
+    className="text-textDim flex-shrink-0"
   >
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
     <circle cx="12" cy="12" r="3"/>
@@ -32,7 +32,7 @@ const EyeOffIcon = () => (
     width="16" height="16" viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="1.5"
     strokeLinecap="round" strokeLinejoin="round"
-    className="text-muted flex-shrink-0"
+    className="text-textDim flex-shrink-0"
   >
     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
     <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
@@ -51,7 +51,7 @@ const Monto = ({ oculto, valor, className = '', signo = '' }: {
   signo?: string
 }) => (
   oculto ? (
-    <span className="font-mono tracking-widest text-muted">
+    <span className="font-mono tracking-widest text-textDim">
       ••••••<span className="sr-only">oculto</span>
     </span>
   ) : (
@@ -153,10 +153,10 @@ export default function DashboardPage() {
           aria-label={patrimonioOculto ? 'Mostrar saldos' : 'Ocultar saldos'}
           className="w-full flex justify-between items-center mb-1"
         >
-          <p className="text-muted text-xs uppercase tracking-widest">Patrimonio total</p>
+          <p className="text-textDim text-xs uppercase tracking-widest">Patrimonio total</p>
           <div className="flex items-center gap-2">
             {patrimonioOculto && (
-              <span aria-hidden="true" className="text-muted font-mono tracking-widest text-sm">••••••</span>
+              <span aria-hidden="true" className="text-textDim font-mono tracking-widest text-sm">••••••</span>
             )}
             {patrimonioOculto ? <EyeOffIcon /> : <EyeIcon />}
           </div>
@@ -170,15 +170,15 @@ export default function DashboardPage() {
           <>
             {/* Con la consulta fallida totalPatrimonio es 0, y mostrar ese 0
                 como un hecho es justo el defecto que se estaba corrigiendo. */}
-            <p className="text-3xl font-mono font-bold text-white">
+            <p className="text-3xl font-mono font-bold text-text">
               {cuentasError ? '—' : formatQ(totalPatrimonio)}
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               {cuentas.map(c => (
                 <div key={c.id} className="flex items-center gap-1.5 bg-bg rounded-lg px-2 py-1">
                   <div className="w-2 h-2 rounded-full" style={{ background: c.color }} />
-                  <span className="text-xs text-muted">{c.nombre}</span>
-                  <span className="text-xs font-mono text-white">{formatQ(c.saldo)}</span>
+                  <span className="text-xs text-textDim">{c.nombre}</span>
+                  <span className="text-xs font-mono text-text">{formatQ(c.saldo)}</span>
                 </div>
               ))}
             </div>
@@ -191,26 +191,26 @@ export default function DashboardPage() {
           insolvencia y un patrimonio neto negativo. */}
       {tarjetas.length > 0 && !cuentasError && (
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs uppercase tracking-widest mb-3">Disponible Real</p>
+          <p className="text-textDim text-xs uppercase tracking-widest mb-3">Disponible Real</p>
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted">Saldo en cuentas</span>
-              <Monto oculto={patrimonioOculto} valor={disponibleReal.saldo_cuentas} className="text-white" />
+              <span className="text-textDim">Saldo en cuentas</span>
+              <Monto oculto={patrimonioOculto} valor={disponibleReal.saldo_cuentas} className="text-text" />
             </div>
             {disponibleReal.deuda_tc_vencida > 0 && (
               <div className="flex justify-between">
-                <span className="text-muted">Deuda TC vencida</span>
+                <span className="text-textDim">Deuda TC vencida</span>
                 <Monto oculto={patrimonioOculto} valor={disponibleReal.deuda_tc_vencida} className="text-danger" signo="−" />
               </div>
             )}
             {disponibleReal.deuda_tc_acumulando > 0 && (
               <div className="flex justify-between">
-                <span className="text-muted">Deuda TC acumulando</span>
+                <span className="text-textDim">Deuda TC acumulando</span>
                 <Monto oculto={patrimonioOculto} valor={disponibleReal.deuda_tc_acumulando} className="text-warning" signo="−" />
               </div>
             )}
-            <div className="border-t border-muted/20 pt-1.5 flex justify-between">
-              <span className="text-white font-semibold text-sm">Disponible real</span>
+            <div className="border-t border-perimetro pt-1.5 flex justify-between">
+              <span className="text-text font-semibold text-sm">Disponible real</span>
               <Monto
                 oculto={patrimonioOculto}
                 valor={disponibleReal.disponible_real}
@@ -233,17 +233,17 @@ export default function DashboardPage() {
       {/* Mini-cards TC — scroll horizontal */}
       {resumenTCs.length > 0 && (
         <div>
-          <p className="text-muted text-xs uppercase tracking-widest mb-2">Tarjetas de crédito</p>
+          <p className="text-textDim text-xs uppercase tracking-widest mb-2">Tarjetas de crédito</p>
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
             {resumenTCs.map(({ tc, resumen }) => (
               <div key={tc.id} className="bg-surface rounded-xl p-3 flex-shrink-0 w-44 space-y-2">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tc.color }} />
-                  <p className="text-white text-xs font-semibold truncate">{tc.nombre}</p>
+                  <p className="text-text text-xs font-semibold truncate">{tc.nombre}</p>
                 </div>
                 <div>
-                  <p className="text-muted text-xs">Disponible</p>
-                  <p className="font-mono text-sm text-white font-semibold">{formatQ(resumen.disponible)}</p>
+                  <p className="text-textDim text-xs">Disponible</p>
+                  <p className="font-mono text-sm text-text font-semibold">{formatQ(resumen.disponible)}</p>
                 </div>
                 <div className="h-1 bg-bg rounded-full overflow-hidden">
                   <div
@@ -266,33 +266,33 @@ export default function DashboardPage() {
       {/* Patrimonio Neto — solo si hay inversiones o TCs (y las cuentas cargaron) */}
       {(resumenInv.capital_total > 0 || tarjetas.length > 0) && !cuentasError && !invError && (
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs uppercase tracking-widest mb-3">Patrimonio Neto</p>
+          <p className="text-textDim text-xs uppercase tracking-widest mb-3">Patrimonio Neto</p>
           <div className="space-y-1.5 text-sm">
             {/* Activos */}
             <div className="flex justify-between">
-              <span className="text-muted">Cuentas</span>
-              <Monto oculto={patrimonioOculto} valor={totalPatrimonio} className="text-white" />
+              <span className="text-textDim">Cuentas</span>
+              <Monto oculto={patrimonioOculto} valor={totalPatrimonio} className="text-text" />
             </div>
             {resumenInv.valor_total > 0 && (
               <div className="flex justify-between">
-                <span className="text-muted">Inversiones</span>
+                <span className="text-textDim">Inversiones</span>
                 <Monto oculto={patrimonioOculto} valor={resumenInv.valor_total} className="text-success" signo="+" />
               </div>
             )}
-            <div className="flex justify-between text-xs text-muted pt-0.5">
+            <div className="flex justify-between text-xs text-textDim pt-0.5">
               <span>Total activos</span>
-              <Monto oculto={patrimonioOculto} valor={patrimonioNeto.activos} className="text-white" />
+              <Monto oculto={patrimonioOculto} valor={patrimonioNeto.activos} className="text-text" />
             </div>
             {/* Pasivos */}
             {patrimonioNeto.pasivos > 0 && (
               <div className="flex justify-between pt-1">
-                <span className="text-muted">Deuda TC</span>
+                <span className="text-textDim">Deuda TC</span>
                 <Monto oculto={patrimonioOculto} valor={patrimonioNeto.pasivos} className="text-danger" signo="−" />
               </div>
             )}
             {/* Neto */}
-            <div className="border-t border-muted/20 pt-1.5 flex justify-between">
-              <span className="text-white font-semibold">Patrimonio neto</span>
+            <div className="border-t border-perimetro pt-1.5 flex justify-between">
+              <span className="text-text font-semibold">Patrimonio neto</span>
               <Monto
                 oculto={patrimonioOculto}
                 valor={patrimonioNeto.neto}
@@ -310,30 +310,30 @@ export default function DashboardPage() {
             const d = new Date(anio, mesNum - 2, 1)
             setMes(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
           }}
-          className="text-muted hover:text-white p-2"
+          className="text-textDim hover:text-text p-2"
         >←</button>
-        <span className="text-white font-medium">{mesLabel}</span>
+        <span className="text-text font-medium">{mesLabel}</span>
         <button
           onClick={() => {
             const d = new Date(anio, mesNum, 1)
             setMes(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
           }}
-          className="text-muted hover:text-white p-2"
+          className="text-textDim hover:text-text p-2"
         >→</button>
       </div>
 
       {/* Stats del mes */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs mb-1">Ingresos</p>
+          <p className="text-textDim text-xs mb-1">Ingresos</p>
           <p className="text-success font-mono font-semibold text-sm">{formatQ(stats.ingresos)}</p>
         </div>
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs mb-1">Gastos</p>
+          <p className="text-textDim text-xs mb-1">Gastos</p>
           <p className="text-danger font-mono font-semibold text-sm">{formatQ(stats.gastos)}</p>
         </div>
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs mb-1">Neto</p>
+          <p className="text-textDim text-xs mb-1">Neto</p>
           <p className={`font-mono font-semibold text-sm ${stats.neto >= 0 ? 'text-success' : 'text-danger'}`}>
             {formatQ(stats.neto)}
           </p>
@@ -344,7 +344,7 @@ export default function DashboardPage() {
       {stats.ingresos > 0 && (
         <div className="bg-surface rounded-2xl p-4">
           <div className="flex justify-between mb-2">
-            <span className="text-muted text-sm">Tasa de ahorro</span>
+            <span className="text-textDim text-sm">Tasa de ahorro</span>
             <span className={`font-mono font-semibold text-sm ${stats.pctAhorro >= 25 ? 'text-success' : 'text-danger'}`}>
               {stats.pctAhorro}%
             </span>
@@ -364,7 +364,7 @@ export default function DashboardPage() {
       {/* Donut — gastos por categoría */}
       {donutData.length > 0 && (
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs uppercase tracking-widest mb-3">Gastos por categoría</p>
+          <p className="text-textDim text-xs uppercase tracking-widest mb-3">Gastos por categoría</p>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -389,8 +389,8 @@ export default function DashboardPage() {
             {donutData.map(({ cat, value, fill }, i) => (
               <div key={i} className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: fill }} />
-                <span className="text-xs text-muted">{cat}</span>
-                <span className="text-xs font-mono text-white">{formatQ(value)}</span>
+                <span className="text-xs text-textDim">{cat}</span>
+                <span className="text-xs font-mono text-text">{formatQ(value)}</span>
               </div>
             ))}
           </div>
@@ -400,12 +400,12 @@ export default function DashboardPage() {
       {/* Bar chart — últimos 6 meses */}
       {barData.some(r => r.Ingresos > 0 || r.Gastos > 0) && (
         <div className="bg-surface rounded-2xl p-4">
-          <p className="text-muted text-xs uppercase tracking-widest mb-3">Últimos 6 meses</p>
+          <p className="text-textDim text-xs uppercase tracking-widest mb-3">Últimos 6 meses</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={barData} barCategoryGap="30%" barGap={2}>
               <XAxis
                 dataKey="mes"
-                tick={{ fill: colores.muted, fontSize: 11 }}
+                tick={{ fill: colores.textDim, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -414,7 +414,7 @@ export default function DashboardPage() {
               <Legend
                 iconType="circle"
                 iconSize={8}
-                wrapperStyle={{ fontSize: 11, color: colores.muted, paddingTop: 8 }}
+                wrapperStyle={{ fontSize: 11, color: colores.textDim, paddingTop: 8 }}
               />
               <Bar dataKey="Ingresos" fill="#4ade80" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Gastos"   fill="#f87171" radius={[4, 4, 0, 0]} />
@@ -423,12 +423,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {loading && <p className="text-muted text-center text-sm">Cargando...</p>}
+      {loading && <p className="text-textDim text-center text-sm">Cargando...</p>}
 
       {!loading && txns.length === 0 && (
         <div className="bg-surface rounded-2xl p-6 text-center">
-          <p className="text-muted text-sm">Sin movimientos en {mesLabel}</p>
-          <p className="text-muted text-xs mt-1">Agrega el primero con el botón +</p>
+          <p className="text-textDim text-sm">Sin movimientos en {mesLabel}</p>
+          <p className="text-textDim text-xs mt-1">Agrega el primero con el botón +</p>
         </div>
       )}
     </div>

@@ -63,8 +63,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="bg-surface rounded-2xl p-6 max-w-sm text-center space-y-3">
-          <p className="text-white font-semibold">No se pudo cargar tu perfil</p>
-          <p className="text-muted text-sm">
+          <p className="text-text font-semibold">No se pudo cargar tu perfil</p>
+          <p className="text-textDim text-sm">
             Revisa tu conexión e intenta de nuevo. No se hizo ningún cambio en tus datos.
           </p>
           <button

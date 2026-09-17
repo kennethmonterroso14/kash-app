@@ -267,7 +267,7 @@ export default function TarjetasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <p className="text-muted text-sm">Cargando...</p>
+        <p className="text-textDim text-sm">Cargando...</p>
       </div>
     )
   }
@@ -277,7 +277,7 @@ export default function TarjetasPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-white font-display font-bold text-xl">Tarjetas de Crédito</h1>
+          <h1 className="text-text font-display font-bold text-xl">Tarjetas de Crédito</h1>
           {totalDeuda > 0 && (
             <p className="text-danger text-xs mt-0.5">
               Deuda total: <span className="font-mono">{formatQ(totalDeuda)}</span>
@@ -300,7 +300,7 @@ export default function TarjetasPage() {
       {resumenTCs.length === 0 && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">💳</p>
-          <p className="text-muted text-sm">No tienes tarjetas registradas</p>
+          <p className="text-textDim text-sm">No tienes tarjetas registradas</p>
           <p className="text-textDim text-xs mt-1">Agrega tu primera TC para empezar</p>
         </div>
       )}
@@ -314,9 +314,9 @@ export default function TarjetasPage() {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: tc.color }} />
                 <div>
-                  <p className="text-white font-semibold text-sm">{tc.nombre}</p>
+                  <p className="text-text font-semibold text-sm">{tc.nombre}</p>
                   {(tc.banco || tc.ultimos_4) && (
-                    <p className="text-muted text-xs">
+                    <p className="text-textDim text-xs">
                       {tc.banco}{tc.ultimos_4 ? ` ••••${tc.ultimos_4}` : ''}
                     </p>
                   )}
@@ -332,7 +332,7 @@ export default function TarjetasPage() {
                 </span>
                 <button
                   onClick={() => abrirEditarTC(tc.id)}
-                  className="text-muted hover:text-white transition-colors text-sm leading-none px-1"
+                  className="text-textDim hover:text-text transition-colors text-sm leading-none px-1"
                   title="Editar tarjeta"
                 >
                   ✎
@@ -342,8 +342,8 @@ export default function TarjetasPage() {
 
             {/* Disponible */}
             <div>
-              <p className="text-muted text-xs mb-0.5">Disponible</p>
-              <p className="text-white font-mono font-bold text-2xl">{formatQ(resumen.disponible)}</p>
+              <p className="text-textDim text-xs mb-0.5">Disponible</p>
+              <p className="text-text font-mono font-bold text-2xl">{formatQ(resumen.disponible)}</p>
             </div>
 
             {/* Barra de uso */}
@@ -359,11 +359,11 @@ export default function TarjetasPage() {
 
             {/* Detalle deuda */}
             <div className="flex justify-between text-xs">
-              <span className="text-muted">
-                Ciclo actual: <span className="text-white font-mono">{formatQ(tc.deuda_actual)}</span>
+              <span className="text-textDim">
+                Ciclo actual: <span className="text-text font-mono">{formatQ(tc.deuda_actual)}</span>
               </span>
-              <span className="text-muted">
-                Límite: <span className="text-white font-mono">{formatQ(tc.limite_credito)}</span>
+              <span className="text-textDim">
+                Límite: <span className="text-text font-mono">{formatQ(tc.limite_credito)}</span>
               </span>
             </div>
 
@@ -380,9 +380,9 @@ export default function TarjetasPage() {
             )}
 
             {/* Fechas */}
-            <div className="flex gap-4 text-xs text-muted">
-              <span>Cierre en <span className="text-white">{resumen.dias_para_cierre}d</span></span>
-              <span>Pago en <span className="text-white">{resumen.dias_para_pago}d</span></span>
+            <div className="flex gap-4 text-xs text-textDim">
+              <span>Cierre en <span className="text-text">{resumen.dias_para_cierre}d</span></span>
+              <span>Pago en <span className="text-text">{resumen.dias_para_pago}d</span></span>
             </div>
 
             {/* Botones de acción */}
@@ -395,21 +395,21 @@ export default function TarjetasPage() {
               </button>
               <button
                 onClick={() => abrirPago(tc.id)}
-                className="flex-1 py-2 rounded-xl bg-surface2 text-white text-xs font-semibold hover:opacity-80 transition-opacity"
+                className="flex-1 py-2 rounded-xl bg-surface2 text-text text-xs font-semibold hover:opacity-80 transition-opacity"
               >
                 Pagar TC
               </button>
               <button
                 onClick={() => { setTcSelId(tc.id); setErrCerrar(null); setPantalla('cerrar') }}
                 disabled={tc.deuda_actual === 0}
-                className="flex-1 py-2 rounded-xl bg-surface2 text-muted text-xs font-semibold hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-2 rounded-xl bg-surface2 text-textDim text-xs font-semibold hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Cerrar ciclo
               </button>
             </div>
             <button
               onClick={() => navigate(`/tarjetas/${tc.id}/historial`)}
-              className="text-xs text-muted hover:text-white transition-colors py-1"
+              className="text-xs text-textDim hover:text-text transition-colors py-1"
             >
               Ver historial →
             </button>
@@ -424,48 +424,48 @@ export default function TarjetasPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Nueva tarjeta</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Nueva tarjeta</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
             <div className="flex flex-col gap-3">
               <input
                 placeholder="Nombre (ej: Visa BAC Personal)"
                 value={tcNombre} onChange={e => setTcNombre(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Banco (opcional)"
                 value={tcBanco} onChange={e => setTcBanco(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Últimos 4 dígitos (opcional)"
                 value={tcUlt4} onChange={e => setTcUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 inputMode="numeric" maxLength={4}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Límite de crédito (Q)"
                 value={tcLimite} onChange={e => setTcLimite(e.target.value)}
                 inputMode="decimal"
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <div className="flex gap-2">
                 <input
                   placeholder="Día de cierre"
                   value={tcCierre} onChange={e => setTcCierre(e.target.value)}
                   inputMode="numeric"
-                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
                 />
                 <input
                   placeholder="Día de pago"
                   value={tcPago} onChange={e => setTcPago(e.target.value)}
                   inputMode="numeric"
-                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
                 />
               </div>
               <div>
-                <p className="text-muted text-xs mb-2">Color de la tarjeta</p>
+                <p className="text-textDim text-xs mb-2">Color de la tarjeta</p>
                 <div className="flex gap-2 flex-wrap">
                   {COLORES_TC.map(c => (
                     <button
@@ -495,48 +495,48 @@ export default function TarjetasPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Editar tarjeta</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Editar tarjeta</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
             <div className="flex flex-col gap-3">
               <input
                 placeholder="Nombre (ej: Visa BAC Personal)"
                 value={tcNombre} onChange={e => setTcNombre(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Banco (opcional)"
                 value={tcBanco} onChange={e => setTcBanco(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Últimos 4 dígitos (opcional)"
                 value={tcUlt4} onChange={e => setTcUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 inputMode="numeric" maxLength={4}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Límite de crédito (Q)"
                 value={tcLimite} onChange={e => setTcLimite(e.target.value)}
                 inputMode="decimal"
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <div className="flex gap-2">
                 <input
                   placeholder="Día de cierre"
                   value={tcCierre} onChange={e => setTcCierre(e.target.value)}
                   inputMode="numeric"
-                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
                 />
                 <input
                   placeholder="Día de pago"
                   value={tcPago} onChange={e => setTcPago(e.target.value)}
                   inputMode="numeric"
-                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
                 />
               </div>
               <div>
-                <p className="text-muted text-xs mb-2">Color de la tarjeta</p>
+                <p className="text-textDim text-xs mb-2">Color de la tarjeta</p>
                 <div className="flex gap-2 flex-wrap">
                   {COLORES_TC.map(c => (
                     <button
@@ -573,8 +573,8 @@ export default function TarjetasPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Cargo — {tcSel.tc.nombre}</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Cargo — {tcSel.tc.nombre}</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
 
             {/* Preview disponible tras el cargo */}
@@ -583,7 +583,7 @@ export default function TarjetasPage() {
               if (tras === null) return null
               return (
                 <div className="bg-bg rounded-xl p-3 mb-4">
-                  <p className="text-muted text-xs mb-0.5">Disponible tras este cargo</p>
+                  <p className="text-textDim text-xs mb-0.5">Disponible tras este cargo</p>
                   <p className={`font-mono font-bold text-lg ${tras >= 0 ? 'text-success' : 'text-danger'}`}>
                     {formatQ(Math.max(0, tras))}
                   </p>
@@ -602,22 +602,22 @@ export default function TarjetasPage() {
                 placeholder="Monto (Q)"
                 value={cargoMonto} onChange={e => setCargoMonto(e.target.value)}
                 inputMode="decimal"
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Descripción"
                 value={cargoDesc} onChange={e => setCargoDesc(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <div>
-                <p className="text-muted text-xs mb-2">Categoría</p>
+                <p className="text-textDim text-xs mb-2">Categoría</p>
                 <div className="flex flex-wrap gap-1.5">
                   {categoriasGasto.map(c => (
                     <button
                       key={c}
                       onClick={() => setCargoCat(c)}
                       className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                        cargoCat === c ? 'bg-accent text-bg font-semibold' : 'bg-bg text-muted hover:text-white'
+                        cargoCat === c ? 'bg-accent text-bg font-semibold' : 'bg-bg text-textDim hover:text-text'
                       }`}
                     >
                       {c}
@@ -628,7 +628,7 @@ export default function TarjetasPage() {
               <input
                 type="date"
                 value={cargoFecha} onChange={e => setCargoFecha(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
               />
               {errCargo && <p className="text-danger text-sm">{errCargo}</p>}
               <button
@@ -648,21 +648,21 @@ export default function TarjetasPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Pagar — {tcSel.tc.nombre}</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Pagar — {tcSel.tc.nombre}</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
 
             {/* Resumen de deuda */}
             <div className="bg-bg rounded-xl p-3 mb-4 space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="text-muted">Deuda vencida (pagar ya)</span>
-                <span className={`font-mono ${tcSel.tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-muted'}`}>
+                <span className="text-textDim">Deuda vencida (pagar ya)</span>
+                <span className={`font-mono ${tcSel.tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-textDim'}`}>
                   {formatQ(tcSel.tc.deuda_ciclo_anterior)}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted">Deuda ciclo actual</span>
-                <span className="text-white font-mono">{formatQ(tcSel.tc.deuda_actual)}</span>
+                <span className="text-textDim">Deuda ciclo actual</span>
+                <span className="text-text font-mono">{formatQ(tcSel.tc.deuda_actual)}</span>
               </div>
             </div>
 
@@ -671,11 +671,11 @@ export default function TarjetasPage() {
                 placeholder="Monto a pagar (Q)"
                 value={pagoMonto} onChange={e => setPagoMonto(e.target.value)}
                 inputMode="decimal"
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <select
                 value={pagoCuenta} onChange={e => setPagoCuenta(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
               >
                 {cuentas.map(c => (
                   <option key={c.id} value={c.id}>
@@ -686,7 +686,7 @@ export default function TarjetasPage() {
               <input
                 type="date"
                 value={pagoFecha} onChange={e => setPagoFecha(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
               />
               {errPago && <p className="text-danger text-sm">{errPago}</p>}
               <button
@@ -705,13 +705,13 @@ export default function TarjetasPage() {
       {pantalla === 'cerrar' && tcSel && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
           <div className="bg-surface rounded-2xl p-6 max-w-sm w-full">
-            <h2 className="text-white font-semibold mb-2">¿Cerrar ciclo?</h2>
-            <p className="text-muted text-sm mb-1">
-              Tarjeta: <span className="text-white">{tcSel.tc.nombre}</span>
+            <h2 className="text-text font-semibold mb-2">¿Cerrar ciclo?</h2>
+            <p className="text-textDim text-sm mb-1">
+              Tarjeta: <span className="text-text">{tcSel.tc.nombre}</span>
             </p>
-            <p className="text-muted text-sm mb-4">
+            <p className="text-textDim text-sm mb-4">
               Cargos del ciclo:{' '}
-              <span className="text-white font-mono">{formatQ(tcSel.tc.deuda_actual)}</span>
+              <span className="text-text font-mono">{formatQ(tcSel.tc.deuda_actual)}</span>
               <br />
               <span className="text-textDim text-xs">
                 Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.
@@ -728,14 +728,14 @@ export default function TarjetasPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setPantalla('lista')}
-                className="flex-1 py-3 rounded-xl bg-bg text-muted text-sm font-semibold hover:text-white transition-colors"
+                className="flex-1 py-3 rounded-xl bg-bg text-textDim text-sm font-semibold hover:text-text transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCerrarCiclo}
                 disabled={savingCerrar}
-                className="flex-1 py-3 rounded-xl bg-danger text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                className="flex-1 py-3 rounded-xl bg-danger text-text text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {savingCerrar ? 'Cerrando...' : 'Cerrar ciclo'}
               </button>

@@ -78,12 +78,12 @@ export default function AlertasBanner({ userId }: Props) {
         if (alerta.tipo === 'pago_vencido') {
           return (
             <div key={key} className="bg-danger flex justify-between items-center px-4 py-2">
-              <span className="text-white text-xs font-semibold">
+              <span className="text-text text-xs font-semibold">
                 ⚠ Pago vencido en {alerta.tc.nombre}: {formatQ(alerta.monto!)}
               </span>
               <button
                 onClick={() => descartar(key)}
-                className="text-white/80 hover:text-white ml-3 text-base leading-none"
+                className="text-text/80 hover:text-text ml-3 text-base leading-none"
               >
                 ✕
               </button>

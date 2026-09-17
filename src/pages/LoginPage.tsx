@@ -33,7 +33,7 @@ export default function LoginPage() {
         {/* Logo / título */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-accent font-display">Vorta</h1>
-          <p className="text-muted text-sm mt-1">Finanzas personales · Guatemala</p>
+          <p className="text-textDim text-sm mt-1">Finanzas personales · Guatemala</p>
         </div>
 
         <div className="bg-surface rounded-2xl p-6">
@@ -44,7 +44,7 @@ export default function LoginPage() {
                 key={m}
                 onClick={() => { setMode(m); setError(''); setInfo('') }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  mode === m ? 'bg-accent text-bg' : 'text-muted hover:text-white'
+                  mode === m ? 'bg-accent text-bg' : 'text-textDim hover:text-text'
                 }`}
               >
                 {m === 'login' ? 'Entrar' : 'Crear cuenta'}
@@ -54,25 +54,25 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-muted mb-1">Correo</label>
+              <label className="block text-sm text-textDim mb-1">Correo</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent transition-colors"
+                className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent transition-colors"
                 placeholder="tu@correo.com"
               />
             </div>
             <div>
-              <label className="block text-sm text-muted mb-1">Contraseña</label>
+              <label className="block text-sm text-textDim mb-1">Contraseña</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent transition-colors"
+                className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent transition-colors"
                 placeholder="••••••••"
               />
             </div>

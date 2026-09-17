@@ -63,7 +63,7 @@ export default function TarjetaHistorialPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <p className="text-muted text-sm">Cargando...</p>
+        <p className="text-textDim text-sm">Cargando...</p>
       </div>
     )
   }
@@ -80,10 +80,10 @@ export default function TarjetaHistorialPage() {
           ←
         </button>
         <div>
-          <h1 className="text-white font-display font-bold text-xl">
+          <h1 className="text-text font-display font-bold text-xl">
             {tc?.nombre ?? 'Historial'}
           </h1>
-          <p className="text-muted text-xs">Estados de cuenta</p>
+          <p className="text-textDim text-xs">Estados de cuenta</p>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export default function TarjetaHistorialPage() {
       {ciclos.length === 0 && !loading && !error && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">📋</p>
-          <p className="text-muted text-sm">Sin ciclos registrados</p>
+          <p className="text-textDim text-sm">Sin ciclos registrados</p>
           <p className="text-textDim text-xs mt-1">Los ciclos aparecen al registrar cargos</p>
         </div>
       )}
@@ -108,10 +108,10 @@ export default function TarjetaHistorialPage() {
               {/* Encabezado del ciclo */}
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="text-white text-sm font-semibold">
+                  <p className="text-text text-sm font-semibold">
                     {formatPeriodo(ciclo.fecha_inicio, ciclo.fecha_cierre)}
                   </p>
-                  <p className="text-muted text-xs mt-0.5">
+                  <p className="text-textDim text-xs mt-0.5">
                     Pago: {ciclo.fecha_pago}
                   </p>
                 </div>
@@ -123,20 +123,20 @@ export default function TarjetaHistorialPage() {
               {/* Métricas del ciclo */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="bg-bg rounded-xl p-2.5 text-center">
-                  <p className="text-muted text-xs mb-0.5">Cargos</p>
+                  <p className="text-textDim text-xs mb-0.5">Cargos</p>
                   <p className="text-danger font-mono font-semibold text-xs">
                     {formatQ(ciclo.total_cargos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
-                  <p className="text-muted text-xs mb-0.5">Pagos</p>
+                  <p className="text-textDim text-xs mb-0.5">Pagos</p>
                   <p className="text-success font-mono font-semibold text-xs">
                     {formatQ(ciclo.total_pagos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
-                  <p className="text-muted text-xs mb-0.5">Saldo</p>
-                  <p className={`font-mono font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-white'}`}>
+                  <p className="text-textDim text-xs mb-0.5">Saldo</p>
+                  <p className={`font-mono font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
                     {formatQ(ciclo.saldo_final)}
                   </p>
                 </div>
@@ -163,18 +163,18 @@ export default function TarjetaHistorialPage() {
           >
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-white font-semibold text-sm">Transacciones del ciclo</h2>
+                <h2 className="text-text font-semibold text-sm">Transacciones del ciclo</h2>
                 {cicloSel && (
-                  <p className="text-muted text-xs mt-0.5">
+                  <p className="text-textDim text-xs mt-0.5">
                     {formatPeriodo(cicloSel.fecha_inicio, cicloSel.fecha_cierre)}
                   </p>
                 )}
               </div>
-              <button onClick={cerrarModal} className="text-muted hover:text-white text-lg">✕</button>
+              <button onClick={cerrarModal} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
 
             {loadingTxns && (
-              <p className="text-muted text-sm text-center py-8">Cargando...</p>
+              <p className="text-textDim text-sm text-center py-8">Cargando...</p>
             )}
 
             {errTxns && (
@@ -182,15 +182,15 @@ export default function TarjetaHistorialPage() {
             )}
 
             {!loadingTxns && txns.length === 0 && !errTxns && (
-              <p className="text-muted text-sm text-center py-8">Sin transacciones en este ciclo</p>
+              <p className="text-textDim text-sm text-center py-8">Sin transacciones en este ciclo</p>
             )}
 
             <div className="flex flex-col gap-2">
               {txns.map(tx => (
-                <div key={tx.id} className="flex justify-between items-center py-2.5 border-b border-muted/10 last:border-0">
+                <div key={tx.id} className="flex justify-between items-center py-2.5 border-b border-perimetro last:border-0">
                   <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-white text-sm truncate">{tx.descripcion}</p>
-                    <p className="text-muted text-xs">{tx.categoria} · {tx.fecha}</p>
+                    <p className="text-text text-sm truncate">{tx.descripcion}</p>
+                    <p className="text-textDim text-xs">{tx.categoria} · {tx.fecha}</p>
                   </div>
                   <p className={`font-mono text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
                     {tx.cantidad < 0 ? '−' : '+'}{formatQ(Math.abs(tx.cantidad))}
@@ -201,19 +201,19 @@ export default function TarjetaHistorialPage() {
 
             {/* Totales del modal */}
             {txns.length > 0 && (
-              <div className="border-t border-muted/20 pt-3 mt-2 flex flex-col gap-1">
+              <div className="border-t border-perimetro pt-3 mt-2 flex flex-col gap-1">
                 <div className="flex justify-between">
-                  <span className="text-muted text-sm">{txns.length} transacciones</span>
+                  <span className="text-textDim text-sm">{txns.length} transacciones</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted text-xs">Cargos</span>
+                  <span className="text-textDim text-xs">Cargos</span>
                   <span className="font-mono text-sm text-danger font-semibold">
                     {formatQ(cargosModal)}
                   </span>
                 </div>
                 {pagosModal > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted text-xs">Pagos</span>
+                    <span className="text-textDim text-xs">Pagos</span>
                     <span className="font-mono text-sm text-success font-semibold">
                       {formatQ(pagosModal)}
                     </span>

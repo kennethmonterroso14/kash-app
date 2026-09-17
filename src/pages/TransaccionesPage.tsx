@@ -271,22 +271,22 @@ export default function TransaccionesPage() {
               const d = new Date(anio, mesNum - 2, 1)
               setMes(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
             }}
-            className="text-muted hover:text-white p-1"
+            className="text-textDim hover:text-text p-1"
           >←</button>
-          <span className="text-white font-medium">{mesLabel}</span>
+          <span className="text-text font-medium">{mesLabel}</span>
           <button
             onClick={() => {
               const d = new Date(anio, mesNum, 1)
               setMes(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
             }}
-            className="text-muted hover:text-white p-1"
+            className="text-textDim hover:text-text p-1"
           >→</button>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleExportCSV}
             disabled={txnsFiltrados.length === 0}
-            className="text-muted text-sm px-3 py-2 rounded-xl border border-muted/30 hover:text-white hover:border-muted transition-colors disabled:opacity-30"
+            className="text-textDim text-sm px-3 py-2 rounded-xl border border-canto hover:text-text hover:border-perimetro transition-colors disabled:opacity-30"
           >
             ↓ CSV
           </button>
@@ -307,12 +307,12 @@ export default function TransaccionesPage() {
           placeholder="Buscar..."
           value={filterBusqueda}
           onChange={e => setFilterBusqueda(e.target.value)}
-          className="flex-1 min-w-32 bg-surface border border-muted/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-accent"
+          className="flex-1 min-w-32 bg-surface border border-canto rounded-xl px-3 py-2 text-text text-sm focus:outline-none focus:border-accent"
         />
         <select
           value={filterTipo}
           onChange={e => setFilterTipo(e.target.value)}
-          className="bg-surface border border-muted/30 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-accent"
+          className="bg-surface border border-canto rounded-xl px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
         >
           <option value="">Todos</option>
           <option value="gasto">Gastos</option>
@@ -322,7 +322,7 @@ export default function TransaccionesPage() {
         <select
           value={filterCuenta}
           onChange={e => setFilterCuenta(e.target.value)}
-          className="bg-surface border border-muted/30 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-accent"
+          className="bg-surface border border-canto rounded-xl px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
         >
           <option value="">Todas</option>
           {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -345,11 +345,11 @@ export default function TransaccionesPage() {
       )}
 
       {/* Lista de transacciones */}
-      {loading && <p className="text-muted text-center py-8">Cargando...</p>}
+      {loading && <p className="text-textDim text-center py-8">Cargando...</p>}
 
       {!loading && txnsFiltrados.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center">
-          <p className="text-muted">Sin movimientos en {mesLabel}</p>
+          <p className="text-textDim">Sin movimientos en {mesLabel}</p>
         </div>
       )}
 
@@ -361,8 +361,8 @@ export default function TransaccionesPage() {
               style={{ background: coloresCategorias[t.categoria] ?? COLOR_CATEGORIA_FALLBACK }}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm truncate">{t.descripcion}</p>
-              <p className="text-muted text-xs">{t.categoria} · {t.fecha}</p>
+              <p className="text-text text-sm truncate">{t.descripcion}</p>
+              <p className="text-textDim text-xs">{t.categoria} · {t.fecha}</p>
             </div>
             <span className={`font-mono text-sm font-semibold flex-shrink-0 ${t.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
               {t.cantidad > 0 ? '+' : ''}{formatQ(t.cantidad)}
@@ -371,7 +371,7 @@ export default function TransaccionesPage() {
               <button
                 type="button"
                 onClick={() => handleEditOpen(t)}
-                className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors flex-shrink-0"
+                className="text-xs px-2 py-1 rounded-lg text-textDim hover:text-accent transition-colors flex-shrink-0"
                 aria-label={`Editar ${t.descripcion}`}
               >
                 ✎
@@ -383,8 +383,8 @@ export default function TransaccionesPage() {
               aria-label={pendingDelete === t.id ? 'Confirmar eliminación' : `Eliminar ${t.descripcion}`}
               className={`text-xs px-2 py-1 rounded-lg transition-colors flex-shrink-0 ${
                 pendingDelete === t.id
-                  ? 'bg-danger text-white'
-                  : 'text-muted hover:text-danger'
+                  ? 'bg-danger text-text'
+                  : 'text-textDim hover:text-danger'
               }`}
             >
               {pendingDelete === t.id ? 'Confirmar' : '×'}
@@ -395,8 +395,8 @@ export default function TransaccionesPage() {
 
       {/* Undo toast */}
       {lastDeleted && (
-        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-surface border border-muted/30 rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
-          <span className="text-white text-sm">Movimiento eliminado</span>
+        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-surface border border-canto rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
+          <span className="text-text text-sm">Movimiento eliminado</span>
           <button
             onClick={handleUndo}
             className="text-accent text-sm font-semibold hover:opacity-80"
@@ -414,14 +414,14 @@ export default function TransaccionesPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Editar movimiento</h2>
-              <button onClick={() => setEditingTxn(null)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Editar movimiento</h2>
+              <button onClick={() => setEditingTxn(null)} className="text-textDim text-xl">×</button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-3">
               {/* Cantidad */}
               <div>
-                <label className="text-muted text-xs mb-1 block">
+                <label className="text-textDim text-xs mb-1 block">
                   Monto (Q) — {editingTxn.tipo}
                 </label>
                 <input
@@ -432,30 +432,30 @@ export default function TransaccionesPage() {
                   onChange={e => setEditCantidad(e.target.value)}
                   required
                   placeholder="0.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Descripción */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Descripción</label>
+                <label className="text-textDim text-xs mb-1 block">Descripción</label>
                 <input
                   type="text"
                   value={editDescripcion}
                   onChange={e => setEditDescripcion(e.target.value)}
                   required
                   placeholder="¿En qué?"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Categoría */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Categoría</label>
+                <label className="text-textDim text-xs mb-1 block">Categoría</label>
                 <select
                   value={editCategoria}
                   onChange={e => setEditCategoria(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                 >
                   {(editingTxn.tipo === 'ingreso'
                     ? categoriasIngreso
@@ -468,12 +468,12 @@ export default function TransaccionesPage() {
 
               {/* Fecha */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Fecha</label>
+                <label className="text-textDim text-xs mb-1 block">Fecha</label>
                 <input
                   type="date"
                   value={editFecha}
                   onChange={e => setEditFecha(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -501,8 +501,8 @@ export default function TransaccionesPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Nuevo movimiento</h2>
-              <button onClick={() => setShowForm(false)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Nuevo movimiento</h2>
+              <button onClick={() => setShowForm(false)} className="text-textDim text-xl">×</button>
             </div>
 
             {/* Tipo */}
@@ -521,10 +521,10 @@ export default function TransaccionesPage() {
                   className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                     tipo === t
                       ? t === 'ingreso'  ? 'bg-accent text-bg'
-                      : t === 'gasto'    ? 'bg-danger text-white'
+                      : t === 'gasto'    ? 'bg-danger text-text'
                       : t === 'gasto_tc' ? 'bg-warning/20 text-warning'
-                      :                    'text-white'
-                      : 'text-muted'
+                      :                    'text-text'
+                      : 'text-textDim'
                   }`}
                   style={tipo === t && t === 'transferencia' ? { background: colores.accentAlt } : undefined}
                 >
@@ -537,25 +537,25 @@ export default function TransaccionesPage() {
               <form onSubmit={handleTransfer} className="space-y-3">
                 {/* Monto */}
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Monto (Q)</label>
+                  <label className="text-textDim text-xs mb-1 block">Monto (Q)</label>
                   <input type="number" step="0.01" min="0.01" value={cantidad}
                     onChange={e => setCantidad(e.target.value)} required placeholder="0.00"
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent" />
+                    className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent" />
                 </div>
                 {/* De → A */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-muted text-xs mb-1 block">De cuenta</label>
+                    <label className="text-textDim text-xs mb-1 block">De cuenta</label>
                     <select value={transferDe} onChange={e => setTransferDe(e.target.value)} required
-                      className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent">
+                      className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent">
                       <option value="">Seleccionar</option>
                       {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-muted text-xs mb-1 block">A cuenta</label>
+                    <label className="text-textDim text-xs mb-1 block">A cuenta</label>
                     <select value={transferA} onChange={e => setTransferA(e.target.value)} required
-                      className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent">
+                      className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent">
                       <option value="">Seleccionar</option>
                       {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                     </select>
@@ -563,22 +563,22 @@ export default function TransaccionesPage() {
                 </div>
                 {/* Descripción opcional */}
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Descripción (opcional)</label>
+                  <label className="text-textDim text-xs mb-1 block">Descripción (opcional)</label>
                   <input type="text" value={descripcion} onChange={e => setDescripcion(e.target.value)}
                     placeholder="ej. Ahorro mensual"
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent" />
+                    className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent" />
                 </div>
                 {/* Fecha */}
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Fecha</label>
+                  <label className="text-textDim text-xs mb-1 block">Fecha</label>
                   <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent" />
+                    className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent" />
                 </div>
                 {formError && (
                   <p role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{formError}</p>
                 )}
                 <button type="submit" disabled={transferSaving || transferDe === transferA}
-                  className="w-full bg-accentAlt text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50">
+                  className="w-full bg-accentAlt text-text font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50">
                   {transferSaving ? 'Guardando...' : 'Transferir'}
                 </button>
               </form>
@@ -586,7 +586,7 @@ export default function TransaccionesPage() {
             <form onSubmit={handleAddTxn} className="space-y-3">
               {/* Cantidad */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Cantidad (Q)</label>
+                <label className="text-textDim text-xs mb-1 block">Cantidad (Q)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -595,31 +595,31 @@ export default function TransaccionesPage() {
                   onChange={e => setCantidad(e.target.value)}
                   required
                   placeholder="0.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Descripción */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Descripción</label>
+                <label className="text-textDim text-xs mb-1 block">Descripción</label>
                 <input
                   type="text"
                   value={descripcion}
                   onChange={e => setDescripcion(e.target.value)}
                   required
                   placeholder="¿En qué?"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
 
               {/* Categoría + Cuenta/TC */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Categoría</label>
+                  <label className="text-textDim text-xs mb-1 block">Categoría</label>
                   <select
                     value={categoria}
                     onChange={e => setCategoria(e.target.value)}
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                    className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                   >
                     {cats.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -627,11 +627,11 @@ export default function TransaccionesPage() {
                 <div>
                   {tipo === 'gasto_tc' ? (
                     <>
-                      <label className="text-muted text-xs mb-1 block">Tarjeta</label>
+                      <label className="text-textDim text-xs mb-1 block">Tarjeta</label>
                       <select
                         value={tcId}
                         onChange={e => setTcId(e.target.value)}
-                        className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                        className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                       >
                         {resumenTCs.length === 0
                           ? <option value="">Sin tarjetas</option>
@@ -645,11 +645,11 @@ export default function TransaccionesPage() {
                     </>
                   ) : (
                     <>
-                      <label className="text-muted text-xs mb-1 block">Cuenta</label>
+                      <label className="text-textDim text-xs mb-1 block">Cuenta</label>
                       <select
                         value={cuentaId}
                         onChange={e => setCuentaId(e.target.value)}
-                        className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                        className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                       >
                         {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                       </select>
@@ -672,12 +672,12 @@ export default function TransaccionesPage() {
 
               {/* Fecha */}
               <div>
-                <label className="text-muted text-xs mb-1 block">Fecha</label>
+                <label className="text-textDim text-xs mb-1 block">Fecha</label>
                 <input
                   type="date"
                   value={fecha}
                   onChange={e => setFecha(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -691,7 +691,7 @@ export default function TransaccionesPage() {
                 className={`w-full font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 ${
                   tipo === 'ingreso'  ? 'bg-accent text-bg'
                   : tipo === 'gasto_tc' ? 'bg-warning/20 text-warning border border-warning/40'
-                  : 'bg-danger text-white'
+                  : 'bg-danger text-text'
                 }`}
               >
                 {saving ? 'Guardando...' : tipo === 'gasto_tc' ? 'Registrar cargo' : 'Guardar'}

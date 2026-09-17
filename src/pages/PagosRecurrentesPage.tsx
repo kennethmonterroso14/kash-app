@@ -121,7 +121,7 @@ export default function PagosRecurrentesPage() {
   if (loading) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
-        <p className="text-muted text-center">Cargando...</p>
+        <p className="text-textDim text-center">Cargando...</p>
       </div>
     )
   }
@@ -131,8 +131,8 @@ export default function PagosRecurrentesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-white font-semibold text-lg">Pagos Fijos</h1>
-          <p className="text-muted text-xs mt-0.5">Se aplican automáticamente cada mes</p>
+          <h1 className="text-text font-semibold text-lg">Pagos Fijos</h1>
+          <p className="text-textDim text-xs mt-0.5">Se aplican automáticamente cada mes</p>
         </div>
         <button
           onClick={openAdd}
@@ -145,8 +145,8 @@ export default function PagosRecurrentesPage() {
       {/* Empty state */}
       {pagos.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center space-y-4">
-          <p className="text-white font-medium">Sin pagos fijos aún</p>
-          <p className="text-muted text-sm">Configura tus pagos recurrentes (renta, gym, suscripciones…) y se aplicarán solos cada mes.</p>
+          <p className="text-text font-medium">Sin pagos fijos aún</p>
+          <p className="text-textDim text-sm">Configura tus pagos recurrentes (renta, gym, suscripciones…) y se aplicarán solos cada mes.</p>
           <button
             onClick={openAdd}
             className="bg-accent text-bg font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
@@ -164,7 +164,7 @@ export default function PagosRecurrentesPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-white text-sm font-medium">{p.nombre}</span>
+                  <span className="text-text text-sm font-medium">{p.nombre}</span>
                   {estado === 'aplicado' && (
                     <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">✓ aplicado</span>
                   )}
@@ -172,7 +172,7 @@ export default function PagosRecurrentesPage() {
                     <span className="text-xs bg-yellow-400/10 text-yellow-400 px-2 py-0.5 rounded-full">pendiente</span>
                   )}
                 </div>
-                <p className="text-muted text-xs mt-1">
+                <p className="text-textDim text-xs mt-1">
                   Día {p.dia_del_mes} · {p.categoria} · {cuentaNombre[p.cuenta_id] ?? '—'}
                 </p>
               </div>
@@ -180,13 +180,13 @@ export default function PagosRecurrentesPage() {
                 <span className="text-danger font-mono text-sm font-semibold">-{formatQ(p.monto)}</span>
                 <button
                   onClick={() => openEdit(p)}
-                  className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors"
+                  className="text-xs px-2 py-1 rounded-lg text-textDim hover:text-accent transition-colors"
                   aria-label="Editar"
                 >✎</button>
                 <button
                   onClick={() => handleDelete(p.id)}
                   className={`text-xs px-2 py-1 rounded-lg transition-colors ${
-                    pendingDelete === p.id ? 'bg-danger text-white' : 'text-muted hover:text-danger'
+                    pendingDelete === p.id ? 'bg-danger text-text' : 'text-textDim hover:text-danger'
                   }`}
                 >
                   {pendingDelete === p.id ? 'Confirmar' : '×'}
@@ -205,24 +205,24 @@ export default function PagosRecurrentesPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Nuevo pago fijo</h2>
-              <button onClick={() => setShowAdd(false)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Nuevo pago fijo</h2>
+              <button onClick={() => setShowAdd(false)} className="text-textDim text-xl">×</button>
             </div>
             <form onSubmit={handleAddSubmit} className="space-y-3">
               <div>
-                <label className="text-muted text-xs mb-1 block">Nombre</label>
+                <label className="text-textDim text-xs mb-1 block">Nombre</label>
                 <input
                   type="text"
                   value={addNombre}
                   onChange={e => setAddNombre(e.target.value)}
                   required
                   placeholder="ej. Netflix, Gym, Renta"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Monto (Q)</label>
+                  <label className="text-textDim text-xs mb-1 block">Monto (Q)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -231,38 +231,38 @@ export default function PagosRecurrentesPage() {
                     onChange={e => setAddMonto(e.target.value)}
                     required
                     placeholder="0.00"
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white font-mono focus:outline-none focus:border-accent"
+                    className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text font-mono focus:outline-none focus:border-accent"
                   />
                 </div>
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Día del mes</label>
+                  <label className="text-textDim text-xs mb-1 block">Día del mes</label>
                   <select
                     value={addDia}
                     onChange={e => setAddDia(Number(e.target.value))}
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                    className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                   >
                     {DIAS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-muted text-xs mb-1 block">Cuenta a debitar</label>
+                <label className="text-textDim text-xs mb-1 block">Cuenta a debitar</label>
                 <select
                   value={addCuenta}
                   onChange={e => setAddCuenta(e.target.value)}
                   required
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                 >
                   <option value="">Seleccionar</option>
                   {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-muted text-xs mb-1 block">Categoría</label>
+                <label className="text-textDim text-xs mb-1 block">Categoría</label>
                 <select
                   value={addCategoria}
                   onChange={e => setAddCategoria(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                 >
                   {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -288,23 +288,23 @@ export default function PagosRecurrentesPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Editar pago fijo</h2>
-              <button onClick={() => setEditingId(null)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Editar pago fijo</h2>
+              <button onClick={() => setEditingId(null)} className="text-textDim text-xl">×</button>
             </div>
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <div>
-                <label className="text-muted text-xs mb-1 block">Nombre</label>
+                <label className="text-textDim text-xs mb-1 block">Nombre</label>
                 <input
                   type="text"
                   value={editNombre}
                   onChange={e => setEditNombre(e.target.value)}
                   required
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Monto (Q)</label>
+                  <label className="text-textDim text-xs mb-1 block">Monto (Q)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -312,36 +312,36 @@ export default function PagosRecurrentesPage() {
                     value={editMonto}
                     onChange={e => setEditMonto(e.target.value)}
                     required
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white font-mono focus:outline-none focus:border-accent"
+                    className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text font-mono focus:outline-none focus:border-accent"
                   />
                 </div>
                 <div>
-                  <label className="text-muted text-xs mb-1 block">Día del mes</label>
+                  <label className="text-textDim text-xs mb-1 block">Día del mes</label>
                   <select
                     value={editDia}
                     onChange={e => setEditDia(Number(e.target.value))}
-                    className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                    className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                   >
                     {DIAS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-muted text-xs mb-1 block">Cuenta a debitar</label>
+                <label className="text-textDim text-xs mb-1 block">Cuenta a debitar</label>
                 <select
                   value={editCuenta}
                   onChange={e => setEditCuenta(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                 >
                   {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-muted text-xs mb-1 block">Categoría</label>
+                <label className="text-textDim text-xs mb-1 block">Categoría</label>
                 <select
                   value={editCategoria}
                   onChange={e => setEditCategoria(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                 >
                   {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>

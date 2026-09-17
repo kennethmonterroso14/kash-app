@@ -90,8 +90,8 @@ export default function CategoriasPage() {
           ←
         </button>
         <div>
-          <h1 className="text-white font-display font-bold text-xl">Categorías</h1>
-          <p className="text-muted text-xs">Personaliza tus categorías de gastos</p>
+          <h1 className="text-text font-display font-bold text-xl">Categorías</h1>
+          <p className="text-textDim text-xs">Personaliza tus categorías de gastos</p>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ export default function CategoriasPage() {
       {/* Custom categories */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-white text-sm font-semibold">Mis categorías</h2>
+          <h2 className="text-text text-sm font-semibold">Mis categorías</h2>
           <button
             onClick={() => { setShowAdd(v => !v); setSaveError(null) }}
             className="text-xs text-accent hover:opacity-80 transition-opacity font-medium"
@@ -116,21 +116,21 @@ export default function CategoriasPage() {
           <div className="bg-surface rounded-2xl p-4 mb-3">
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-muted text-xs mb-1 block">Nombre</label>
+                <label className="text-textDim text-xs mb-1 block">Nombre</label>
                 <input
                   value={nombre}
                   onChange={e => setNombre(e.target.value)}
                   placeholder="Ej: Médico, Educación..."
                   maxLength={50}
-                  className="w-full bg-bg text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full bg-bg text-text text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
               <div>
-                <label className="text-muted text-xs mb-1 block">Tipo</label>
+                <label className="text-textDim text-xs mb-1 block">Tipo</label>
                 <select
                   value={tipo}
                   onChange={e => setTipo(e.target.value as Tipo)}
-                  className="w-full bg-bg text-white text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full bg-bg text-text text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="gasto">Gasto — aparece en gastos y presupuesto</option>
                   <option value="ingreso">Ingreso — aparece en ingresos</option>
@@ -156,11 +156,11 @@ export default function CategoriasPage() {
         )}
 
         {loading ? (
-          <p className="text-muted text-sm text-center py-4">Cargando...</p>
+          <p className="text-textDim text-sm text-center py-4">Cargando...</p>
         ) : custom.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-3xl mb-2">🏷️</p>
-            <p className="text-muted text-sm">Sin categorías personalizadas</p>
+            <p className="text-textDim text-sm">Sin categorías personalizadas</p>
             <p className="text-textDim text-xs mt-1">Agrega categorías que aparecerán en tus gastos y presupuesto</p>
           </div>
         ) : (
@@ -172,7 +172,7 @@ export default function CategoriasPage() {
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ background: cat.color }}
                   />
-                  <span className="text-white text-sm">{cat.nombre}</span>
+                  <span className="text-text text-sm">{cat.nombre}</span>
                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${TIPO_COLOR[cat.tipo]}`}>
                     {TIPO_LABEL[cat.tipo]}
                   </span>
@@ -187,7 +187,7 @@ export default function CategoriasPage() {
                     </button>
                     <button
                       onClick={() => setConfirmDel(null)}
-                      className="text-muted text-xs hover:text-white"
+                      className="text-textDim text-xs hover:text-text"
                     >
                       No
                     </button>
@@ -195,7 +195,7 @@ export default function CategoriasPage() {
                 ) : (
                   <button
                     onClick={() => setConfirmDel(cat.id)}
-                    className="text-muted hover:text-danger text-base transition-colors"
+                    className="text-textDim hover:text-danger text-base transition-colors"
                   >
                     ✕
                   </button>
@@ -207,13 +207,13 @@ export default function CategoriasPage() {
       </div>
 
       {/* Base categories (read-only reference) */}
-      <div className="border-t border-muted/20 pt-5">
-        <h2 className="text-white text-sm font-semibold mb-3">Categorías base (no editables)</h2>
+      <div className="border-t border-perimetro pt-5">
+        <h2 className="text-text text-sm font-semibold mb-3">Categorías base (no editables)</h2>
         <div className="flex flex-wrap gap-2">
           {[...CATEGORIAS_GASTO, ...CATEGORIAS_INGRESO.filter(c => !CATEGORIAS_GASTO.includes(c))].map(c => (
             <span
               key={c}
-              className="text-xs text-muted bg-surface px-3 py-1 rounded-full"
+              className="text-xs text-textDim bg-surface px-3 py-1 rounded-full"
             >
               {c}
             </span>

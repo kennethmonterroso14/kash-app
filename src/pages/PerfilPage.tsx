@@ -27,9 +27,9 @@ export default function PerfilPage({ onSignOut }: Props) {
           <span className="text-accent text-2xl font-bold">{firstLetter}</span>
         </div>
         <div className="text-center">
-          <p className="text-white font-semibold text-lg">{displayName}</p>
+          <p className="text-text font-semibold text-lg">{displayName}</p>
           {nombre && email && (
-            <p className="text-muted text-sm mt-0.5">{email}</p>
+            <p className="text-textDim text-sm mt-0.5">{email}</p>
           )}
           {loadError && (
             <p role="alert" className="text-danger text-xs mt-1">{loadError}</p>
@@ -38,7 +38,7 @@ export default function PerfilPage({ onSignOut }: Props) {
       </div>
 
       {/* Divider */}
-      <div className="border-t border-muted/20 mb-6" />
+      <div className="border-t border-perimetro mb-6" />
 
       {/* Navigation shortcuts */}
       <div className="flex flex-col gap-2 mb-6">
@@ -57,14 +57,14 @@ export default function PerfilPage({ onSignOut }: Props) {
           >
             <div className="flex items-center gap-3">
               <span className="text-lg">{icon}</span>
-              <span className="text-white text-sm font-medium">{label}</span>
+              <span className="text-text text-sm font-medium">{label}</span>
             </div>
-            <span className="text-muted text-sm">›</span>
+            <span className="text-textDim text-sm">›</span>
           </button>
         ))}
       </div>
 
-      <div className="border-t border-muted/20 mb-6" />
+      <div className="border-t border-perimetro mb-6" />
 
       {/* Sign out section */}
       <div className="flex flex-col gap-3">
@@ -79,13 +79,13 @@ export default function PerfilPage({ onSignOut }: Props) {
           <>
             <button
               onClick={onSignOut}
-              className="w-full py-3 rounded-xl bg-danger text-white font-semibold text-sm hover:bg-danger/90 transition-colors"
+              className="w-full py-3 rounded-xl bg-danger text-text font-semibold text-sm hover:bg-danger/90 transition-colors"
             >
               ¿Confirmar cierre de sesión?
             </button>
             <button
               onClick={() => setConfirmSignOut(false)}
-              className="text-muted text-sm text-center hover:text-white transition-colors"
+              className="text-textDim text-sm text-center hover:text-text transition-colors"
             >
               Cancelar
             </button>
@@ -94,7 +94,7 @@ export default function PerfilPage({ onSignOut }: Props) {
       </div>
 
       {/* Version */}
-      <p className="text-muted text-xs text-center mt-12">Vorta v2.0</p>
+      <p className="text-textDim text-xs text-center mt-12">Vorta v2.0</p>
     </div>
   )
 }

@@ -7,7 +7,6 @@ export declare const colores: {
   success: string
   danger: string
   warning: string
-  muted: string
   text: string
   textDim: string
 }

@@ -200,7 +200,7 @@ export default function InversionesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <p className="text-muted text-sm">Cargando...</p>
+        <p className="text-textDim text-sm">Cargando...</p>
       </div>
     )
   }
@@ -211,7 +211,7 @@ export default function InversionesPage() {
       {/* ── Header ─────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-white font-display font-bold text-xl">Inversiones</h1>
+          <h1 className="text-text font-display font-bold text-xl">Inversiones</h1>
           {resumen.ganancia_total !== 0 && (
             <p className={`text-xs mt-0.5 font-mono ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
               {resumen.ganancia_total >= 0 ? '+' : ''}{formatQ(resumen.ganancia_total)} total
@@ -229,7 +229,7 @@ export default function InversionesPage() {
               className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
                 tipoCambioDesactualizado
                   ? 'bg-warning/10 text-warning border border-warning/30'
-                  : 'bg-surface2 text-muted hover:text-white'
+                  : 'bg-surface2 text-textDim hover:text-text'
               }`}
             >
               {tipoCambioDesactualizado ? '⚠ ' : ''}Q{(tipoCambioUSD / 100).toFixed(2)}/USD
@@ -253,15 +253,15 @@ export default function InversionesPage() {
         <div className="bg-surface rounded-2xl p-4 mb-4 space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-muted text-xs mb-0.5">Capital invertido</p>
-              <p className="text-white font-mono">{formatQ(resumen.capital_total)}</p>
+              <p className="text-textDim text-xs mb-0.5">Capital invertido</p>
+              <p className="text-text font-mono">{formatQ(resumen.capital_total)}</p>
             </div>
             <div>
-              <p className="text-muted text-xs mb-0.5">Valor actual</p>
-              <p className="text-white font-mono font-bold">{formatQ(resumen.valor_total)}</p>
+              <p className="text-textDim text-xs mb-0.5">Valor actual</p>
+              <p className="text-text font-mono font-bold">{formatQ(resumen.valor_total)}</p>
             </div>
             <div>
-              <p className="text-muted text-xs mb-0.5">Ganancia total</p>
+              <p className="text-textDim text-xs mb-0.5">Ganancia total</p>
               <p className={`font-mono font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
                 {resumen.ganancia_total >= 0 ? '+' : ''}{formatQ(resumen.ganancia_total)}
                 <span className="text-xs ml-1">
@@ -270,7 +270,7 @@ export default function InversionesPage() {
               </p>
             </div>
             <div>
-              <p className="text-muted text-xs mb-0.5">Rendimiento anual</p>
+              <p className="text-textDim text-xs mb-0.5">Rendimiento anual</p>
               <p className={`font-mono font-semibold ${resumen.rendimiento_anualizado >= INFLACION_GT ? 'text-success' : 'text-warning'}`}>
                 {resumen.rendimiento_anualizado >= 0 ? '+' : ''}
                 {resumen.rendimiento_anualizado.toFixed(1)}% / año
@@ -281,7 +281,7 @@ export default function InversionesPage() {
           {/* Gráfica de evolución — solo si hay 2+ puntos */}
           {evolucionPortafolio.length > 1 && (
             <div className="-mx-1">
-              <p className="text-muted text-xs mb-1.5 px-1">Evolución del portafolio</p>
+              <p className="text-textDim text-xs mb-1.5 px-1">Evolución del portafolio</p>
               <ResponsiveContainer width="100%" height={90}>
                 <LineChart data={evolucionPortafolio}>
                   <XAxis dataKey="fecha" hide />
@@ -314,7 +314,7 @@ export default function InversionesPage() {
       {inversiones.length === 0 && !error && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">📈</p>
-          <p className="text-muted text-sm">No tienes inversiones registradas</p>
+          <p className="text-textDim text-sm">No tienes inversiones registradas</p>
           <p className="text-textDim text-xs mt-1">Agrega tu primera inversión para empezar</p>
         </div>
       )}
@@ -334,17 +334,17 @@ export default function InversionesPage() {
               {/* Cabecera */}
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-white font-semibold text-sm">{inv.nombre}</p>
-                  {inv.plataforma && <p className="text-muted text-xs">{inv.plataforma}</p>}
+                  <p className="text-text font-semibold text-sm">{inv.nombre}</p>
+                  {inv.plataforma && <p className="text-textDim text-xs">{inv.plataforma}</p>}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted bg-surface2 px-2 py-0.5 rounded-full">{inv.tipo}</span>
+                  <span className="text-xs text-textDim bg-surface2 px-2 py-0.5 rounded-full">{inv.tipo}</span>
                   {inv.moneda === 'USD' && (
                     <span className="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">USD</span>
                   )}
                   <button
                     onClick={() => abrirEditar(inv)}
-                    className="text-muted hover:text-white transition-colors text-sm ml-0.5"
+                    className="text-textDim hover:text-text transition-colors text-sm ml-0.5"
                     title="Editar inversión"
                   >
                     ✎
@@ -355,8 +355,8 @@ export default function InversionesPage() {
               {/* Métricas */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <p className="text-muted">Capital</p>
-                  <p className="text-white font-mono">
+                  <p className="text-textDim">Capital</p>
+                  <p className="text-text font-mono">
                     {inv.moneda === 'USD'
                       ? `$${(inv.monto_invertido / 100).toFixed(2)}`
                       : formatQ(inv.monto_invertido)}
@@ -366,8 +366,8 @@ export default function InversionesPage() {
                   )}
                 </div>
                 <div>
-                  <p className="text-muted">Valor actual</p>
-                  <p className="text-white font-mono font-bold">
+                  <p className="text-textDim">Valor actual</p>
+                  <p className="text-text font-mono font-bold">
                     {inv.moneda === 'USD'
                       ? `$${(inv.valor_actual / 100).toFixed(2)}`
                       : formatQ(inv.valor_actual)}
@@ -377,7 +377,7 @@ export default function InversionesPage() {
                   )}
                 </div>
                 <div>
-                  <p className="text-muted">Ganancia</p>
+                  <p className="text-textDim">Ganancia</p>
                   <p className={`font-mono font-semibold ${gananciaNativa >= 0 ? 'text-success' : 'text-danger'}`}>
                     {gananciaNativa >= 0 ? '+' : ''}
                     {inv.moneda === 'USD'
@@ -391,7 +391,7 @@ export default function InversionesPage() {
                   )}
                 </div>
                 <div>
-                  <p className="text-muted">Anualizado</p>
+                  <p className="text-textDim">Anualizado</p>
                   <p className={`font-mono font-semibold ${rend >= INFLACION_GT ? 'text-success' : 'text-warning'}`}>
                     {rend >= 0 ? '+' : ''}{rend.toFixed(1)}% / año
                   </p>
@@ -426,23 +426,23 @@ export default function InversionesPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Nueva inversión</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Nueva inversión</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
             <div className="flex flex-col gap-3">
               <input
                 placeholder="Nombre (ej: Fondo HAPI)"
                 value={nombre} onChange={e => setNombre(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Plataforma (opcional, ej: HAPI, SAT, Binance)"
                 value={plataforma} onChange={e => setPlataforma(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <select
                 value={tipo} onChange={e => setTipo(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
               >
                 {TIPOS_INVERSION.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -453,15 +453,15 @@ export default function InversionesPage() {
                   placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
                   value={capital} onChange={e => setCapital(e.target.value)}
                   inputMode="decimal"
-                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
                 />
-                <div className="flex bg-bg border border-muted/30 rounded-xl overflow-hidden">
+                <div className="flex bg-bg border border-canto rounded-xl overflow-hidden">
                   {(['GTQ', 'USD'] as const).map(m => (
                     <button
                       key={m}
                       onClick={() => setMoneda(m)}
                       className={`px-3 py-3 text-sm font-medium transition-colors ${
-                        moneda === m ? 'bg-accent text-bg font-semibold' : 'text-muted hover:text-white'
+                        moneda === m ? 'bg-accent text-bg font-semibold' : 'text-textDim hover:text-text'
                       }`}
                     >
                       {m}
@@ -470,19 +470,19 @@ export default function InversionesPage() {
                 </div>
               </div>
               <div>
-                <p className="text-muted text-xs mb-1">Fecha de inicio</p>
+                <p className="text-textDim text-xs mb-1">Fecha de inicio</p>
                 <input
                   type="date"
                   max={hoyGT()}
                   value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
                 />
               </div>
               <textarea
                 placeholder="Notas (opcional)"
                 value={notas} onChange={e => setNotas(e.target.value)}
                 rows={2}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent resize-none"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent resize-none"
               />
               {errForm && <p className="text-danger text-sm">{errForm}</p>}
               <button
@@ -502,12 +502,12 @@ export default function InversionesPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Actualizar — {selInv.nombre}</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Actualizar — {selInv.nombre}</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
             <div className="bg-bg rounded-xl p-3 mb-4">
-              <p className="text-muted text-xs">Valor anterior</p>
-              <p className="text-white font-mono">
+              <p className="text-textDim text-xs">Valor anterior</p>
+              <p className="text-text font-mono">
                 {selInv.moneda === 'USD'
                   ? `$${(selInv.valor_actual / 100).toFixed(2)}`
                   : formatQ(selInv.valor_actual)}
@@ -518,16 +518,16 @@ export default function InversionesPage() {
                 placeholder={`Nuevo valor (${selInv.moneda === 'USD' ? '$' : 'Q'})`}
                 value={nuevoValor} onChange={e => setNuevoValor(e.target.value)}
                 inputMode="decimal"
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <div>
-                <p className="text-muted text-xs mb-1">Fecha del update</p>
+                <p className="text-textDim text-xs mb-1">Fecha del update</p>
                 <input
                   type="date"
                   value={fechaUpdate} onChange={e => setFechaUpdate(e.target.value)}
                   min={selInv.fecha_inicio}
                   max={hoyGT()}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
                 />
                 <p className="text-textDim text-xs mt-1">
                   Una fecha anterior agrega un punto al historial sin reemplazar el valor vigente.
@@ -558,23 +558,23 @@ export default function InversionesPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Editar inversión</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Editar inversión</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
             <div className="flex flex-col gap-3">
               <input
                 placeholder="Nombre"
                 value={nombre} onChange={e => setNombre(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <input
                 placeholder="Plataforma (opcional)"
                 value={plataforma} onChange={e => setPlataforma(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               <select
                 value={tipo} onChange={e => setTipo(e.target.value)}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
               >
                 {TIPOS_INVERSION.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -585,11 +585,11 @@ export default function InversionesPage() {
                   placeholder={`Capital inicial (${selInv.moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
                   value={capital} onChange={e => setCapital(e.target.value)}
                   inputMode="decimal"
-                  className="flex-1 bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
                 />
                 {/* La moneda es de solo lectura: cambiarla reinterpretaría el
                     capital, el valor actual y todo el historial ya guardados. */}
-                <div className="flex items-center px-4 py-3 bg-surface2 border border-muted/30 rounded-xl text-muted text-sm font-medium">
+                <div className="flex items-center px-4 py-3 bg-surface2 border border-canto rounded-xl text-textDim text-sm font-medium">
                   {selInv.moneda}
                 </div>
               </div>
@@ -597,19 +597,19 @@ export default function InversionesPage() {
                 La moneda no se puede cambiar: el capital y el historial están guardados en {selInv.moneda}.
               </p>
               <div>
-                <p className="text-muted text-xs mb-1">Fecha de inicio</p>
+                <p className="text-textDim text-xs mb-1">Fecha de inicio</p>
                 <input
                   type="date"
                   value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
                   max={hoyGT()}
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
                 />
               </div>
               <textarea
                 placeholder="Notas (opcional)"
                 value={notas} onChange={e => setNotas(e.target.value)}
                 rows={2}
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent resize-none"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent resize-none"
               />
               {errForm && <p className="text-danger text-sm">{errForm}</p>}
               <button
@@ -629,12 +629,12 @@ export default function InversionesPage() {
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
           <div className="bg-surface w-full rounded-t-2xl p-5">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-white font-semibold">Tipo de cambio USD</h2>
-              <button onClick={() => setPantalla('lista')} className="text-muted hover:text-white text-lg">✕</button>
+              <h2 className="text-text font-semibold">Tipo de cambio USD</h2>
+              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
             <div className="bg-bg rounded-xl p-3 mb-4">
-              <p className="text-muted text-xs">Tipo de cambio actual</p>
-              <p className="text-white font-mono">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
+              <p className="text-textDim text-xs">Tipo de cambio actual</p>
+              <p className="text-text font-mono">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
               <p className={`text-xs mt-0.5 ${tipoCambioDesactualizado ? 'text-warning' : 'text-textDim'}`}>
                 {!tipoCambioFecha
                   ? '⚠️ Sin verificar — confirma el tipo de cambio'
@@ -648,7 +648,7 @@ export default function InversionesPage() {
                 placeholder="Nuevo tipo de cambio (ej: 7.75)"
                 value={nuevoCambio} onChange={e => setNuevoCambio(e.target.value)}
                 inputMode="decimal"
-                className="bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm placeholder:text-muted focus:outline-none focus:border-accent"
+                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
               />
               {errForm && <p className="text-danger text-sm">{errForm}</p>}
               <button
@@ -666,7 +666,7 @@ export default function InversionesPage() {
                   }
                 }}
                 disabled={fetchingRate || saving}
-                className="w-full py-3 rounded-xl bg-surface2 text-white text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+                className="w-full py-3 rounded-xl bg-surface2 text-text text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {fetchingRate ? 'Consultando...' : '📡 Obtener tipo actual (API)'}
               </button>

@@ -25,7 +25,6 @@ export const colores = {
   success:   '#30d158',
   danger:    '#ff453a',
   warning:   '#ff9f0a',
-  muted:     '#3a3f4d',
   text:      '#f2f3f7',
   textDim:   '#9aa0b0',
 }

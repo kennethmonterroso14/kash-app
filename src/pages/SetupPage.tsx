@@ -55,25 +55,25 @@ export default function SetupPage({ user, onComplete }: Props) {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-accent font-display">Vorta</h1>
-          <p className="text-muted text-sm mt-1">Bienvenido</p>
+          <p className="text-textDim text-sm mt-1">Bienvenido</p>
         </div>
 
         <div className="bg-surface rounded-2xl p-6">
-          <h2 className="text-white font-semibold mb-1">¿Cómo te llamamos?</h2>
-          <p className="text-muted text-sm mb-5">
+          <h2 className="text-text font-semibold mb-1">¿Cómo te llamamos?</h2>
+          <p className="text-textDim text-sm mb-5">
             Luego agregas tus cuentas desde la sección de Cuentas.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-muted mb-1">Tu nombre</label>
+              <label className="block text-sm text-textDim mb-1">Tu nombre</label>
               <input
                 type="text"
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
                 required
                 placeholder="Kenneth"
-                className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent transition-colors"
+                className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent transition-colors"
               />
             </div>
 

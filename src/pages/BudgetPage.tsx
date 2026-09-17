@@ -322,8 +322,8 @@ export default function BudgetPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="bg-surface rounded-2xl p-6 text-center space-y-3">
-          <p className="text-white font-semibold">No se pudieron cargar tus presupuestos</p>
-          <p className="text-muted text-sm">{fetchError}</p>
+          <p className="text-text font-semibold">No se pudieron cargar tus presupuestos</p>
+          <p className="text-textDim text-sm">{fetchError}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
@@ -339,7 +339,7 @@ export default function BudgetPage() {
   if (loading || txnsLoading) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
-        <p className="text-muted text-center">Cargando...</p>
+        <p className="text-textDim text-center">Cargando...</p>
       </div>
     )
   }
@@ -349,9 +349,9 @@ export default function BudgetPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <button onClick={handlePrevMes} className="text-muted hover:text-white p-1">←</button>
-          <span className="text-white font-medium">{mesLabel}</span>
-          <button onClick={handleNextMes} className="text-muted hover:text-white p-1">→</button>
+          <button onClick={handlePrevMes} className="text-textDim hover:text-text p-1">←</button>
+          <span className="text-text font-medium">{mesLabel}</span>
+          <button onClick={handleNextMes} className="text-textDim hover:text-text p-1">→</button>
         </div>
         <button
           onClick={openAdd}
@@ -387,7 +387,7 @@ export default function BudgetPage() {
       {/* Empty state */}
       {presupuestos.length === 0 && (
         <div className="bg-surface rounded-2xl p-8 text-center space-y-4">
-          <p className="text-muted text-sm">Sin presupuestos para {mesLabel}</p>
+          <p className="text-textDim text-sm">Sin presupuestos para {mesLabel}</p>
           <button
             onClick={openAdd}
             disabled={categoriasDisponibles.length === 0}
@@ -418,8 +418,8 @@ export default function BudgetPage() {
                 aria-controls={`txns-${p.id}`}
                 className="flex items-center gap-2 rounded-lg -m-1 p-1 hover:opacity-80 transition-opacity"
               >
-                <span className="text-white text-sm font-medium">{p.categoria}</span>
-                <span aria-hidden="true" className={`text-xs ${expandedId === p.id ? 'text-accent' : 'text-muted'}`}>
+                <span className="text-text text-sm font-medium">{p.categoria}</span>
+                <span aria-hidden="true" className={`text-xs ${expandedId === p.id ? 'text-accent' : 'text-textDim'}`}>
                   {expandedId === p.id ? '▴' : '▾'}
                 </span>
               </button>
@@ -435,7 +435,7 @@ export default function BudgetPage() {
                 <button
                   type="button"
                   onClick={() => openEdit(p)}
-                  className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors"
+                  className="text-xs px-2 py-1 rounded-lg text-textDim hover:text-accent transition-colors"
                   aria-label={`Editar límite de ${p.categoria}`}
                 >
                   ✎
@@ -448,8 +448,8 @@ export default function BudgetPage() {
                     : `Eliminar presupuesto de ${p.categoria}`}
                   className={`text-xs px-2 py-1 rounded-lg transition-colors ${
                     pendingDelete === p.id
-                      ? 'bg-danger text-white'
-                      : 'text-muted hover:text-danger'
+                      ? 'bg-danger text-text'
+                      : 'text-textDim hover:text-danger'
                   }`}
                 >
                   {pendingDelete === p.id ? 'Confirmar' : '×'}
@@ -462,13 +462,13 @@ export default function BudgetPage() {
                 style={{ width: `${Math.min(pct, 100)}%`, background: barColor }}
               />
             </div>
-            <div className="flex justify-between text-xs text-muted">
+            <div className="flex justify-between text-xs text-textDim">
               <span>{formatQ(gastado)} gastado</span>
               <span>
                 {restante >= 0 ? `${formatQ(restante)} restante` : `${formatQ(Math.abs(restante))} excedido`}
               </span>
             </div>
-            <div className="text-xs text-muted mt-0.5 text-right">Límite: {formatQ(p.monto_limite)}</div>
+            <div className="text-xs text-textDim mt-0.5 text-right">Límite: {formatQ(p.monto_limite)}</div>
             {expandedId === p.id && (() => {
               // Mismo criterio que gastadoPorCat: incluir gasto_tc para que el
               // detalle sume exactamente lo que muestra la barra.
@@ -476,12 +476,12 @@ export default function BudgetPage() {
                 .filter(t => esGastoComputable(t.tipo) && t.categoria === p.categoria)
                 .sort((a, b) => b.fecha.localeCompare(a.fecha))
               return (
-                <div id={`txns-${p.id}`} className="border-t border-muted/20 mt-3 pt-3">
-                  <p className="text-muted text-xs uppercase tracking-wider mb-2">
+                <div id={`txns-${p.id}`} className="border-t border-perimetro mt-3 pt-3">
+                  <p className="text-textDim text-xs uppercase tracking-wider mb-2">
                     {txsCat.length} transacciones
                   </p>
                   {txsCat.length === 0 ? (
-                    <p className="text-muted text-xs text-center py-2">
+                    <p className="text-textDim text-xs text-center py-2">
                       Sin gastos registrados en este mes
                     </p>
                   ) : (
@@ -489,11 +489,11 @@ export default function BudgetPage() {
                       {txsCat.map(t => (
                         <div
                           key={t.id}
-                          className="flex justify-between items-start py-2 border-b border-muted/10 last:border-0"
+                          className="flex justify-between items-start py-2 border-b border-perimetro last:border-0"
                         >
                           <div>
-                            <p className="text-white text-xs">{t.descripcion}</p>
-                            <p className="text-muted text-xs">{t.fecha}</p>
+                            <p className="text-text text-xs">{t.descripcion}</p>
+                            <p className="text-textDim text-xs">{t.fecha}</p>
                           </div>
                           <span className="text-danger text-xs font-mono font-semibold ml-4 flex-shrink-0">
                             −{formatQ(Math.abs(t.cantidad))}
@@ -517,18 +517,18 @@ export default function BudgetPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">Nuevo presupuesto</h2>
-              <button onClick={() => setShowAdd(false)} className="text-muted text-xl">×</button>
+              <h2 className="text-text font-semibold">Nuevo presupuesto</h2>
+              <button onClick={() => setShowAdd(false)} className="text-textDim text-xl">×</button>
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-3">
               <div>
-                <label className="text-muted text-xs mb-1 block">Categoría</label>
+                <label className="text-textDim text-xs mb-1 block">Categoría</label>
                 <select
                   value={addCategoria}
                   onChange={e => setAddCategoria(e.target.value)}
                   required
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-3 text-white focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-3 py-3 text-text focus:outline-none focus:border-accent"
                 >
                   {categoriasDisponibles.map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -537,7 +537,7 @@ export default function BudgetPage() {
               </div>
 
               <div>
-                <label className="text-muted text-xs mb-1 block">Monto límite (Q)</label>
+                <label className="text-textDim text-xs mb-1 block">Monto límite (Q)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -546,7 +546,7 @@ export default function BudgetPage() {
                   onChange={e => setAddMonto(e.target.value)}
                   required
                   placeholder="0.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -572,15 +572,15 @@ export default function BudgetPage() {
         >
           <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-white font-semibold">
+              <h2 className="text-text font-semibold">
                 Editar límite — {presupuestos.find(p => p.id === editingId)?.categoria}
               </h2>
-              <button onClick={() => setEditingId(null)} className="text-muted text-xl">×</button>
+              <button onClick={() => setEditingId(null)} className="text-textDim text-xl">×</button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <div>
-                <label className="text-muted text-xs mb-1 block">Monto límite (Q)</label>
+                <label className="text-textDim text-xs mb-1 block">Monto límite (Q)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -589,7 +589,7 @@ export default function BudgetPage() {
                   onChange={e => setEditMonto(e.target.value)}
                   required
                   placeholder="0.00"
-                  className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-xl font-mono focus:outline-none focus:border-accent"
+                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-xl font-mono focus:outline-none focus:border-accent"
                 />
               </div>
 
