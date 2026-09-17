@@ -93,7 +93,7 @@ export default function DashboardPage({ user }: Props) {
   const { coloresCategorias } = useCategorias(user.id)
   const [mes, setMes] = useState(mesActual())
   const [patrimonioOculto, setPatrimonioOculto] = useState(false)
-  const { cuentas, totalPatrimonio } = useCuentas(user.id)
+  const { cuentas, totalPatrimonio, error: cuentasError } = useCuentas(user.id)
   const { txns, loading } = useTransacciones(user.id, mes)
   const { data: resumen6 } = useResumen6Meses(user.id)
   const { resumenTCs, tarjetas } = useTarjetas(user.id)
@@ -161,9 +161,18 @@ export default function DashboardPage({ user }: Props) {
             {patrimonioOculto ? <EyeOffIcon /> : <EyeIcon />}
           </div>
         </button>
+        {cuentasError && (
+          <p role="alert" className="text-danger text-xs bg-danger/10 rounded-lg p-2 mt-2">
+            No se pudieron cargar tus cuentas: {cuentasError}
+          </p>
+        )}
         {!patrimonioOculto && (
           <>
-            <p className="text-3xl font-mono font-bold text-white">{formatQ(totalPatrimonio)}</p>
+            {/* Con la consulta fallida totalPatrimonio es 0, y mostrar ese 0
+                como un hecho es justo el defecto que se estaba corrigiendo. */}
+            <p className="text-3xl font-mono font-bold text-white">
+              {cuentasError ? '—' : formatQ(totalPatrimonio)}
+            </p>
             <div className="flex flex-wrap gap-2 mt-3">
               {cuentas.map(c => (
                 <div key={c.id} className="flex items-center gap-1.5 bg-bg rounded-lg px-2 py-1">
@@ -177,8 +186,10 @@ export default function DashboardPage({ user }: Props) {
         )}
       </div>
 
-      {/* Disponible Real — solo si hay TCs registradas */}
-      {tarjetas.length > 0 && (
+      {/* Disponible Real — solo si hay TCs registradas. Se omite si las cuentas
+          no cargaron: con saldo 0 fantasma, calcDisponibleReal inventa una
+          insolvencia y un patrimonio neto negativo. */}
+      {tarjetas.length > 0 && !cuentasError && (
         <div className="bg-surface rounded-2xl p-4">
           <p className="text-muted text-xs uppercase tracking-widest mb-3">Disponible Real</p>
           <div className="space-y-1.5 text-sm">
@@ -207,8 +218,11 @@ export default function DashboardPage({ user }: Props) {
               />
             </div>
           </div>
-          {/* La advertencia cita el monto de deuda → también se oculta en modo privado */}
-          {!patrimonioOculto && disponibleReal.advertencia && (
+          {/* Solo la advertencia por disponible negativo cita un monto, así que
+              es la única que se oculta en modo privado. Las otras dos ("más del
+              50% comprometido", "más del 80% del saldo") no traen cifras y son
+              justo la señal de riesgo que el usuario sigue necesitando ver. */}
+          {disponibleReal.advertencia && (disponibleReal.disponible_real >= 0 || !patrimonioOculto) && (
             <p className="text-warning text-xs mt-3 bg-warning/10 rounded-lg p-2">
               {disponibleReal.advertencia}
             </p>
@@ -249,8 +263,8 @@ export default function DashboardPage({ user }: Props) {
         </div>
       )}
 
-      {/* Patrimonio Neto — solo si hay inversiones o TCs */}
-      {(resumenInv.capital_total > 0 || tarjetas.length > 0) && (
+      {/* Patrimonio Neto — solo si hay inversiones o TCs (y las cuentas cargaron) */}
+      {(resumenInv.capital_total > 0 || tarjetas.length > 0) && !cuentasError && (
         <div className="bg-surface rounded-2xl p-4">
           <p className="text-muted text-xs uppercase tracking-widest mb-3">Patrimonio Neto</p>
           <div className="space-y-1.5 text-sm">

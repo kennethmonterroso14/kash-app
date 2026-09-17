@@ -90,6 +90,10 @@ export function useInversiones(userId: string) {
   }) => {
     if (!input.nombre.trim())       throw new Error('El nombre es requerido')
     if (input.monto_invertido <= 0) throw new Error('El capital debe ser mayor a 0')
+    // Sin esto, una inversión con fecha_inicio futura deja "Actualizar valor"
+    // imposible de satisfacer: actualizarValor exige fecha <= hoy y
+    // fecha >= fecha_inicio a la vez.
+    if (input.fecha_inicio > hoyGT()) throw new Error('La fecha de inicio no puede ser futura')
 
     const { data, error } = await supabase
       .from('inversiones')
@@ -160,11 +164,15 @@ export function useInversiones(userId: string) {
     // 2. valor_actual / fecha_ultimo_update son una proyección del punto más
     //    reciente del historial: así registrar un valor retroactivo agrega un
     //    punto al pasado sin borrar la valuación vigente.
+    //    Se acota a puntos NO futuros: un único punto con fecha futura (los
+    //    había antes de validar la fecha) dejaba valor_actual clavado para
+    //    siempre, porque ya no se puede escribir un punto posterior.
     const { data: ultimo, error: ultErr } = await supabase
       .from('inversiones_historial')
       .select('valor, fecha')
       .eq('inversion_id', id)
       .eq('user_id', userId)
+      .lte('fecha', hoyGT())
       .order('fecha', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -201,6 +209,11 @@ export function useInversiones(userId: string) {
   }) => {
     if (updates.nombre !== undefined && !updates.nombre.trim()) throw new Error('El nombre es requerido')
     if (updates.monto_invertido !== undefined && updates.monto_invertido <= 0) throw new Error('El capital debe ser mayor a 0')
+    // El `max` del input es solo un atributo: el modal no es un <form>, así que
+    // no bloquea nada por sí solo.
+    if (updates.fecha_inicio !== undefined && updates.fecha_inicio > hoyGT()) {
+      throw new Error('La fecha de inicio no puede ser futura')
+    }
 
     // Si cambia el capital y el valor_actual === capital original (nunca actualizado),
     // también actualizar valor_actual para mantener coherencia
@@ -215,14 +228,57 @@ export function useInversiones(userId: string) {
     // resumen. Se hace ANTES del update de inversiones: así un fallo deja todo
     // sin tocar y el reintento es limpio.
     const nuevoValorInicial = dbUpdates.valor_actual as number | undefined
-    if (invActual && nuevoValorInicial !== undefined) {
-      const { error: histErr } = await supabase
-        .from('inversiones_historial')
-        .update({ valor: nuevoValorInicial })
-        .eq('inversion_id', id)
-        .eq('user_id', userId)
-        .eq('fecha', invActual.fecha_inicio)
-      if (histErr) throw new Error(`Error al sincronizar historial: ${histErr.message}`)
+    // También hay que mover el punto si cambia fecha_inicio: si no, queda
+    // varado en una fecha que ya no es el inicio, y el `min` del modal de
+    // "Actualizar valor" lo vuelve incorregible.
+    const mueveInicio =
+      invActual && updates.fecha_inicio !== undefined && updates.fecha_inicio !== invActual.fecha_inicio
+    if (invActual && (nuevoValorInicial !== undefined || mueveInicio)) {
+      const cambios: Record<string, unknown> = {}
+      if (nuevoValorInicial !== undefined) cambios.valor = nuevoValorInicial
+      if (mueveInicio) cambios.fecha = updates.fecha_inicio
+
+      // Si ya hay un punto en la fecha destino, se fusiona en lugar de crear
+      // dos puntos para el mismo día (la gráfica quedaría indeterminada).
+      const colision = mueveInicio
+        ? (await supabase
+            .from('inversiones_historial')
+            .select('id')
+            .eq('inversion_id', id)
+            .eq('user_id', userId)
+            .eq('fecha', updates.fecha_inicio!)
+            .maybeSingle()).data
+        : null
+
+      if (colision) {
+        const { error: delErr } = await supabase
+          .from('inversiones_historial')
+          .delete()
+          .eq('inversion_id', id)
+          .eq('user_id', userId)
+          .eq('fecha', invActual.fecha_inicio)
+        if (delErr) throw new Error(`Error al sincronizar historial: ${delErr.message}`)
+        if (nuevoValorInicial !== undefined) {
+          const { error: updColErr } = await supabase
+            .from('inversiones_historial')
+            .update({ valor: nuevoValorInicial })
+            .eq('id', colision.id)
+          if (updColErr) throw new Error(`Error al sincronizar historial: ${updColErr.message}`)
+        }
+      } else {
+        const { error: histErr } = await supabase
+          .from('inversiones_historial')
+          .update(cambios)
+          .eq('inversion_id', id)
+          .eq('user_id', userId)
+          .eq('fecha', invActual.fecha_inicio)
+        if (histErr) throw new Error(`Error al sincronizar historial: ${histErr.message}`)
+      }
+
+      // La fecha de "Actualizado" no debe quedar antes del inicio.
+      if (mueveInicio && invActual.fecha_ultimo_update === invActual.fecha_inicio) {
+        dbUpdates.fecha_ultimo_update = updates.fecha_inicio
+      }
     }
 
     const { data, error } = await supabase

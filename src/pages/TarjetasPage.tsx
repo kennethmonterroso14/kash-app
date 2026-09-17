@@ -31,6 +31,18 @@ export default function TarjetasPage({ userId }: Props) {
   const [tcSelId, setTcSelId]   = useState<string | null>(null)
   const tcSel = resumenTCs.find(r => r.tc.id === tcSelId) ?? null
 
+  // Días que faltan para el cierre, contados sobre el calendario de Guatemala.
+  // No se usa resumen.dias_para_cierre: ese valor nunca es 0 (la fecha próxima
+  // es exclusiva) y el día del cierre salta al largo del mes completo, así que
+  // el aviso se mostraba siempre y justo ese día decía lo contrario.
+  const faltanCierre = (() => {
+    if (!tcSel) return 0
+    const [aHoy, mHoy, dHoy] = hoyGT().split('-').map(Number)
+    const ultimoDiaMes = new Date(aHoy, mHoy, 0).getDate()   // día 0 del mes siguiente
+    const diaCierre = Math.min(tcSel.tc.dia_cierre, ultimoDiaMes)
+    return dHoy < diaCierre ? diaCierre - dHoy : 0
+  })()
+
   // ── Form "Nueva TC" ────────────────────────────────────────────
   const [tcNombre, setTcNombre] = useState('')
   const [tcBanco,  setTcBanco]  = useState('')
@@ -706,11 +718,10 @@ export default function TarjetasPage({ userId }: Props) {
                 Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.
               </span>
             </p>
-            {tcSel.resumen.dias_para_cierre > 0 && (
+            {faltanCierre > 0 && (
               <p className="text-warning text-xs bg-warning/10 rounded-xl p-3 mb-3">
-                Faltan {tcSel.resumen.dias_para_cierre}{' '}
-                {tcSel.resumen.dias_para_cierre === 1 ? 'día' : 'días'} para el cierre real de
-                esta tarjeta. Si cierras ahora, los cargos que registres después abrirán un
+                Faltan {faltanCierre} {faltanCierre === 1 ? 'día' : 'días'} para el cierre real
+                de esta tarjeta. Si cierras ahora, los cargos que registres después abrirán un
                 ciclo aparte.
               </p>
             )}

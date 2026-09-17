@@ -472,6 +472,7 @@ export default function InversionesPage({ userId }: Props) {
                 <p className="text-muted text-xs mb-1">Fecha de inicio</p>
                 <input
                   type="date"
+                  max={hoyGT()}
                   value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
                   className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-accent"
                 />

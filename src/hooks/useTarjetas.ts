@@ -151,7 +151,12 @@ export function useTarjetas(userId: string) {
 
     let fechas = vigente
     const ultimo = ultimos?.[0]
-    if (ultimo && ultimo.fecha_inicio >= vigente.fecha_inicio) {
+    // La condición se evalúa contra el CIERRE del último ciclo, no contra su
+    // inicio: lo que hay que evitar es solaparse con él. Con dia_cierre fijo
+    // las dos comparaciones coinciden, pero si el usuario edita dia_cierre la
+    // ventana vigente puede caer dentro del ciclo anterior con un inicio
+    // todavía posterior, y se insertaba un ciclo solapado.
+    if (ultimo && vigente.fecha_inicio <= ultimo.fecha_cierre) {
       const fecha_inicio = diaSiguiente(ultimo.fecha_cierre)
       // ciclo_fechas_validas exige fecha_cierre > fecha_inicio: si el inicio ya
       // rebasó el cierre de la ventana vigente, la ventana correcta es la
@@ -195,7 +200,19 @@ export function useTarjetas(userId: string) {
   // pago liquida el estado de cuenta YA cerrado: se enlaza al ciclo cerrado más
   // reciente y, si no hay ninguno, al ciclo cuyo rango cubre la fecha del pago.
   // Un pago nunca abre un ciclo.
-  const cicloDelPago = async (tarjetaId: string, fecha: string): Promise<string | null> => {
+  // Atribuye el pago al ciclo que el trigger de deuda realmente va a afectar,
+  // en vez de asumir el último cerrado. El trigger reparte así:
+  //   v_d_ant = -least(monto, deuda_ciclo_anterior)
+  //   v_d_act = -least(monto + v_d_ant, deuda_actual)
+  // es decir: primero el estado de cuenta cerrado y el sobrante contra el
+  // ciclo abierto. Con deuda_ciclo_anterior en 0 (lo normal cuando ya se pagó
+  // el estado anterior) el pago entero cae en el ciclo ABIERTO, y marcarlo
+  // contra un ciclo cerrado inflaba un estado de cuenta que no se tocó.
+  const cicloDelPago = async (
+    tarjetaId: string,
+    fecha: string,
+    monto: number,
+  ): Promise<string | null> => {
     const { data, error } = await supabase
       .from('ciclos_tc')
       .select('id, estado, fecha_inicio, fecha_cierre')
@@ -209,13 +226,26 @@ export function useTarjetas(userId: string) {
       console.error('No se pudo resolver el ciclo del pago:', error)
       return null
     }
-    const cerrado = data.find((c: { estado: string }) => c.estado === 'cerrado')
-    if (cerrado) return cerrado.id
-    const contiene = data.find(
+
+    const porRango = data.find(
       (c: { fecha_inicio: string; fecha_cierre: string }) =>
         fecha >= c.fecha_inicio && fecha <= c.fecha_cierre
     )
-    return contiene?.id ?? null
+    const deudaAnterior = tarjetas.find(t => t.id === tarjetaId)?.deuda_ciclo_anterior ?? 0
+
+    // Nada facturado pendiente: el pago completo baja el ciclo abierto.
+    if (deudaAnterior <= 0) return porRango?.id ?? null
+
+    // El pago se reparte entre dos ciclos: un solo ciclo_id no puede
+    // expresarlo, así que se deja nulo y el historial lo resuelve por rango.
+    if (monto > deudaAnterior) return null
+
+    // Liquida (parte de) el estado de cuenta ya cerrado. Igual se prefiere el
+    // rango si el pago es anterior al inicio de ese ciclo: un pago con fecha
+    // previa no puede pertenecer a un estado que todavía no empezaba.
+    const cerrado = data.find((c: { estado: string }) => c.estado === 'cerrado')
+    if (cerrado && fecha >= cerrado.fecha_inicio) return cerrado.id
+    return porRango?.id ?? null
   }
 
   // Registrar un cargo en la TC.
@@ -259,7 +289,7 @@ export function useTarjetas(userId: string) {
     cuenta_id: string
     fecha: string
   }) => {
-    const cicloId = await cicloDelPago(input.tarjeta_id, input.fecha)
+    const cicloId = await cicloDelPago(input.tarjeta_id, input.fecha, Math.abs(input.monto))
     const { error } = await supabase
       .from('transacciones')
       .insert({

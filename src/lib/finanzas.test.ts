@@ -425,3 +425,33 @@ describe('calcResumenTC', () => {
     expect(r.dias_para_cierre).toBe(31)
   })
 })
+
+describe('calcFechasCiclo — invariantes exhaustivas', () => {
+  it('fecha_pago siempre cae DESPUÉS de fecha_cierre, para todo par de días y todo mes', () => {
+    const fallos: string[] = []
+    for (let diaCierre = 1; diaCierre <= 31; diaCierre++) {
+      for (let diaPago = 1; diaPago <= 31; diaPago++) {
+        // Un día de cada mes de 2026-2029, incluyendo el 29/2 de 2028
+        for (let mes = 0; mes < 48; mes++) {
+          const hoy = new Date(2026 + Math.floor(mes / 12), mes % 12, 14)
+          const r = calcFechasCiclo(diaCierre, diaPago, hoy)
+          if (!(r.fecha_pago > r.fecha_cierre)) {
+            fallos.push(`cierre=${diaCierre} pago=${diaPago} hoy=${hoy.toDateString()} → cierre=${r.fecha_cierre} pago=${r.fecha_pago}`)
+          }
+          if (!(r.fecha_inicio <= r.fecha_cierre)) {
+            fallos.push(`inicio>cierre: cierre=${diaCierre} pago=${diaPago} → ${r.fecha_inicio} / ${r.fecha_cierre}`)
+          }
+          // Toda fecha emitida debe existir en el calendario
+          for (const f of [r.fecha_inicio, r.fecha_cierre, r.fecha_pago]) {
+            const [a, m, d] = f.split('-').map(Number)
+            const real = new Date(a, m - 1, d)
+            if (real.getFullYear() !== a || real.getMonth() !== m - 1 || real.getDate() !== d) {
+              fallos.push(`fecha inexistente ${f} (cierre=${diaCierre} pago=${diaPago})`)
+            }
+          }
+        }
+      }
+    }
+    expect(fallos.slice(0, 5)).toEqual([])
+  })
+})

@@ -522,7 +522,17 @@ export function calcFechasCiclo(
     pagoMes += 1
     if (pagoMes > 12) { pagoMes = 1; pagoAño += 1 }
   }
-  const fechaPago = _fechaISO(_diaEnMes(pagoAño, pagoMes, diaPago))
+  let fechaPago = _fechaISO(_diaEnMes(pagoAño, pagoMes, diaPago))
+  if (fechaPago <= fechaCierre) {
+    // El mes del pago se elige con los días nominales pero el día se clampa
+    // aparte, así que cuando AMBOS exceden el largo del mes los dos caen en el
+    // último día y el pago colapsa sobre el cierre (p. ej. cierre 29 / pago 31
+    // en febrero). Se conserva la ventana de gracia nominal del banco.
+    // Solo alcanzable en la rama del mismo mes, donde diaPago > diaCierre.
+    const conGracia = _diaEnMes(cierreAño, cierreMes, diaCierre)
+    conGracia.setDate(conGracia.getDate() + (diaPago - diaCierre))
+    fechaPago = _fechaISO(conGracia)
+  }
 
   return { fecha_inicio: fechaInicio, fecha_cierre: fechaCierre, fecha_pago: fechaPago }
 }

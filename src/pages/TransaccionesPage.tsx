@@ -189,12 +189,20 @@ export default function TransaccionesPage({ user }: Props) {
     setShowForm(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (pendingDelete === id) {
       // Segundo tap — confirmar eliminación
-      const txn = txns.find(t => t.id === id)!
+      const txn = txns.find(t => t.id === id)
+      if (!txn) return
       setPendingDelete(null)
-      deleteTxn(id)
+      // Se espera el resultado: el trigger de deuda puede rechazar la
+      // eliminación de un movimiento de TC sin reparto registrado, y antes se
+      // ofrecía "Deshacer" de un borrado que nunca ocurrió.
+      const { error } = await deleteTxn(id)
+      if (error) {
+        setFormError(typeof error === 'string' ? error : error.message)
+        return
+      }
       setLastDeleted(txn)
       if (undoTimer.current) clearTimeout(undoTimer.current)
       undoTimer.current = setTimeout(() => setLastDeleted(null), 6000)
@@ -323,6 +331,21 @@ export default function TransaccionesPage({ user }: Props) {
           {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
       </div>
+
+      {/* Errores de operaciones sobre la lista (p. ej. un borrado rechazado) */}
+      {formError && !showForm && !editingTxn && (
+        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2 mb-4 flex justify-between items-start gap-3">
+          <span>{formError}</span>
+          <button
+            type="button"
+            onClick={() => setFormError('')}
+            aria-label="Cerrar aviso"
+            className="text-danger/70 hover:text-danger leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Lista de transacciones */}
       {loading && <p className="text-muted text-center py-8">Cargando...</p>}
