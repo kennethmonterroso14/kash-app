@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useCuentas } from '../hooks/useCuentas'
 import { useCategorias } from '../hooks/useCategorias'
 import { useTarjetas } from '../hooks/useTarjetas'
+import { zonaValida } from '../lib/constants'
 import { SesionCtx, PERFIL_DEFAULT, type Perfil, type Sesion } from './sesion'
 
 export function SesionProvider(
@@ -23,7 +24,7 @@ export function SesionProvider(
     const gen = ++genRef.current
     const { data, error } = await supabase
       .from('profiles')
-      .select('nombre, moneda, tipo_cambio_usd, tipo_cambio_actualizado_at')
+      .select('nombre, moneda, locale, zona_horaria, tipo_cambio_usd, tipo_cambio_actualizado_at')
       .eq('user_id', userId)
       .maybeSingle()
     if (gen !== genRef.current) return
@@ -31,15 +32,23 @@ export function SesionProvider(
       // No se sustituye el perfil por defaults en la rama de error: presentar
       // GTQ como un hecho cuando no se pudo leer la moneda del usuario es
       // justo la clase de bug que se corrigió en el resto de la app.
-      setPerfilError(error.message)
+      setPerfilError(
+        // Guarda contra una base sin la migración de 1.3.4 aplicada, como hace
+        // useInversiones: el síntoma sería que TODO el perfil falla por dos
+        // columnas nuevas, y el mensaje crudo no dice qué hacer.
+        /does not exist/i.test(error.message)
+          ? 'Falta una columna de perfil. ¿Ejecutaste la migración 20260917010000_profiles_locale_zona_horaria.sql?'
+          : error.message,
+      )
+    } else if (data && !zonaValida(data.zona_horaria)) {
+      // `hoyEn()` lanza con una zona inválida, y lanzar en render desmonta el
+      // árbol. Se marca error en el slice en lugar de caer a Guatemala: de la
+      // zona salen los límites de mes de todas las consultas, así que adivinar
+      // acá guardaría transacciones con la fecha equivocada.
+      setPerfilError(`Tu zona horaria (${data.zona_horaria}) no es válida. Corrígela antes de seguir.`)
     } else {
       setPerfilError(null)
-      setPerfil({
-        ...PERFIL_DEFAULT,
-        ...(data ?? {}),
-        // `locale` y `zona_horaria` llegan en la tarea 1.3.4; hasta entonces
-        // valen los defaults y el resto del perfil sí es real.
-      })
+      setPerfil({ ...PERFIL_DEFAULT, ...(data ?? {}) })
     }
     setPerfilCargando(false)
   }, [userId])

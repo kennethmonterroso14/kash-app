@@ -102,13 +102,24 @@ create table if not exists profiles (
 
   -- Fase 7: centavos GTQ por 1 USD (775 = Q7.75)
   tipo_cambio_usd            bigint not null default 775,
-  tipo_cambio_actualizado_at timestamptz
+  tipo_cambio_actualizado_at timestamptz,
+
+  -- Tarea 1.3.4: con `moneda` completan el trío que parametriza el formateo.
+  -- Sin check de zona IANA: eso necesitaría `pg_timezone_names`, que no es
+  -- inmutable y no se puede usar en un check. Valida el cliente.
+  locale       text not null default 'es-GT',
+  zona_horaria text not null default 'America/Guatemala'
 );
 
 -- Fase 7 sobre una base que ya tenía profiles.
 alter table profiles
   add column if not exists tipo_cambio_usd bigint not null default 775,
   add column if not exists tipo_cambio_actualizado_at timestamptz;
+
+-- Tarea 1.3.4 sobre una base que ya tenía profiles.
+alter table profiles
+  add column if not exists locale       text not null default 'es-GT',
+  add column if not exists zona_horaria text not null default 'America/Guatemala';
 
 -- ─── CUENTAS ──────────────────────────────────────────────────────────
 -- `saldo` lo mantiene el trigger trigger_saldo_transaccion (deltas, no SUM).

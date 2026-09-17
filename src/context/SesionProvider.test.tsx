@@ -15,9 +15,14 @@ import { useSesion } from './sesion'
 const conteo: Record<string, number> = {}
 // Tablas que deben fallar en un test dado.
 let tablasQueFallan = new Set<string>()
+// Mensaje del fallo simulado, cuando el test necesita uno específico.
+let mensajeDeFallo: string | null = null
 
 const filasPorTabla: Record<string, unknown[]> = {
-  profiles: [{ nombre: 'Kenneth', moneda: 'GTQ', tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null }],
+  profiles: [{
+    nombre: 'Kenneth', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala',
+    tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null,
+  }],
   cuentas: [
     { id: 'c1', nombre: 'BI Ahorros', tipo: 'ahorro', saldo: 150000, color: '#4ade80', activa: true },
     { id: 'c2', nombre: 'Efectivo', tipo: 'efectivo', saldo: 50000, color: '#fb923c', activa: true },
@@ -36,7 +41,7 @@ vi.mock('../lib/supabase', () => {
   const hacerQuery = (tabla: string) => {
     conteo[tabla] = (conteo[tabla] ?? 0) + 1
     const resultado = tablasQueFallan.has(tabla)
-      ? { data: null, error: { message: `fallo simulado en ${tabla}` } }
+      ? { data: null, error: { message: mensajeDeFallo ?? `fallo simulado en ${tabla}` } }
       : { data: filasPorTabla[tabla] ?? [], error: null }
 
     const q: Record<string, unknown> = {}
@@ -60,6 +65,8 @@ function Sonda() {
     <div>
       <p data-testid="nombre">{s.perfil.nombre ?? '(sin nombre)'}</p>
       <p data-testid="moneda">{s.perfil.moneda}</p>
+      <p data-testid="locale">{s.perfil.locale}</p>
+      <p data-testid="zona">{s.perfil.zona_horaria}</p>
       <p data-testid="email">{s.email ?? '(sin email)'}</p>
       <p data-testid="cuentas">{s.cuentas.length}</p>
       <p data-testid="patrimonio">{s.totalPatrimonio}</p>
@@ -76,6 +83,11 @@ function Sonda() {
 beforeEach(() => {
   for (const k of Object.keys(conteo)) delete conteo[k]
   tablasQueFallan = new Set()
+  mensajeDeFallo = null
+  filasPorTabla.profiles = [{
+    nombre: 'Kenneth', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala',
+    tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null,
+  }]
 })
 afterEach(() => cleanup())
 
@@ -123,6 +135,36 @@ describe('SesionProvider', () => {
     // El error queda expuesto para que la página no muestre GTQ como si fuera
     // la moneda del usuario cuando en realidad no se pudo leer.
     expect(screen.getByTestId('err-perfil')).not.toHaveTextContent('-')
+  })
+
+  it('el perfil trae la moneda, el locale y la zona que vienen de la base', async () => {
+    filasPorTabla.profiles = [{
+      nombre: 'Ken', moneda: 'USD', locale: 'en-US', zona_horaria: 'America/New_York',
+      tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null,
+    }]
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
+    await waitFor(() => expect(screen.getByTestId('moneda')).toHaveTextContent('USD'))
+    expect(screen.getByTestId('locale')).toHaveTextContent('en-US')
+    expect(screen.getByTestId('zona')).toHaveTextContent('America/New_York')
+    expect(screen.getByTestId('err-perfil')).toHaveTextContent('-')
+  })
+
+  it('una zona horaria inválida marca error en lugar de caer a Guatemala', async () => {
+    // Adivinar la zona escribiría transacciones con la fecha equivocada, y
+    // dejarla pasar haría que hoyEn() lance en render y desmonte el árbol.
+    filasPorTabla.profiles = [{
+      nombre: 'Ken', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'Nada/Inventado',
+      tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null,
+    }]
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
+    await waitFor(() => expect(screen.getByTestId('err-perfil')).toHaveTextContent('no es válida'))
+  })
+
+  it('si falta una columna dice que hay que correr la migración', async () => {
+    tablasQueFallan = new Set(['profiles'])
+    mensajeDeFallo = 'column profiles.zona_horaria does not exist'
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
+    await waitFor(() => expect(screen.getByTestId('err-perfil')).toHaveTextContent('migración'))
   })
 
   it('useSesion() fuera del provider lanza en lugar de devolver datos vacíos', () => {
