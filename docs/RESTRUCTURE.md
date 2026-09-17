@@ -82,9 +82,13 @@ función, y que el total corriente desaparezca.
 momento un monto pasó de un bucket al otro y **la historia no se puede reproducir**. Para derivar
 hay que primero registrar `cerrado_at` y aceptar que lo viejo queda con el reparto que tiene.
 
-Consecuencia hoy: hay **Q6.50 de diferencia en "Ysi Visa"** entre el saldo de la tarjeta y lo que
-dice el ledger. Es deriva preexistente, no re-simulable; se corrige a mano contra el estado de
-cuenta.
+Consecuencia hoy: hay **Q6.50 de diferencia en "Ysi Visa"** entre el saldo de la tarjeta (Q718.10)
+y lo que dice el ledger (Q711.60). Verificado el 2026-09-17: las otras tres tarjetas cuadran, no
+existe ninguna transacción de Q6.50, y la diferencia es un offset constante que sobrevivió sin
+cambio al pago de Q2,221.80 de ese día — o sea un delta que entró una vez, no un cálculo que se
+repite. **De dónde salió no se puede saber** porque no hay `updated_at` ni bitácora, que es
+exactamente lo que esta sección describe. Las dos formas de corregirlo están en el roadmap, en
+"Cosas pendientes del mundo real".
 
 ### 2.2 `ciclos_tc.total_cargos` y `total_pagos` no tienen quien los escriba
 Están siempre en 0. El historial los deriva de las transacciones del ciclo en el cliente. O se

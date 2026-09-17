@@ -306,8 +306,53 @@ Dos cosas que conviene adelantar aunque su fase venga después:
 
 ## Cosas pendientes del mundo real
 
-- **Q6.50 de diferencia en "Ysi Visa"** entre el saldo de la tarjeta y el ledger, arrastrada por los
-  defectos que estuvieron vivos. No es re-simulable: hay que compararla contra el estado de cuenta y
-  corregirla a mano. Conviene hacerlo antes de la Fase 4, para que 4.2 arranque de un estado limpio.
-- **Protección de contraseñas filtradas desactivada** en Supabase Auth. Irrelevante con magic link,
-  obligatoria si 2.3 agrega contraseñas.
+### Q6.50 de diferencia en "Ysi Visa"
+
+Verificado en producción el 2026-09-17, después del pago de ese día:
+
+| | |
+|---|---|
+| `deuda_actual` guardada | Q718.10 |
+| Derivado del ledger (49 cargos − 2 pagos) | Q711.60 |
+| Diferencia | **Q6.50** |
+
+Las otras tres tarjetas cuadran exactamente. Comprobado además: **no existe ninguna transacción de
+Q6.50** en esa tarjeta, y la diferencia es un offset constante — sobrevivió sin cambio al pago de
+Q2,221.80 del 17/09. O sea que no es un cálculo que se repita, es un delta que entró una vez.
+
+**De dónde salió no se puede saber, y eso es el punto de la Fase 4.** `transacciones` no tiene
+`updated_at` ni bitácora, y `ciclos_tc` no tiene `cerrado_at`, así que la historia del total
+corriente no se puede reproducir. Un delta mal aplicado una sola vez queda permanente y sin rastro.
+
+No es dinero real que se movió: `deuda_actual` es una columna **derivada**, ningún saldo de cuenta
+bancaria la toca. El lado confiable es el ledger.
+
+Dos formas de corregirlo, según lo que diga el estado de cuenta del banco:
+
+- **Banco dice Q711.60** → el ledger tiene razón y el total corriente está inflado. Se corrige con
+  un `update tarjetas_credito set deuda_actual = 71160 where …`, a mano en el SQL Editor (el
+  cliente nunca escribe esa columna).
+- **Banco dice Q718.10** → falta un cargo de Q6.50 en el ledger (típicamente una comisión o un
+  interés que nunca se ingresó). Se agrega como `gasto_tc` desde TarjetasPage y el trigger cuadra
+  solo. **Esta es la preferible**: deja el ledger como fuente de verdad en lugar de parchar el total.
+
+Conviene resolverlo antes de la Fase 4, para que 4.2 arranque de un estado limpio.
+
+### Protección de contraseñas filtradas desactivada
+
+Relevante ya, no a futuro: `LoginPage` usa `signInWithPassword` / `signUp`, o sea contraseñas
+reales — no magic link, como decía esta nota antes.
+
+Qué hace: en signup, cambio de contraseña y login, Supabase Auth compara la contraseña contra la
+lista de filtraciones de HaveIBeenPwned y rechaza las que ya andan circulando. La comparación es
+por k-anonimato (salen los primeros 5 caracteres del hash SHA-1, nunca la contraseña), y lo que
+previene es credential stuffing: entrar con una contraseña que el usuario reusó y que ya se filtró
+en otro sitio.
+
+**Bloqueado hoy: requiere plan Pro** y la organización está en Free, así que la opción aparece
+deshabilitada. Lo que sí se puede hacer gratis, en la misma pantalla
+(Authentication → Sign In / Providers → Email): subir el largo mínimo (8 es el piso, mejor 10–12) y
+exigir dígitos + mayúsculas + minúsculas + símbolos. Los usuarios existentes pueden seguir entrando
+con su contraseña actual; solo reciben un `WeakPasswordError` informativo.
+
+Entra en el checklist de la Fase 2 (listo para tiendas), junto con el upgrade a Pro si se publica.
