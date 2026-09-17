@@ -1,28 +1,16 @@
-// Cuentas iniciales de Kenneth — saldos al 2026-03-30
-// Valores en centavos (enteros)
-export const CUENTAS_INICIALES = [
-  { nombre: 'BI Ahorros',   tipo: 'ahorro',   saldo: 1130618, color: '#4ade80' },
-  { nombre: 'BI Monetaria', tipo: 'ahorro',   saldo: 34645,   color: '#34d399' },
-  { nombre: 'BAC ahorros',  tipo: 'ahorro',   saldo: 87004,   color: '#60a5fa' },
-  { nombre: 'Zigi',         tipo: 'ahorro',   saldo: 1993,    color: '#e879f9' },
-  { nombre: 'Nexa',         tipo: 'ahorro',   saldo: 15726,   color: '#fbbf24' },
-  { nombre: 'Intercop',     tipo: 'otro',     saldo: 67887,   color: '#f472b6' },
-  { nombre: 'Billetera',    tipo: 'efectivo', saldo: 219500,  color: '#fb923c' },
-  { nombre: 'Cash',         tipo: 'efectivo', saldo: 10000,   color: '#94a3b8' },
-  { nombre: 'Ahorro Cash',  tipo: 'efectivo', saldo: 148500,  color: '#facc15' },
+/**
+ * Cuentas sugeridas para el onboarding, SIN saldo: cada usuario pone el suyo.
+ *
+ * Antes acá vivían los saldos bancarios reales de una persona (nueve cuentas
+ * con montos). Eran exports muertos, nadie los importaba, y con la app pensada
+ * para terceros eso no puede estar en el repo. Si el onboarding de la Fase 2
+ * los necesita, esta plantilla es el punto de partida.
+ */
+export const CUENTAS_SUGERIDAS = [
+  { nombre: 'Cuenta de ahorros', tipo: 'ahorro',   color: '#4ade80' },
+  { nombre: 'Cuenta monetaria',  tipo: 'corriente', color: '#60a5fa' },
+  { nombre: 'Efectivo',          tipo: 'efectivo', color: '#fb923c' },
 ] as const
-
-// Presupuestos mensuales en centavos
-export const PRESUPUESTOS_INICIALES: Record<string, number> = {
-  'Comida/Restaurantes': 50000,
-  'Gasolina/Carro':      40000,
-  'Pago Deudas':         25700,
-  'Gym/Deporte':         24000,
-  'Familia/Regalos':     20000,
-  'Telecom':             12000,
-  'Suscripciones':       2353,
-  'Parqueo':             2500,
-}
 
 export const CATEGORIAS_GASTO = [
   'Comida/Restaurantes', 'Gasolina/Carro', 'Supermercado', 'Gym/Deporte',
