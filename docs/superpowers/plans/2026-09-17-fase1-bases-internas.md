@@ -52,15 +52,26 @@ recibía `user` cambiar la prop a nada.
 
 ## Task 1.3 — Moneda y locale parametrizados
 
-- [ ] **1.3.1** `formatMoneda(centavos, { moneda, locale })` en `finanzas.ts`, con `formatQ` como
-      alias de GTQ/es-GT. Tests con al menos GTQ, USD y una tercera moneda, más los casos de borde
-      que ya cubre `formatQ` (lanza con no-entero).
-- [ ] **1.3.2** `hoyEn(zonaHoraria)` y `mesActualEn(zonaHoraria)` en `constants.ts`, con `hoyGT()` y
-      `mesActual()` como alias. Tests incluyendo un cruce de día entre zonas.
-- [ ] **1.3.3** `useMoneda()` y `useFechas()` en `src/hooks/`, currificando con lo que trae el
-      perfil del contexto.
-- [ ] **1.3.4** Agregar `locale` y `zona_horaria` a `profiles` (migración aditiva, con default
-      `es-GT` / `America/Guatemala` para no romper a nadie) y al `SesionProvider`.
+- [x] **1.3.1** `formatMoneda(centavos, { moneda, locale })` en `finanzas.ts`, con `formatQ` como
+      alias de GTQ/es-GT. Armado sobre `formatToParts` para quitar el espacio entre símbolo y
+      número SOLO cuando el símbolo va adelante, así los quetzales se ven igual que antes. Dos
+      cambios a propósito: los negativos pasan de `Q-1,234.56` a `-Q1,234.56`, y los decimales
+      quedan forzados a 2 aunque ICU no los use para esa moneda (COP), porque el modelo guarda
+      centésimos siempre. Una moneda inválida devuelve el código en lugar de lanzar en render.
+      **El spec decía que `formatQ` tenía 48 tests; no tenía ninguno** — 48 era el total del repo.
+- [x] **1.3.2** `hoyEn(zona)`, `mesActualEn(zona)` y `ahoraEn(zona)` en `constants.ts`, con
+      `hoyGT()`, `mesActual()` y `ahoraGT()` como alias. Una zona inválida LANZA (un fallback
+      silencioso escribiría fechas equivocadas), así que va con `zonaValida()` para que quien lee
+      el perfil valide antes. `constants.ts` pasa a tener tests: cruce de día, cruce de mes, los
+      extremos UTC+14 y UTC−11, y el ancla del mediodía contra DST.
+- [x] **1.3.3** `useMoneda()` y `useFechas()` en `src/hooks/`. `useMoneda` acepta una moneda
+      explícita como segundo parámetro (`fmt(x, 'USD')`), que no estaba en el spec: las filas USD
+      de `inversiones` están en centavos de dólar y hoy se formatean a mano sin separador de miles.
+      Devuelve `'—'` si el perfil falló, en lugar de formatear con una moneda supuesta.
+- [x] **1.3.4** `locale` y `zona_horaria` en `profiles`, migración aditiva con defaults.
+      **Aplicada en producción** el 2026-09-17 (7 perfiles, todos en GTQ/es-GT/Guatemala, sin
+      cambios). El provider los lee, y marca error en el slice si la zona no es válida o si falta
+      la columna.
 
 > La migración de los sitios de llamada NO va acá: viaja con la partición de 1.4, que ya toca cada
 > archivo. Hasta entonces los alias mantienen todo funcionando.

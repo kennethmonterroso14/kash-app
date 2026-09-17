@@ -19,7 +19,7 @@ npx tsc -b                       # type-check only, no bundle
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (48 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (84 tests) and `lint` (0 problems) all pass.
 Keep it that way — a red check now means your change broke it.
 
 ## Architecture
@@ -39,8 +39,11 @@ table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`v
 2. **`src/lib/finanzas.ts` owns the math.** Every money calculation is a pure function here
    (`calcEstadisticasMes`, `calcEstadoPresupuesto`, `calcResumenTC`, `calcDisponibleReal`,
    `calcPatrimonioNeto`, `calcResumenPortafolio`, `calcFechasCiclo`, `calcAlertasTC`,
-   `proyectarPatrimonio`, …). This is the only tested file in the repo (`finanzas.test.ts`). New
-   calculations belong here with tests, not inline in a component.
+   `proyectarPatrimonio`, …), and it is the most heavily tested file (`finanzas.test.ts`). New
+   calculations belong here with tests, not inline in a component. The other suites are
+   `constants.test.ts` (dates per timezone), `SesionProvider.test.tsx` and the hook tests under
+   `src/hooks/`; `src/test/sesionFalsa.ts` + `ConSesion.tsx` build a read-only fake session for
+   testing hooks that only consume the context.
 3. **One hook per table in `src/hooks/`** wraps the queries and holds the state. There is no global
    store, no react-query: each hook runs its own `useEffect` fetch and each page instantiates the
    hooks it needs, so the same rows are refetched per page mount. Writes update local state
@@ -92,11 +95,25 @@ deleting and re-entering from TarjetasPage.
 INSERT splits a payment across the two buckets with clamping, and without persisting that split a
 DELETE or UPDATE cannot reverse it. The trigger is BEFORE precisely so it can write those columns.
 
-**Dates**: `hoyGT()` (`src/lib/constants.ts`) returns today as `YYYY-MM-DD` in `America/Guatemala`
-via `toLocaleDateString('en-CA', …)`; use it instead of `new Date()` for anything stored. Month
-selectors pass `mes` as `'YYYY-MM'` and hooks derive the window themselves — note
+**Money rendering and dates are parametrized by the user's profile**, which carries `moneda`,
+`locale` and `zona_horaria` (all `not null` with GTQ / es-GT / America/Guatemala defaults):
+
+- `formatMoneda(centavos, { moneda, locale })` in `finanzas.ts` is **pure and does not read the
+  context** — that is deliberate, it is what keeps it testable. `useMoneda()` currys it with the
+  profile (`fmt(x)`, or `fmt(x, 'USD')` for an amount stored in another currency, which is what
+  the USD `inversiones` rows are). It returns `'—'` when the profile failed to load rather than
+  formatting with a guessed currency. `formatQ` is the GTQ/es-GT alias, kept only until the last
+  call site migrates.
+- `hoyEn(zona)` / `mesActualEn(zona)` / `ahoraEn(zona)` in `constants.ts`, with `useFechas()`
+  currying them. **An invalid timezone throws** — a silent fallback would write wrong dates — so
+  the provider validates with `zonaValida()` and flags `error.perfil` instead of guessing.
+  `hoyGT()` / `mesActual()` / `ahoraGT()` are the Guatemala aliases, same deal as `formatQ`.
+  Use these instead of `new Date()` for anything stored.
+
+Month selectors pass `mes` as `'YYYY-MM'` and hooks derive the window themselves — note
 `presupuestos.mes` is a `date` column holding the first of the month (`'YYYY-MM-01'`) with a
-`unique(user_id, categoria, mes)` constraint, which budget writes rely on.
+`unique(user_id, categoria, mes)` constraint, which budget writes rely on. The month window comes
+out of the timezone, so changing a user's zone moves which transactions land in which month.
 
 **Categories** come from two places merged in `useCategorias`: the hardcoded `CATEGORIAS_GASTO` /
 `CATEGORIAS_INGRESO` / `CAT_COLORS` in `constants.ts` plus per-user rows in `categorias_usuario`.
