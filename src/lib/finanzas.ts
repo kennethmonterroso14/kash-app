@@ -55,6 +55,21 @@ export type EstadoPresupuesto = 'ok' | 'alerta' | 'excedido'
 
 // ─── ANÁLISIS MENSUAL ─────────────────────────────────────────
 
+/**
+ * ¿Este movimiento cuenta como gasto del mes?
+ *
+ * Fuente única de verdad: un gasto con tarjeta (`gasto_tc`) es gasto igual que
+ * uno de cuenta. `pago_tc` NO lo es — mueve deuda, no es consumo nuevo, y
+ * contarlo duplicaría el gasto (una vez al comprar, otra al pagar la tarjeta).
+ *
+ * Existe para que agregar un tipo nuevo sea UN cambio y no tres: antes este
+ * criterio estaba repetido en finanzas.ts, BudgetPage y useResumen6Meses, y
+ * olvidar uno hacía que el Dashboard y Presupuestos reportaran cifras
+ * distintas del mismo mes.
+ */
+export const esGastoComputable = (tipo: string): boolean =>
+  tipo === 'gasto' || tipo === 'gasto_tc'
+
 export function calcEstadisticasMes(
   transacciones: Transaccion[]
 ): EstadisticasMes {
@@ -63,7 +78,7 @@ export function calcEstadisticasMes(
     .reduce((sum, t) => sum + t.cantidad, 0)
 
   const gastos = transacciones
-    .filter(t => t.tipo === 'gasto' || t.tipo === 'gasto_tc')
+    .filter(t => esGastoComputable(t.tipo))
     .reduce((sum, t) => sum + Math.abs(t.cantidad), 0)
 
   const neto = ingresos - gastos
@@ -73,7 +88,7 @@ export function calcEstadisticasMes(
 
   const porCategoria: Record<string, number> = {}
   transacciones
-    .filter(t => t.tipo === 'gasto' || t.tipo === 'gasto_tc')
+    .filter(t => esGastoComputable(t.tipo))
     .forEach(t => {
       porCategoria[t.categoria] =
         (porCategoria[t.categoria] || 0) + Math.abs(t.cantidad)

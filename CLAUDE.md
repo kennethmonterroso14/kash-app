@@ -19,11 +19,8 @@ npx tsc -b                       # type-check only, no bundle
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build` passes, `test` passes (29 tests), **`lint` reports 8
-pre-existing errors** — `react-hooks` v7 (React 19 compiler rules) flagging `setState` inside
-effects in `App.tsx`, `useTransacciones.ts`, `BudgetPage.tsx` and components created during render
-in `DashboardPage.tsx`. Don't treat a red `lint` as something your change broke; check whether your
-files are among those before chasing it.
+State of the checks on a clean tree: `build`, `test` (48 tests) and `lint` (0 problems) all pass.
+Keep it that way — a red check now means your change broke it.
 
 ## Architecture
 
@@ -53,7 +50,7 @@ table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`v
 Pages are glue: local `useState` for modals/forms, hooks for data, `finanzas.ts` for numbers.
 
 **App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase magic link) →
-`SetupPage` if the user has zero `cuentas` rows → `Layout` + `Routes`. `Layout` is the header +
+`SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` is the header +
 global `AlertasBanner` + 5-item bottom nav (Dashboard · Movimientos · Cuentas · Presupuesto ·
 Perfil); everything else (Inversiones, Tarjetas, Pagos Fijos, Categorías, Metas, Proyecciones) is
 reached from `PerfilPage`.
@@ -61,9 +58,11 @@ reached from `PerfilPage`.
 ## Data model rules
 
 **Money is always integer centavos**, `bigint` in Postgres, `number` in TS. `formatQ` throws on a
-non-integer input and `toCentavos` throws on a negative — these are deliberate guard rails, so the
-*caller* applies the sign (`cantidad: -Math.abs(monto)` for a gasto). Never introduce floats or
-store quetzales.
+non-integer input and `toCentavos` throws on NaN or a negative — these are deliberate guard rails,
+so the *caller* applies the sign (`cantidad: -Math.abs(monto)` for a gasto) and **validates user
+input before calling them**. Never call either with an unvalidated `parseFloat` during render: they
+throw, and that unmounts the tree (there is an `ErrorBoundary` in `main.tsx`, but it is a last
+resort, not the plan). Never introduce floats or store quetzales.
 
 **`transacciones` is the universal ledger.** Everything is a row here:
 
@@ -77,8 +76,21 @@ store quetzales.
 
 Consequences: a transfer is two rows inserted in one call (`categoria: 'Transferencia'`,
 `tipo: 'ajuste'`, `-cantidad` / `+cantidad`); "adjust balance" on a cuenta is an `ajuste` row;
-`calcEstadisticasMes` counts `gasto` **and** `gasto_tc` as spending, so any new spend-like `tipo`
-must be added there too. `cantidad != 0` is enforced by the DB.
+`cantidad != 0` is enforced by the DB.
+
+What counts as spending lives in **one place**: `esGastoComputable(tipo)` in `finanzas.ts`. It
+includes `gasto_tc` (a card purchase is a purchase) and excludes `pago_tc` (that moves debt;
+counting it would double the expense). A new spend-like `tipo` is one edit there, not three — that
+duplication is exactly why Dashboard and Presupuestos used to report different totals for the same
+month.
+
+**Editing a `gasto_tc` or `pago_tc` row is disabled in the UI on purpose.** `actualizar_deuda_tc`'s
+UPDATE branch cannot reverse a payment's bucket split reliably, so card movements are corrected by
+deleting and re-entering from TarjetasPage.
+
+**Each TC row stores its own debt split** (`aplicado_ciclo_anterior` / `aplicado_actual`): the
+INSERT splits a payment across the two buckets with clamping, and without persisting that split a
+DELETE or UPDATE cannot reverse it. The trigger is BEFORE precisely so it can write those columns.
 
 **Dates**: `hoyGT()` (`src/lib/constants.ts`) returns today as `YYYY-MM-DD` in `America/Guatemala`
 via `toLocaleDateString('en-CA', …)`; use it instead of `new Date()` for anything stored. Month
@@ -95,26 +107,38 @@ constants directly in a page silently drops the user's own categories.
 currency. `profiles.tipo_cambio_usd` is *centavos GTQ per 1 USD* (`775` = Q7.75). Convert with
 `usdToGTQ(...)` before summing anything across currencies.
 
-**Recurring payments**: `useAutoApplyPagos` runs once per session from `App.tsx`, guarded by a
-`useRef` (StrictMode double-invokes effects). Idempotency is `ultima_aplicacion < first-of-month`,
-so it is safe on reload but not transactional — a failed insert leaves nothing applied.
+**Recurring payments**: `useAutoApplyPagos` runs once per session per user from `App.tsx`, keyed by
+a `useRef` on the user id. It applies **at most one period per pago per run**, dated at the due date
+(not today), with idempotency evaluated **by month** so editing `dia_del_mes` cannot re-apply a
+month already applied. The advance of `ultima_aplicacion` is a compare-and-swap done *before* the
+insert: on any failure it prefers not applying (recoverable by hand) over duplicating (which
+desyncs the balance and has to be hunted row by row).
 
-## Schema lives in two places
+Recovering *missed* months is deliberately NOT automatic — see `docs/RESTRUCTURE.md`. An earlier
+version back-filled up to 12 months of backdated expenses on app open, which was worse than the bug
+it fixed.
 
-`supabase/schema.sql` **only covers the original tables**: `profiles`, `cuentas`, `transacciones`,
-`presupuestos`, `metas_ahorro`. Everything added later — `pagos_recurrentes`, `categorias_usuario`,
-`tarjetas_credito`, `ciclos_tc`, `inversiones`, `inversiones_historial`, the `tarjeta_id`/`ciclo_id`
-columns on `transacciones`, the `gasto_tc`/`pago_tc` enum values, `trg_deuda_tc`,
-`cerrar_ciclo_tc` — exists **only as SQL blocks inside `docs/superpowers/plans/*.md`**, applied by
-hand in the Supabase SQL editor. There is no migration tool and no generated types.
+## Database
 
-So: to know a table's real shape, grep the plan docs (`docs/superpowers/plans/`), not just
-`schema.sql`. Note `categorias_usuario` has no DDL committed anywhere — infer its columns from
-`useCategorias.ts`. When you add a table, follow the established additive style: `create table if
-not exists`, enum creation wrapped in `do $$ … exception when duplicate_object then null; end $$;`,
-`enable row level security`, and a `for all using (auth.uid() = user_id)` policy. Guard the client
-against an unapplied migration the way `useInversiones` does (non-fatal query, `does not exist`
-→ "¿Ejecutaste la migración?").
+`supabase/schema.sql` is the **single authoritative source**: all 11 tables, enums, indexes, RLS
+policies, triggers and RPCs. It runs from scratch on an empty project and is idempotent over a
+deployed one. Its shape was verified against production by introspecting `information_schema`
+(columns, types, nullability, defaults and constraints), so trust it over the SQL blocks inside
+`docs/superpowers/plans/*.md` — those are a historical record, they are **superseded**, and several
+of them do not even run as written (`create policy if not exists` is not valid PostgreSQL).
+
+`supabase/migrations/` holds corrective SQL for an already-deployed database, each statement
+commented with the defect it fixes.
+
+There is no migration tool and no generated types: SQL is run by hand in Supabase → SQL Editor.
+**If text is selected in that editor it runs only the selection** — that is how a migration silently
+ends up half-applied. After any DDL change, check Supabase's advisors (security + performance).
+
+When you add a table, follow the established additive style: `create table if not exists`, enum
+creation wrapped in `do $$ … exception when duplicate_object then null; end $$;`, `enable row level
+security`, a `for all using (auth.uid() = user_id)` policy, and `set search_path = public, pg_temp`
+on any function. Guard the client against an unapplied migration the way `useInversiones` does
+(non-fatal query, `does not exist` → "¿Ejecutaste la migración?").
 
 `docs/superpowers/` is also where the workflow lives: a design spec in `specs/`, then a checkbox
 task-by-task plan in `plans/`, committed before the code (`docs: add implementation plan …`), one
@@ -134,17 +158,22 @@ commit per task.
   `PerfilPage` still take a `user` object — legacy, don't copy it.
 - Modals are inline JSX driven by local state; there is no modal/dialog abstraction.
 
-## Known drift — verify before trusting
+## Error handling
 
-- **`README.md` is stale.** It documents the app as "Kash" with an older lime/orange palette and
-  claims the saldo trigger recomputes `SUM(cantidad)`. The app is branded **Vorta** (`index.html`,
-  `Layout`, PWA manifest, `package.json` name), the palette is the purple/indigo one in
-  `tailwind.config.js`, and the trigger is delta-based. It also predates Tarjetas, Inversiones,
-  Ciclos and Categorías. Trust the code.
-- **`profiles` is keyed inconsistently.** `schema.sql` gives it its own `id` PK plus a `user_id` FK
-  to `auth.users`. `SetupPage` upserts on `user_id` and `useInversiones` filters on `user_id`, but
-  `PerfilPage` filters on `.eq('id', user.id)` — one of the two cannot match the live table. Check
-  the actual table before adding a third `profiles` query.
-- **Setup gating and setup writing disagree.** `App.tsx` decides onboarding is done by counting
-  `cuentas` rows, while `SetupPage` only writes a `profiles` row, so a user who never adds a cuenta
-  sees `SetupPage` again on every reload.
+**A failed query is never rendered as an empty state.** "No data" and "could not load" are different
+claims, and presenting Q0.00 as a fact when the fetch failed was a whole class of bug here — it also
+fed phantom zeros into `calcDisponibleReal` / `calcPatrimonioNeto`, fabricating insolvency warnings.
+`useCuentas`, `useTransacciones`, `useResumen6Meses`, `usePagosRecurrentes` and `useInversiones`
+expose `error`; a page that reads their data should read that too and suppress derived figures while
+it is set.
+
+Writes surface their failure to the user, in Spanish, rather than logging to a console nobody reads.
+Anything the user can trigger must not show a raw Postgres string. Await a write before promising
+its result — the debt trigger can legitimately reject a delete.
+
+## Restructure backlog
+
+`docs/RESTRUCTURE.md` is the inventory of what is missing or structurally wrong, and why each item
+was left out. It is **not** a bug list: those were fixed. Read it before proposing a redesign —
+several obvious-looking ideas (deriving TC debt from the ledger, auto-recovering missed recurring
+payments) are blocked or were already tried and reverted for a reason recorded there.

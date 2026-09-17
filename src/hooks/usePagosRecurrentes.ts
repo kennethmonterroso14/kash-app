@@ -15,19 +15,27 @@ export interface PagoRecurrente {
 export function usePagosRecurrentes(userId: string | undefined) {
   const [pagos, setPagos] = useState<PagoRecurrente[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!userId) return
+    let ignorar = false
     supabase
       .from('pagos_recurrentes')
       .select('id, nombre, monto, dia_del_mes, cuenta_id, categoria, activo, ultima_aplicacion')
       .eq('user_id', userId)
       .eq('activo', true)
       .order('dia_del_mes')
-      .then(({ data }) => {
+      .then(({ data, error: qError }) => {
+        if (ignorar) return
+        // No sustituir los datos por [] en la rama de error: "sin pagos fijos"
+        // y "no se pudieron cargar" no son lo mismo.
+        if (qError) { setError(qError.message); setLoading(false); return }
+        setError(null)
         setPagos(data ?? [])
         setLoading(false)
       })
+    return () => { ignorar = true }
   }, [userId])
 
   const addPago = async (pago: Omit<PagoRecurrente, 'id' | 'activo' | 'ultima_aplicacion'>) => {
@@ -64,5 +72,5 @@ export function usePagosRecurrentes(userId: string | undefined) {
     return { error }
   }
 
-  return { pagos, loading, addPago, updatePago, deletePago }
+  return { pagos, loading, error, addPago, updatePago, deletePago }
 }

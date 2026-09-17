@@ -97,7 +97,7 @@ export default function DashboardPage({ user }: Props) {
   const { txns, loading } = useTransacciones(user.id, mes)
   const { data: resumen6 } = useResumen6Meses(user.id)
   const { resumenTCs, tarjetas } = useTarjetas(user.id)
-  const { resumen: resumenInv } = useInversiones(user.id)
+  const { resumen: resumenInv, error: invError } = useInversiones(user.id)
 
   const stats = useMemo(() => calcEstadisticasMes(
     txns.map(t => ({ ...t, id: t.id, descripcion: t.descripcion }))
@@ -264,7 +264,7 @@ export default function DashboardPage({ user }: Props) {
       )}
 
       {/* Patrimonio Neto — solo si hay inversiones o TCs (y las cuentas cargaron) */}
-      {(resumenInv.capital_total > 0 || tarjetas.length > 0) && !cuentasError && (
+      {(resumenInv.capital_total > 0 || tarjetas.length > 0) && !cuentasError && !invError && (
         <div className="bg-surface rounded-2xl p-4">
           <p className="text-muted text-xs uppercase tracking-widest mb-3">Patrimonio Neto</p>
           <div className="space-y-1.5 text-sm">

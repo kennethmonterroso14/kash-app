@@ -1,6 +1,7 @@
-# Kash — Finanzas Personales
+# Vorta — Finanzas Personales
 
-App de control de finanzas personales orientada al mercado guatemalteco. Migrada de Google Sheets + Apps Script a un stack moderno con React + TypeScript + Supabase.
+App de control de finanzas personales orientada al mercado guatemalteco. Migrada de Google Sheets +
+Apps Script a React + TypeScript + Supabase.
 
 **Producción**: https://kash-app-rho.vercel.app
 
@@ -10,203 +11,177 @@ App de control de finanzas personales orientada al mercado guatemalteco. Migrada
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React 18 + TypeScript + Vite |
+| Frontend | React 19 + TypeScript + Vite 8 |
 | Estilos | Tailwind CSS v3 (dark theme) |
-| Backend / DB | Supabase (PostgreSQL + Auth + RLS) |
-| Gráficas | Recharts |
+| Backend / DB | Supabase (PostgreSQL 17 + Auth + RLS) |
+| Gráficas | Recharts 3 |
+| Tests | Vitest + jsdom |
 | Deploy | Vercel (SPA routing via `vercel.json`) |
 | PWA | vite-plugin-pwa (installable en móvil) |
+
+No hay backend propio: el navegador habla directo con Postgres y **RLS es la única capa de
+autorización**.
+
+---
+
+## Comandos
+
+```bash
+npm install          # .npmrc fija legacy-peer-deps (peers de React 19)
+npm run dev          # servidor de desarrollo — requiere .env.local
+npm run build        # tsc -b && vite build
+npm test             # vitest run
+npm run lint         # eslint .
+```
+
+`src/lib/supabase.ts` lanza al importarse si faltan `VITE_SUPABASE_URL` o
+`VITE_SUPABASE_ANON_KEY`, así que `npm run dev` necesita `.env.local` (copiar de `.env.example`).
+`build` y `test` no.
 
 ---
 
 ## Tokens de diseño
 
+Definidos en `tailwind.config.js`. **Usar los tokens, nunca hex en `className`** (el hex sí va para
+colores que vienen de datos, como las categorías).
+
 ```
-bg:      #141417  (fondo principal)
-surface: #1e1e24  (tarjetas)
-accent:  #c8f564  (verde lima — positivo, CTAs)
-danger:  #ff7c5c  (rojo naranja — negativo, errores)
-muted:   #4a4f5e  (texto secundario)
+bg:        #0a0c10   surface:   #12151c   surface2:  #1a1e28
+accent:    #7c6af7   accentAlt: #a78bfa
+success:   #4ade80   danger:    #f87171   warning:   #fbbf24
+text:      #e8eaf0   textDim:   #8b90a0   muted:     #3d4255
 ```
 
 ---
 
 ## Reglas críticas de datos
 
-- **Dinero siempre en centavos** (`bigint`). Nunca floats.
-  - `formatQ(centavos)` → `"Q 1,500.00"`
-  - `toCentavos(quetzales)` → `150000`
-- **Timezone Guatemala**: `America/Guatemala` (UTC-6, sin DST). Usar `hoyGT()` para fechas.
-- **`cantidad` en `transacciones`**: positivo = ingreso/ajuste+, negativo = gasto/ajuste−
-- El trigger `actualizar_saldo_cuenta` en Postgres recalcula `cuentas.saldo` automáticamente en INSERT/UPDATE/DELETE de transacciones.
+- **Dinero siempre en centavos enteros** (`bigint` en Postgres). Nunca floats, nunca quetzales.
+  - `formatQ(centavos)` → `"Q1,500.00"` — **lanza** si recibe un no-entero
+  - `toCentavos(quetzales)` → `150000` — **lanza** si recibe NaN o negativo
+
+  Las dos lanzan a propósito: son guardarraíles. El signo lo aplica quien llama
+  (`cantidad: -Math.abs(monto)` para un gasto), y **el input del usuario se valida antes**, no
+  después de que la excepción desmonte la pantalla.
+
+- **Timezone Guatemala** (`America/Guatemala`, UTC-6, sin DST). `hoyGT()` para la fecha de hoy,
+  `mesActual()` para `YYYY-MM`, `ahoraGT()` cuando se necesita un `Date`. Nunca `new Date()` para
+  algo que se guarda o se compara.
+
+- **`transacciones` es el ledger universal.** Todo es una fila acá:
+
+  | `tipo` | `cantidad` | notas |
+  |---|---|---|
+  | `ingreso` | positivo (constraint) | |
+  | `gasto` | negativo (constraint) | |
+  | `ajuste` | cualquiera | saldo inicial, correcciones, y las dos patas de una transferencia |
+  | `gasto_tc` | negativo | `cuenta_id` NULL; afecta la deuda de la tarjeta, no una cuenta |
+  | `pago_tc` | negativo | debita la cuenta **y** baja la deuda de la tarjeta |
+
+  Qué cuenta como gasto se decide en **un solo lugar**: `esGastoComputable()` en `finanzas.ts`
+  (incluye `gasto_tc`; excluye `pago_tc`, que mueve deuda y contarlo duplicaría el gasto).
+
+- **Postgres es dueño del estado derivado. Nunca escribirlo desde el cliente.**
+  - `cuentas.saldo` ← trigger `trigger_saldo_transaccion` (aplica deltas, no recalcula un SUM)
+  - `tarjetas_credito.deuda_actual` / `deuda_ciclo_anterior` ← trigger `trg_deuda_tc` (BEFORE) y el
+    RPC `cerrar_ciclo_tc`
+  - Para mover un saldo se inserta una fila en `transacciones` y se refresca.
+
+- **Reparto de deuda de TC.** Cada movimiento de tarjeta guarda en su propia fila cuánto aplicó a
+  cada bucket (`aplicado_ciclo_anterior` / `aplicado_actual`), porque el INSERT reparte un pago
+  entre los dos con clamp y sin eso un DELETE o UPDATE no puede revertirlo.
 
 ---
 
-## Estructura del proyecto
+## Estructura
 
 ```
 src/
 ├── lib/
-│   ├── supabase.ts          # Cliente Supabase (valida env vars al init)
-│   ├── finanzas.ts          # Funciones puras: formatQ, toCentavos, calcEstadisticasMes,
-│   │                        #   proyectarPatrimonio, calcTiempoParaMeta, calcEstadoPresupuesto
-│   └── constants.ts         # CATEGORIAS_GASTO/INGRESO, CAT_COLORS, MESES, hoyGT(), mesActual()
-│
-├── hooks/
-│   ├── useAuth.ts           # { user, loading, signOut } — onAuthStateChange
-│   ├── useCuentas.ts        # { cuentas, loading, totalPatrimonio }
-│   ├── useTransacciones.ts  # { txns, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia }
-│   ├── usePagosRecurrentes.ts # { pagos, addPago, updatePago, deletePago }
-│   ├── useAutoApplyPagos.ts # Aplica pagos fijos vencidos al abrir la app (useRef guard)
-│   └── useResumen6Meses.ts  # Una query → agrupa ingresos/gastos por mes (últimos 6)
-│
-├── pages/
-│   ├── LoginPage.tsx        # Magic link auth (Supabase)
-│   ├── SetupPage.tsx        # Onboarding: nombre → crea perfil (genérico, cualquier usuario)
-│   ├── DashboardPage.tsx    # Patrimonio + stats mes + donut categorías + barras 6 meses
-│   ├── TransaccionesPage.tsx # CRUD txns, filtros, CSV export, transferencias, edición
-│   ├── CuentasPage.tsx      # CRUD cuentas + "± Ajustar saldo" por cuenta
-│   ├── BudgetPage.tsx       # Presupuestos por mes: agregar/editar/eliminar, progress bars
-│   ├── MetasPage.tsx        # Metas de ahorro con calcTiempoParaMeta
-│   ├── ProyeccionesPage.tsx # Gráfica recharts proyección patrimonial (interés compuesto)
-│   ├── PagosRecurrentesPage.tsx # Pagos fijos mensuales: CRUD, estado aplicado/pendiente
-│   └── PerfilPage.tsx       # Avatar, nombre/email, links a Pagos/Metas/Proyecciones, sign out
-│
-└── components/
-    └── Layout.tsx           # Header "Kash" + bottom nav (5 items) + slot de contenido
+│   ├── supabase.ts     Cliente (valida env vars al init)
+│   ├── finanzas.ts     Funciones PURAS de dinero — la única fuente de la matemática
+│   ├── finanzas.test.ts  48 tests (el único archivo con cobertura)
+│   └── constants.ts    Categorías base, colores, hoyGT/mesActual/ahoraGT
+├── hooks/              Un hook por tabla; cada uno con su propio fetch y estado
+├── pages/              Glue: useState local para modales, hooks para datos
+└── components/         Layout, AlertasBanner, ErrorBoundary
 ```
+
+**Tres capas, en orden de autoridad:** Postgres (estado derivado) → `finanzas.ts` (la matemática,
+pura y testeada) → hooks (queries y estado). Las páginas son pegamento.
+
+No hay store global ni react-query: cada hook corre su propio `useEffect` y cada página instancia
+los que necesita, así que las mismas filas se vuelven a pedir por página.
 
 ---
 
 ## Navegación
 
-**Bottom nav** (5 items): Dashboard · Movimientos · Cuentas · Presupuesto · Perfil
+**Bottom nav**: Dashboard · Movimientos · Cuentas · Presupuesto · Perfil
 
-**Desde Perfil**:
-- ↻ Pagos Fijos
-- ◉ Metas de ahorro
-- ⟳ Proyecciones
+**Desde Perfil**: Inversiones · Tarjetas de Crédito · Pagos Fijos · Categorías · Metas ·
+Proyecciones
 
 ---
 
-## Schema de Supabase (`supabase/schema.sql`)
+## Base de datos
 
-### Tablas principales
+`supabase/schema.sql` es la **fuente única y autoritativa**: 11 tablas, enums, índices, policies,
+triggers y RPCs. Corre de cero en un proyecto vacío y es idempotente sobre uno ya desplegado.
+
+`supabase/migrations/` tiene el SQL correctivo para bases ya desplegadas, con cada statement
+comentado con el defecto que arregla.
+
+No hay herramienta de migraciones: el SQL se corre a mano en Supabase → SQL Editor. **Ojo: si hay
+texto seleccionado en el editor, corre solo la selección** — es la forma más fácil de dejar una
+migración a medias.
+
+### Tablas
 
 | Tabla | Descripción |
 |---|---|
-| `profiles` | `id, nombre` — vinculado a `auth.users` |
-| `cuentas` | `id, user_id, nombre, tipo, saldo, color` — saldo actualizado por trigger |
-| `transacciones` | `id, user_id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo` |
-| `presupuestos` | `id, user_id, categoria, monto_limite, mes (date), activo` — unique(user_id,categoria,mes) |
-| `metas_ahorro` | `id, user_id, nombre, monto_objetivo, monto_actual, completada` |
-| `pagos_recurrentes` | `id, user_id, nombre, monto, dia_del_mes(1-28), cuenta_id, categoria, activo, ultima_aplicacion` |
+| `profiles` | `id` PK propia + `user_id` único → `auth.users`. **La relación con el usuario es `user_id`** |
+| `cuentas` | Saldo mantenido por trigger |
+| `transacciones` | El ledger universal (ver arriba) |
+| `presupuestos` | `unique(user_id, categoria, mes)`; `mes` es el día 1 |
+| `metas_ahorro` | Metas de ahorro |
+| `tarjetas_credito` | Deuda en dos buckets, mantenidos por trigger + RPC |
+| `ciclos_tc` | Estados de cuenta. Invariante: **un solo ciclo `abierto` por tarjeta** |
+| `pagos_recurrentes` | Pagos fijos mensuales (`dia_del_mes` 1-28) |
+| `categorias_usuario` | Categorías propias; `unique(user_id, nombre)` |
+| `inversiones` | Capital y valor actual, en GTQ o USD |
+| `inversiones_historial` | Un punto de valor por fecha; alimenta la gráfica |
 
-### Trigger clave
-```sql
--- Se ejecuta en INSERT/UPDATE/DELETE de transacciones
--- Recalcula cuentas.saldo = SUM(cantidad) WHERE cuenta_id = NEW.cuenta_id
-actualizar_saldo_cuenta()
-```
+Todas con RLS `auth.uid() = user_id`.
 
-### RLS
-Todas las tablas tienen `auth.uid() = user_id` como política universal.
-
----
-
-## Funcionalidades por página
-
-### Dashboard
-- Patrimonio total + mini-chips por cuenta
-- Selector de mes (← →)
-- Stats: Ingresos / Gastos / Neto
-- Tasa de ahorro (barra, meta 25%)
-- **Donut chart**: gastos por categoría del mes (top 5 + "Otros")
-- **Bar chart**: ingresos vs gastos últimos 6 meses
-
-### Movimientos (TransaccionesPage)
-- Tabs: Gasto / Ingreso / Transferencia
-- Filtros: búsqueda texto + tipo + cuenta
-- Edición inline (modal pre-llenado, trigger recalcula saldo)
-- Eliminar con 2-tap + toast Deshacer (6 seg)
-- Transferencia entre cuentas: 2 ajustes atómicos en una sola inserción
-- Export CSV (UTF-8 BOM, solo filas filtradas)
-
-### Cuentas
-- Grid de cuentas con saldo en tiempo real
-- Agregar cuenta: nombre, tipo, saldo inicial (crea transacción de ajuste), color
-- **± Ajustar saldo**: crea transacción de ajuste positiva o negativa para corregir saldo incorrecto
-
-### Presupuesto
-- Selector de mes
-- Cards con progress bar (verde/amarillo/rojo según % usado)
-- Agregar categoría: upsert con `onConflict: 'user_id,categoria,mes'`
-- Editar límite / Eliminar con 2-tap
-
-### Pagos Fijos (PagosRecurrentesPage)
-- Configurar una vez: nombre, monto, día del mes (1-28), cuenta, categoría
-- **Auto-aplicación**: al abrir la app, `useAutoApplyPagos` detecta pagos vencidos del mes y crea los gastos automáticamente
-- Badge "✓ aplicado" / "pendiente" por pago
-- CRUD completo
-
-### Metas de ahorro
-- Nombre + monto objetivo + monto actual
-- Cálculo de meses estimados para alcanzar la meta
-- Completar / Eliminar
-
-### Proyecciones
-- Input: ahorro mensual estimado
-- Gráfica de área (recharts) con proyección a 1, 3, 5 años
-- Interés compuesto 5% anual
-- Hitos de patrimonio marcados
-
-### Perfil
-- Avatar con inicial del email
-- Nombre (de `profiles`) o email
-- Links a Pagos Fijos, Metas, Proyecciones
-- Sign out con 2-step confirmation
-
----
-
-## Variables de entorno
+### Variables de entorno
 
 ```env
-VITE_SUPABASE_URL=https://bduvzluntatmhfujqvvm.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon key del proyecto>
+VITE_SUPABASE_URL=https://<project>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon key>
 ```
 
-**Supabase dashboard** → Authentication → URL Configuration:
-- Site URL: `https://kash-app-rho.vercel.app`
-- Redirect URLs: `https://kash-app-rho.vercel.app/**`
+**Supabase → Authentication → URL Configuration**: Site URL y Redirect URLs apuntando al dominio de
+producción (`/**`).
 
 ---
 
-## Patrones de desarrollo
+## Convenciones
 
-```ts
-// Props: siempre { userId: string }, nunca { user: User }
-// Excepción: DashboardPage, TransaccionesPage, CuentasPage aún usan user: User (legacy Fase 1)
-
-// Dinero: siempre centavos en estado y DB
-const centavos = toCentavos(parseFloat(input))  // → bigint
-const display = formatQ(centavos)                // → "Q 150.00"
-
-// Fechas: hoyGT() para fecha de hoy en Guatemala
-// mesActual() para YYYY-MM del mes en curso
-
-// Transferencias: inserción atómica de 2 filas
-await supabase.from('transacciones').insert([debit, credit])
-```
+- **UI, identificadores y columnas en español.** Los comentarios siguen el archivo.
+- **Acciones destructivas de 2 taps**, no `window.confirm`: un `pendingDelete` guarda el id y el
+  botón cambia a "Confirmar". El borrado de transacciones además ofrece deshacer.
+- **Un error de consulta nunca se renderiza como estado vacío.** "Sin datos" y "no se pudo cargar"
+  son distintos: los hooks exponen `error` y las páginas lo muestran en lugar de presentar Q0.00
+  como un hecho.
+- Páginas nuevas reciben `{ userId: string }`. `DashboardPage`, `TransaccionesPage`, `CuentasPage`
+  y `PerfilPage` todavía reciben el objeto `user` completo — legado, no copiarlo.
+- Modales: JSX inline con estado local. No hay abstracción de diálogo.
+- Cálculos nuevos van en `finanzas.ts` como funciones puras **con test**, no inline en un componente.
 
 ---
 
-## Historial de fases
+## Estado conocido
 
-| Fase | Contenido |
-|---|---|
-| 0 | Migration map, scaffolding |
-| 1 | Auth, Dashboard, Transacciones, Cuentas, Presupuesto |
-| 2 | Proyecciones (recharts), Metas de ahorro |
-| 3 | Edición de txns, filtros + CSV, transferencias entre cuentas |
-| 4 | BudgetPage completo, PWA, PerfilPage |
-| 4+ | Gráficas en Dashboard (donut + barras), Pagos Fijos recurrentes |
+Lo que falta está en [`docs/RESTRUCTURE.md`](docs/RESTRUCTURE.md): funciones faltantes,
+inconsistencias estructurales y deuda técnica, con el detalle de por qué cada cosa quedó afuera.

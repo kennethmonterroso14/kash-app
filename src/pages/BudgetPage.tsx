@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTransacciones } from '../hooks/useTransacciones'
-import { formatQ, toCentavos, calcEstadoPresupuesto } from '../lib/finanzas'
+import { formatQ, toCentavos, calcEstadoPresupuesto, esGastoComputable } from '../lib/finanzas'
 import { MESES, mesActual } from '../lib/constants'
 import { useCategorias } from '../hooks/useCategorias'
 
@@ -153,7 +153,7 @@ export default function BudgetPage({ userId }: Props) {
   // pago_tc queda fuera a propósito: mueve deuda, no es consumo nuevo.
   const gastadoPorCat = useMemo(() => {
     const map: Record<string, number> = {}
-    txns.filter(t => t.tipo === 'gasto' || t.tipo === 'gasto_tc').forEach(t => {
+    txns.filter(t => esGastoComputable(t.tipo)).forEach(t => {
       map[t.categoria] = (map[t.categoria] ?? 0) + Math.abs(t.cantidad)
     })
     return map
@@ -474,7 +474,7 @@ export default function BudgetPage({ userId }: Props) {
               // Mismo criterio que gastadoPorCat: incluir gasto_tc para que el
               // detalle sume exactamente lo que muestra la barra.
               const txsCat = txns
-                .filter(t => (t.tipo === 'gasto' || t.tipo === 'gasto_tc') && t.categoria === p.categoria)
+                .filter(t => esGastoComputable(t.tipo) && t.categoria === p.categoria)
                 .sort((a, b) => b.fecha.localeCompare(a.fecha))
               return (
                 <div id={`txns-${p.id}`} className="border-t border-muted/20 mt-3 pt-3">

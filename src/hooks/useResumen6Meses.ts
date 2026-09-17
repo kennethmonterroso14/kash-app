@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { MESES, ahoraGT } from '../lib/constants'
+import { esGastoComputable } from '../lib/finanzas'
 
 export interface ResumenMes {
   mes: string      // abreviatura, ej: "Oct"
@@ -57,7 +58,7 @@ export function useResumen6Meses(userId: string | undefined) {
           if (t.tipo === 'ingreso') map[key].ingresos += t.cantidad
           // gasto_tc también es gasto, igual que en calcEstadisticasMes.
           // pago_tc NO lo es: solo traslada deuda.
-          if (t.tipo === 'gasto' || t.tipo === 'gasto_tc') {
+          if (esGastoComputable(t.tipo)) {
             map[key].gastos += Math.abs(t.cantidad)
           }
         })
