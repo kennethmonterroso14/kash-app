@@ -60,6 +60,7 @@ function Sonda() {
     <div>
       <p data-testid="nombre">{s.perfil.nombre ?? '(sin nombre)'}</p>
       <p data-testid="moneda">{s.perfil.moneda}</p>
+      <p data-testid="email">{s.email ?? '(sin email)'}</p>
       <p data-testid="cuentas">{s.cuentas.length}</p>
       <p data-testid="patrimonio">{s.totalPatrimonio}</p>
       <p data-testid="tarjetas">{s.tarjetas.length}</p>
@@ -80,7 +81,7 @@ afterEach(() => cleanup())
 
 describe('SesionProvider', () => {
   it('carga cada slice UNA sola vez', async () => {
-    render(<SesionProvider userId="u1"><Sonda /></SesionProvider>)
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
     await waitFor(() => expect(screen.getByTestId('cuentas')).toHaveTextContent('2'))
 
     // El punto de la tarea: antes cada página montaba su propio hook y esto
@@ -92,9 +93,11 @@ describe('SesionProvider', () => {
   })
 
   it('expone los datos de los cuatro slices', async () => {
-    render(<SesionProvider userId="u1"><Sonda /></SesionProvider>)
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
     await waitFor(() => expect(screen.getByTestId('nombre')).toHaveTextContent('Kenneth'))
     expect(screen.getByTestId('patrimonio')).toHaveTextContent('200000')
+    // El email viene de auth, no de `profiles`: ahí no se guarda.
+    expect(screen.getByTestId('email')).toHaveTextContent('k@test.gt')
     expect(screen.getByTestId('tarjetas')).toHaveTextContent('1')
     expect(screen.getByTestId('cat-propias')).toHaveTextContent('1')
     // Las categorías propias se mezclan con las base
@@ -103,7 +106,7 @@ describe('SesionProvider', () => {
 
   it('el fallo de un slice no tumba a los otros', async () => {
     tablasQueFallan = new Set(['tarjetas_credito'])
-    render(<SesionProvider userId="u1"><Sonda /></SesionProvider>)
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
 
     await waitFor(() => expect(screen.getByTestId('err-tarjetas')).toHaveTextContent('fallo simulado'))
     // Cuentas y perfil siguen disponibles y sin error propio
@@ -114,7 +117,7 @@ describe('SesionProvider', () => {
 
   it('si falla el perfil NO presenta la moneda por defecto como un hecho', async () => {
     tablasQueFallan = new Set(['profiles'])
-    render(<SesionProvider userId="u1"><Sonda /></SesionProvider>)
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
 
     await waitFor(() => expect(screen.getByTestId('err-perfil')).toHaveTextContent('fallo simulado'))
     // El error queda expuesto para que la página no muestre GTQ como si fuera

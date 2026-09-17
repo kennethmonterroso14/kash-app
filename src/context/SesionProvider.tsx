@@ -5,7 +5,9 @@ import { useCategorias } from '../hooks/useCategorias'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { SesionCtx, PERFIL_DEFAULT, type Perfil, type Sesion } from './sesion'
 
-export function SesionProvider({ userId, children }: { userId: string; children: ReactNode }) {
+export function SesionProvider(
+  { userId, email, children }: { userId: string; email: string | null; children: ReactNode },
+) {
   // Paso 1 de la migración: el provider usa los hooks existentes por dentro,
   // así que el comportamiento es idéntico — solo cambia que se montan UNA vez.
   const cuentas = useCuentas(userId)
@@ -47,6 +49,7 @@ export function SesionProvider({ userId, children }: { userId: string; children:
 
   const valor = useMemo<Sesion>(() => ({
     userId,
+    email,
     perfil,
     cuentas: cuentas.cuentas,
     totalPatrimonio: cuentas.totalPatrimonio,
@@ -88,7 +91,7 @@ export function SesionProvider({ userId, children }: { userId: string; children:
     cerrarCiclo: tarjetas.cerrarCiclo,
     registrarCargo: tarjetas.registrarCargo,
     registrarPago: tarjetas.registrarPago,
-  }), [userId, perfil, perfilCargando, perfilError, refrescarPerfil, cuentas, categorias, tarjetas])
+  }), [userId, email, perfil, perfilCargando, perfilError, refrescarPerfil, cuentas, categorias, tarjetas])
 
   return <SesionCtx.Provider value={valor}>{children}</SesionCtx.Provider>
 }

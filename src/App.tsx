@@ -87,21 +87,21 @@ export default function App() {
   // cualquier página puede usar useSesion(). Perfil, cuentas, categorías y
   // tarjetas se cargan una vez acá en lugar de una vez por página.
   return (
-    <SesionProvider userId={user.id}>
+    <SesionProvider userId={user.id} email={user.email ?? null}>
       <Layout onSignOut={signOut} userId={user.id}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage user={user} />} />
-          <Route path="/txns" element={<TransaccionesPage user={user} />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/txns" element={<TransaccionesPage />} />
           <Route path="/cuentas" element={<CuentasPage />} />
-          <Route path="/budget" element={<BudgetPage userId={user.id} />} />
+          <Route path="/budget" element={<BudgetPage />} />
           <Route path="/metas" element={<MetasPage />} />
           <Route path="/proyecciones" element={<ProyeccionesPage />} />
           <Route path="/pagos" element={<PagosRecurrentesPage />} />
-          <Route path="/tarjetas" element={<TarjetasPage userId={user.id} />} />
+          <Route path="/tarjetas" element={<TarjetasPage />} />
           <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage />} />
-          <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
-          <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
+          <Route path="/inversiones" element={<InversionesPage />} />
+          <Route path="/perfil" element={<PerfilPage onSignOut={signOut} />} />
           <Route path="/categorias" element={<CategoriasPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

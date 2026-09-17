@@ -9,15 +9,15 @@ import {
   formatQ, toCentavos, usdToGTQ, calcRendimientoAnualizado,
 } from '../lib/finanzas'
 import { TIPOS_INVERSION, hoyGT } from '../lib/constants'
+import { useSesion } from '../context/sesion'
 import { colores } from '../lib/tokens'
-
-interface Props { userId: string }
 
 type Pantalla = 'lista' | 'nueva' | 'actualizar_valor' | 'tipo_cambio' | 'editar'
 
 const INFLACION_GT = 4   // % anual de referencia para Guatemala
 
-export default function InversionesPage({ userId }: Props) {
+export default function InversionesPage() {
+  const { userId } = useSesion()
   const {
     inversiones, resumen, evolucionPortafolio,
     tipoCambioUSD, tipoCambioFecha, tieneUSD,

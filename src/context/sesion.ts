@@ -40,6 +40,8 @@ export const PERFIL_DEFAULT: Perfil = {
 
 export interface Sesion {
   userId: string
+  /** Del usuario de auth, no de `profiles`: ahí no se guarda. */
+  email: string | null
   perfil: Perfil
   cuentas: Cuenta[]
   totalPatrimonio: number

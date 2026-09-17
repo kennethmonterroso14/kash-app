@@ -1,20 +1,15 @@
 import { useMemo, useState } from 'react'
-import type { User } from '@supabase/supabase-js'
 import {
   PieChart, Pie, Cell, Tooltip as PieTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip as BarTooltip, Legend,
 } from 'recharts'
-import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { useResumen6Meses } from '../hooks/useResumen6Meses'
-import { useTarjetas } from '../hooks/useTarjetas'
 import { useInversiones } from '../hooks/useInversiones'
 import { formatQ, calcEstadisticasMes, calcDisponibleReal, calcPatrimonioNeto } from '../lib/finanzas'
 import { MESES, mesActual, COLOR_CATEGORIA_FALLBACK } from '../lib/constants'
+import { useSesion } from '../context/sesion'
 import { colores } from '../lib/tokens'
-import { useCategorias } from '../hooks/useCategorias'
-
-interface Props { user: User }
 
 const MAX_SLICE = 5  // top N categories in donut, rest → "Otros"
 
@@ -92,15 +87,17 @@ const BarCustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-export default function DashboardPage({ user }: Props) {
-  const { coloresCategorias } = useCategorias(user.id)
+export default function DashboardPage() {
+  const {
+    userId, coloresCategorias, cuentas, totalPatrimonio, resumenTCs, tarjetas,
+    error: errores,
+  } = useSesion()
+  const cuentasError = errores.cuentas
   const [mes, setMes] = useState(mesActual())
   const [patrimonioOculto, setPatrimonioOculto] = useState(false)
-  const { cuentas, totalPatrimonio, error: cuentasError } = useCuentas(user.id)
-  const { txns, loading } = useTransacciones(user.id, mes)
-  const { data: resumen6 } = useResumen6Meses(user.id)
-  const { resumenTCs, tarjetas } = useTarjetas(user.id)
-  const { resumen: resumenInv, error: invError } = useInversiones(user.id)
+  const { txns, loading } = useTransacciones(userId, mes)
+  const { data: resumen6 } = useResumen6Meses(userId)
+  const { resumen: resumenInv, error: invError } = useInversiones(userId)
 
   const stats = useMemo(() => calcEstadisticasMes(
     txns.map(t => ({ ...t, id: t.id, descripcion: t.descripcion }))

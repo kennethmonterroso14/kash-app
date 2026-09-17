@@ -1,37 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { useSesion } from '../context/sesion'
 
 interface Props {
-  user: { id: string; email?: string | null }
   onSignOut: () => void
 }
 
-export default function PerfilPage({ user, onSignOut }: Props) {
+export default function PerfilPage({ onSignOut }: Props) {
   const navigate = useNavigate()
-  const [nombre, setNombre] = useState<string | null>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
+  // Sin consulta propia: el perfil ya viene del contexto. Esta página tenía una
+  // de las seis consultas duplicadas a `profiles`.
+  const { perfil, email, error: errores } = useSesion()
+  const nombre = perfil.nombre
+  const loadError = errores.perfil ? 'No se pudo cargar tu perfil' : null
 
-  useEffect(() => {
-    let ignore = false
-    // `profiles` se relaciona con auth.users por `user_id`; `id` es una PK propia
-    // y filtrar por ella nunca coincide. maybeSingle() para que "sin perfil" no sea error.
-    supabase
-      .from('profiles')
-      .select('nombre')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (ignore) return
-        if (error) { setLoadError('No se pudo cargar tu perfil'); return }
-        if (data?.nombre) setNombre(data.nombre)
-      })
-    return () => { ignore = true }
-  }, [user.id])
-
-  const firstLetter = (user.email ?? 'U')[0].toUpperCase()
-  const displayName = nombre ?? user.email ?? 'Usuario'
+  const firstLetter = (email ?? 'U')[0].toUpperCase()
+  const displayName = nombre ?? email ?? 'Usuario'
 
 
   return (
@@ -43,8 +28,8 @@ export default function PerfilPage({ user, onSignOut }: Props) {
         </div>
         <div className="text-center">
           <p className="text-white font-semibold text-lg">{displayName}</p>
-          {nombre && user.email && (
-            <p className="text-muted text-sm mt-0.5">{user.email}</p>
+          {nombre && email && (
+            <p className="text-muted text-sm mt-0.5">{email}</p>
           )}
           {loadError && (
             <p role="alert" className="text-danger text-xs mt-1">{loadError}</p>

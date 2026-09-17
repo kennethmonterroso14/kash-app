@@ -1,23 +1,21 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
-import type { User } from '@supabase/supabase-js'
-import { useCuentas } from '../hooks/useCuentas'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
-import { useTarjetas } from '../hooks/useTarjetas'
 import { formatQ } from '../lib/finanzas'
 import { toCentavos } from '../lib/finanzas'
 import { MESES, hoyGT, mesActual, COLOR_CATEGORIA_FALLBACK } from '../lib/constants'
+import { useSesion } from '../context/sesion'
 import { colores } from '../lib/tokens'
-import { useCategorias } from '../hooks/useCategorias'
-
-interface Props { user: User }
 
 type TipoTxn = 'gasto' | 'ingreso' | 'ajuste'
 type TipoForm = 'gasto' | 'ingreso' | 'transferencia' | 'gasto_tc'
 
-export default function TransaccionesPage({ user }: Props) {
+export default function TransaccionesPage() {
+  const {
+    userId, cuentas, categoriasGasto, categoriasIngreso, coloresCategorias,
+    resumenTCs, registrarCargo,
+  } = useSesion()
   const [mes, setMes] = useState(mesActual())
-  const { cuentas } = useCuentas(user.id)
-  const { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia } = useTransacciones(user.id, mes)
+  const { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia } = useTransacciones(userId, mes)
 
   const [showForm, setShowForm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -36,8 +34,6 @@ export default function TransaccionesPage({ user }: Props) {
     if (!cuentaId && cuentas.length > 0) setCuentaId(cuentas[0].id)
   }, [cuentas, cuentaId])
   const [saving, setSaving] = useState(false)
-  const { categoriasGasto, categoriasIngreso, coloresCategorias } = useCategorias(user.id)
-  const { resumenTCs, registrarCargo } = useTarjetas(user.id)
   const [tcId, setTcId] = useState('')
 
   // Default primera TC cuando carguen

@@ -3,10 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { formatQ, toCentavos, calcEstadoPresupuesto, esGastoComputable } from '../lib/finanzas'
 import { MESES, mesActual } from '../lib/constants'
+import { useSesion } from '../context/sesion'
 import { colores } from '../lib/tokens'
-import { useCategorias } from '../hooks/useCategorias'
-
-interface Props { userId: string }
 
 interface Presupuesto {
   id: string
@@ -15,8 +13,8 @@ interface Presupuesto {
   mes: string
 }
 
-export default function BudgetPage({ userId }: Props) {
-  const { categoriasGasto } = useCategorias(userId)
+export default function BudgetPage() {
+  const { userId, categoriasGasto } = useSesion()
   const [mes, setMes] = useState(mesActual())
   const { txns, loading: txnsLoading } = useTransacciones(userId, mes)
   // Los presupuestos se guardan etiquetados con su mes: así una respuesta que

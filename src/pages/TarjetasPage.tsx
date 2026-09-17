@@ -1,13 +1,9 @@
 // src/pages/TarjetasPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTarjetas } from '../hooks/useTarjetas'
-import { useCuentas } from '../hooks/useCuentas'
 import { formatQ, toCentavos, type TarjetaCredito } from '../lib/finanzas'
 import { hoyGT } from '../lib/constants'
-import { useCategorias } from '../hooks/useCategorias'
-
-interface Props { userId: string }
+import { useSesion } from '../context/sesion'
 
 type Pantalla = 'lista' | 'nueva_tc' | 'editar_tc' | 'cargo' | 'pago' | 'cerrar'
 
@@ -16,14 +12,17 @@ const COLORES_TC = [
   '#60a5fa', '#f472b6', '#34d399', '#fb923c',
 ]
 
-export default function TarjetasPage({ userId }: Props) {
-  const { categoriasGasto } = useCategorias(userId)
+export default function TarjetasPage() {
+  // Todo sale del contexto: antes esta página volvía a montar useTarjetas
+  // aunque el provider ya lo tiene, así que la consulta se hacía dos veces.
   const {
-    resumenTCs, totalDeuda, loading, error,
+    categoriasGasto, cuentas, resumenTCs, totalDeuda,
+    cargando, error: errores,
     agregarTC, actualizarTC, archivarTC, cerrarCiclo,
     registrarCargo, registrarPago,
-  } = useTarjetas(userId)
-  const { cuentas } = useCuentas(userId)
+  } = useSesion()
+  const loading = cargando.tarjetas
+  const error = errores.tarjetas
   const navigate = useNavigate()
 
   // ── Navegación entre pantallas ─────────────────────────────────

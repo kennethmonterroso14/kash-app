@@ -8,6 +8,7 @@ import {
   computeEvolucionPortafolio,
 } from '../lib/finanzas'
 import { hoyGT } from '../lib/constants'
+import { useSesion } from '../context/sesion'
 
 export type { Inversion, InversionHistorial }
 
@@ -19,10 +20,16 @@ const conHintMigracion = (msg: string): string =>
     : msg
 
 export function useInversiones(userId: string) {
+  // El tipo de cambio vive en `profiles`, y de eso ya es dueño el contexto de
+  // sesión. Antes este hook lo consultaba por su cuenta, que era una de las
+  // seis consultas duplicadas a esa tabla.
+  const { perfil, error: erroresSesion, refrescar } = useSesion()
+  const tipoCambioUSD = perfil.tipo_cambio_usd
+  // Si el perfil no cargó, la fecha queda en null y la UI marca el tipo de
+  // cambio como "sin verificar" en lugar de presentar el default como vigente.
+  const tipoCambioFecha = erroresSesion.perfil ? null : perfil.tipo_cambio_actualizado_at
   const [inversiones, setInversiones]         = useState<Inversion[]>([])
   const [historial, setHistorial]             = useState<InversionHistorial[]>([])
-  const [tipoCambioUSD, setTipoCambioUSD]     = useState<number>(775)
-  const [tipoCambioFecha, setTipoCambioFecha] = useState<string | null>(null)
   const [loading, setLoading]                 = useState(true)
   const [error, setError]                     = useState<string | null>(null)
 
@@ -30,7 +37,7 @@ export function useInversiones(userId: string) {
     try {
       setLoading(true)
       setError(null)
-      const [invRes, histRes, perfilRes] = await Promise.all([
+      const [invRes, histRes] = await Promise.all([
         supabase
           .from('inversiones')
           .select('id, nombre, plataforma, tipo, monto_invertido, valor_actual, moneda, fecha_inicio, fecha_ultimo_update, notas, activa')
@@ -42,11 +49,6 @@ export function useInversiones(userId: string) {
           .select('id, inversion_id, valor, fecha')
           .eq('user_id', userId)
           .order('fecha'),
-        supabase
-          .from('profiles')
-          .select('tipo_cambio_usd, tipo_cambio_actualizado_at')
-          .eq('user_id', userId)
-          .single(),
       ])
       if (invRes.error) throw new Error(`inversiones: ${invRes.error.message}`)
       // Las inversiones se comprometen ANTES de cualquier throw: el historial
@@ -58,14 +60,6 @@ export function useInversiones(userId: string) {
         setError(conHintMigracion(`historial: ${histRes.error.message}`))
       } else {
         setHistorial(histRes.data ?? [])
-      }
-      // La query de profiles es no-fatal: si falla (ej. columna aún no migrada)
-      // usamos los defaults y no bloqueamos la página. Al dejar tipoCambioFecha
-      // en null, la UI marca el tipo de cambio como "sin verificar" en lugar de
-      // presentar el default de 775 como vigente.
-      if (!perfilRes.error && perfilRes.data) {
-        setTipoCambioUSD(perfilRes.data.tipo_cambio_usd ?? 775)
-        setTipoCambioFecha(perfilRes.data.tipo_cambio_actualizado_at ?? null)
       }
     } catch (e: unknown) {
       const msg = e instanceof Error
@@ -303,8 +297,9 @@ export function useInversiones(userId: string) {
       .update({ tipo_cambio_usd: nuevoCambio, tipo_cambio_actualizado_at: ahora })
       .eq('user_id', userId)
     if (error) throw new Error(`Error al actualizar tipo de cambio: ${error.message}`)
-    setTipoCambioUSD(nuevoCambio)
-    setTipoCambioFecha(ahora)
+    // El perfil es dueño del tipo de cambio, así que se invalida ese slice en
+    // lugar de guardar una copia local que podría quedar desincronizada.
+    await refrescar.perfil()
   }
 
   const fetchTipoCambioDesdeAPI = async (): Promise<number> => {

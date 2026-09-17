@@ -21,8 +21,10 @@ Commit `08c5cee`. `CUENTAS_INICIALES` (saldos bancarios reales de una persona) y
       nueva de `profiles`. Error por slice, no global.
 - [x] **1.1.2** Montarlo en `App.tsx` dentro del gate de auth, envolviendo `Layout` y las rutas.
       Verificar en la pestaña de red que el Dashboard pasa de 6 fetch a 1 por slice.
-- [ ] **1.1.3** Mover al provider la consulta de `profiles` que hoy está duplicada en `App.tsx`,
-      `PerfilPage`, `SetupPage` y `useInversiones` (4 de los 6 sitios; los otros 2 son writes).
+- [x] **1.1.3** Mover al provider la consulta de `profiles` duplicada. Quedaron solo las
+      legítimas: la del gate en `App.tsx` y la de prefill de `SetupPage` corren ANTES de que el
+      provider exista (son lo que decide si montarlo), y las otras dos son writes. De 6 lecturas
+      a 1.
 - [x] **1.1.4** Exponer `refrescar.{perfil,cuentas,categorias,tarjetas}` y mover ahí los writers
       que hoy viven en los hooks, para que cada write invalide su slice.
 
@@ -37,15 +39,16 @@ recibía `user` cambiar la prop a nada.
 - [x] **1.2.4** `PagosRecurrentesPage`
 - [x] **1.2.5** `CuentasPage` — además quitar los dos `window.location.reload()` usando
       `refrescar.cuentas()` (cierra la tarea 1.5 del roadmap)
-- [ ] **1.2.6** `BudgetPage`
+- [x] **1.2.6** `BudgetPage`
 - [x] **1.2.7** `TarjetaHistorialPage`
-- [ ] **1.2.8** `TarjetasPage`
-- [ ] **1.2.9** `InversionesPage`
-- [ ] **1.2.10** `DashboardPage`
-- [ ] **1.2.11** `TransaccionesPage`
-- [ ] **1.2.12** `PerfilPage` y `SetupPage`
-- [ ] **1.2.13** Colapsar los hooks viejos dentro del provider y borrar los archivos que queden sin
-      llamadas. Verificar con grep que no queda ninguna.
+- [x] **1.2.8** `TarjetasPage`
+- [x] **1.2.9** `InversionesPage`
+- [x] **1.2.10** `DashboardPage`
+- [x] **1.2.11** `TransaccionesPage`
+- [x] **1.2.12** `PerfilPage` y `SetupPage`
+- [x] **1.2.13** Verificado con grep: ninguna página ni componente instancia `useCuentas`,
+      `useCategorias` ni `useTarjetas`. Los archivos SE QUEDAN porque el provider los usa por
+      dentro — colapsarlos en un solo archivo grande no compraría nada y perdería sus tests.
 
 ## Task 1.3 — Moneda y locale parametrizados
 
@@ -67,7 +70,7 @@ recibía `user` cambiar la prop a nada.
 Una página por commit, extrayendo por sección y migrando de paso sus `formatQ`/`hoyGT` a los hooks
 de 1.3. Objetivo: ninguna sobre 300 líneas.
 
-- [ ] **1.4.1** `TarjetasPage` (749 líneas)
+- [ ] **1.4.1** `TarjetasPage` (748 líneas)
 - [ ] **1.4.2** `TransaccionesPage` (710)
 - [ ] **1.4.3** `InversionesPage` (686)
 - [ ] **1.4.4** `BudgetPage` (612)
