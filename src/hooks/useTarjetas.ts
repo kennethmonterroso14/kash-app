@@ -2,8 +2,26 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { calcResumenTC, calcFechasCiclo, type TarjetaCredito } from '../lib/finanzas'
+import { ahoraGT } from '../lib/constants'
 
 export type { TarjetaCredito }
+
+// 'YYYY-MM-DD' → día siguiente, operando sobre los campos de calendario de la
+// cadena (nunca sobre `new Date()` del navegador) para no correrse de zona.
+function diaSiguiente(fecha: string): string {
+  const [a, m, d] = fecha.split('-').map(Number)
+  const dt = new Date(a, m - 1, d + 1)       // normaliza fin de mes
+  const mm = String(dt.getMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getDate()).padStart(2, '0')
+  return `${dt.getFullYear()}-${mm}-${dd}`
+}
+
+// Date con los campos de calendario de una fecha 'YYYY-MM-DD', anclada al
+// mediodía para que getFullYear/getMonth/getDate nunca se corran por DST.
+function fechaCalendario(fecha: string): Date {
+  const [a, m, d] = fecha.split('-').map(Number)
+  return new Date(a, m - 1, d, 12, 0, 0)
+}
 
 export function useTarjetas(userId: string) {
   const [tarjetas, setTarjetas] = useState<TarjetaCredito[]>([])
@@ -100,6 +118,106 @@ export function useTarjetas(userId: string) {
     await cargar()
   }
 
+  // Devuelve el ciclo abierto de la TC y lo crea si no existe.
+  //
+  // ciclos_tc tiene unique(tarjeta_id, fecha_inicio) y calcFechasCiclo devuelve
+  // la MISMA fecha_inicio durante toda la ventana de facturación, así que si el
+  // usuario cerró el ciclo antes del día de cierre esa fecha_inicio ya está
+  // ocupada por el ciclo cerrado. El ciclo nuevo arranca entonces el día
+  // siguiente al último cierre registrado, en vez de chocar contra la
+  // constraint (y nunca se reabre un ciclo ya cerrado).
+  const obtenerCicloAbierto = async (tc: TarjetaCredito): Promise<string> => {
+    const { data: abiertos, error: buscarErr } = await supabase
+      .from('ciclos_tc')
+      .select('id')
+      .eq('tarjeta_id', tc.id)
+      .eq('user_id', userId)
+      .eq('estado', 'abierto')
+      .order('fecha_inicio', { ascending: false })
+      .limit(1)
+    if (buscarErr) throw new Error(`Error al buscar ciclo: ${buscarErr.message}`)
+    if (abiertos && abiertos.length > 0) return abiertos[0].id
+
+    const vigente = calcFechasCiclo(tc.dia_cierre, tc.dia_pago, ahoraGT())
+
+    const { data: ultimos, error: ultimoErr } = await supabase
+      .from('ciclos_tc')
+      .select('fecha_inicio, fecha_cierre')
+      .eq('tarjeta_id', tc.id)
+      .eq('user_id', userId)
+      .order('fecha_cierre', { ascending: false })
+      .limit(1)
+    if (ultimoErr) throw new Error(`Error al buscar ciclo: ${ultimoErr.message}`)
+
+    let fechas = vigente
+    const ultimo = ultimos?.[0]
+    if (ultimo && ultimo.fecha_inicio >= vigente.fecha_inicio) {
+      const fecha_inicio = diaSiguiente(ultimo.fecha_cierre)
+      // ciclo_fechas_validas exige fecha_cierre > fecha_inicio: si el inicio ya
+      // rebasó el cierre de la ventana vigente, la ventana correcta es la
+      // siguiente.
+      const ventana = fecha_inicio >= vigente.fecha_cierre
+        ? calcFechasCiclo(tc.dia_cierre, tc.dia_pago, fechaCalendario(fecha_inicio))
+        : vigente
+      fechas = { ...ventana, fecha_inicio }
+    }
+
+    const { data: nuevoCiclo, error: createErr } = await supabase
+      .from('ciclos_tc')
+      .insert({
+        tarjeta_id:   tc.id,
+        user_id:      userId,
+        fecha_inicio: fechas.fecha_inicio,
+        fecha_cierre: fechas.fecha_cierre,
+        fecha_pago:   fechas.fecha_pago,
+        estado:       'abierto',
+      })
+      .select('id')
+      .single()
+    if (!createErr) return nuevoCiclo.id
+
+    // 23505 = unique_violation: otra pestaña creó el mismo ciclo en paralelo.
+    // Se reutiliza si sigue abierto; nunca se le cuelgan cargos a uno cerrado.
+    if (createErr.code !== '23505') throw new Error(`Error al crear ciclo: ${createErr.message}`)
+    const { data: existente } = await supabase
+      .from('ciclos_tc')
+      .select('id, estado')
+      .eq('tarjeta_id', tc.id)
+      .eq('user_id', userId)
+      .eq('fecha_inicio', fechas.fecha_inicio)
+      .maybeSingle()
+    if (existente && existente.estado === 'abierto') return existente.id
+    throw new Error('No se pudo abrir un ciclo nuevo para esta tarjeta. Intenta de nuevo en un momento.')
+  }
+
+  // Atribuye un pago a un ciclo para que aparezca en el historial.
+  // El trigger aplica pago_tc primero contra deuda_ciclo_anterior, o sea que el
+  // pago liquida el estado de cuenta YA cerrado: se enlaza al ciclo cerrado más
+  // reciente y, si no hay ninguno, al ciclo cuyo rango cubre la fecha del pago.
+  // Un pago nunca abre un ciclo.
+  const cicloDelPago = async (tarjetaId: string, fecha: string): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from('ciclos_tc')
+      .select('id, estado, fecha_inicio, fecha_cierre')
+      .eq('tarjeta_id', tarjetaId)
+      .eq('user_id', userId)
+      .order('fecha_inicio', { ascending: false })
+      .limit(12)
+    if (error || !data) {
+      // No se bloquea el pago por esto: lo que baja la deuda es la transacción.
+      // Sin ciclo_id el historial lo atribuye por rango de fechas.
+      console.error('No se pudo resolver el ciclo del pago:', error)
+      return null
+    }
+    const cerrado = data.find((c: { estado: string }) => c.estado === 'cerrado')
+    if (cerrado) return cerrado.id
+    const contiene = data.find(
+      (c: { fecha_inicio: string; fecha_cierre: string }) =>
+        fecha >= c.fecha_inicio && fecha <= c.fecha_cierre
+    )
+    return contiene?.id ?? null
+  }
+
   // Registrar un cargo en la TC.
   // Auto-crea el ciclo abierto si no existe para esta TC.
   const registrarCargo = async (input: {
@@ -113,38 +231,8 @@ export function useTarjetas(userId: string) {
     const tc = tarjetas.find(t => t.id === input.tarjeta_id)
     if (!tc) throw new Error('Tarjeta no encontrada')
 
-    // 2. Buscar ciclo abierto para esta TC
-    const { data: ciclosAbiertos, error: cicloErr } = await supabase
-      .from('ciclos_tc')
-      .select('id')
-      .eq('tarjeta_id', input.tarjeta_id)
-      .eq('estado', 'abierto')
-      .limit(1)
-    if (cicloErr) throw new Error(`Error al buscar ciclo: ${cicloErr.message}`)
-
-    let cicloId: string
-
-    if (ciclosAbiertos && ciclosAbiertos.length > 0) {
-      // Ciclo abierto existe — reutilizarlo
-      cicloId = ciclosAbiertos[0].id
-    } else {
-      // Crear ciclo nuevo automáticamente
-      const fechas = calcFechasCiclo(tc.dia_cierre, tc.dia_pago)
-      const { data: nuevoCiclo, error: createErr } = await supabase
-        .from('ciclos_tc')
-        .insert({
-          tarjeta_id:   input.tarjeta_id,
-          user_id:      userId,
-          fecha_inicio: fechas.fecha_inicio,
-          fecha_cierre: fechas.fecha_cierre,
-          fecha_pago:   fechas.fecha_pago,
-          estado:       'abierto',
-        })
-        .select('id')
-        .single()
-      if (createErr) throw new Error(`Error al crear ciclo: ${createErr.message}`)
-      cicloId = nuevoCiclo.id
-    }
+    // 2. Ciclo abierto (se crea si hace falta)
+    const cicloId = await obtenerCicloAbierto(tc)
 
     // 3. Insertar la transacción con ciclo_id
     const { error } = await supabase
@@ -171,12 +259,14 @@ export function useTarjetas(userId: string) {
     cuenta_id: string
     fecha: string
   }) => {
+    const cicloId = await cicloDelPago(input.tarjeta_id, input.fecha)
     const { error } = await supabase
       .from('transacciones')
       .insert({
         user_id:     userId,
         cuenta_id:   input.cuenta_id,
         tarjeta_id:  input.tarjeta_id,
+        ciclo_id:    cicloId,
         cantidad:    -Math.abs(input.monto),   // negativo = sale de la cuenta
         descripcion: 'Pago tarjeta de crédito',
         categoria:   'Pago Deudas',

@@ -57,6 +57,11 @@ export default function TarjetaHistorialPage({ userId }: Props) {
 
   const cicloSel = ciclos.find(c => c.id === cicloSelId) ?? null
 
+  // Totales del modal separados por tipo: sumar cargos y pagos juntos daría un
+  // número sin significado (y contradiría las métricas del ciclo).
+  const cargosModal = txns.reduce((s, t) => t.tipo === 'gasto_tc' ? s + Math.abs(t.cantidad) : s, 0)
+  const pagosModal  = txns.reduce((s, t) => t.tipo === 'pago_tc'  ? s + Math.abs(t.cantidad) : s, 0)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -88,7 +93,7 @@ export default function TarjetaHistorialPage({ userId }: Props) {
         <p className="text-danger text-sm bg-danger/10 rounded-xl p-3 mb-4">{error}</p>
       )}
 
-      {ciclos.length === 0 && !loading && (
+      {ciclos.length === 0 && !loading && !error && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">📋</p>
           <p className="text-muted text-sm">Sin ciclos registrados</p>
@@ -196,13 +201,26 @@ export default function TarjetaHistorialPage({ userId }: Props) {
               ))}
             </div>
 
-            {/* Total del modal */}
+            {/* Totales del modal */}
             {txns.length > 0 && (
-              <div className="border-t border-muted/20 pt-3 mt-2 flex justify-between">
-                <span className="text-muted text-sm">{txns.length} transacciones</span>
-                <span className="font-mono text-sm text-white font-semibold">
-                  {formatQ(txns.reduce((s, t) => s + Math.abs(t.cantidad), 0))}
-                </span>
+              <div className="border-t border-muted/20 pt-3 mt-2 flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span className="text-muted text-sm">{txns.length} transacciones</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted text-xs">Cargos</span>
+                  <span className="font-mono text-sm text-danger font-semibold">
+                    {formatQ(cargosModal)}
+                  </span>
+                </div>
+                {pagosModal > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted text-xs">Pagos</span>
+                    <span className="font-mono text-sm text-success font-semibold">
+                      {formatQ(pagosModal)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

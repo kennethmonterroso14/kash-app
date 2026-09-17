@@ -706,6 +706,14 @@ export default function TarjetasPage({ userId }: Props) {
                 Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.
               </span>
             </p>
+            {tcSel.resumen.dias_para_cierre > 0 && (
+              <p className="text-warning text-xs bg-warning/10 rounded-xl p-3 mb-3">
+                Faltan {tcSel.resumen.dias_para_cierre}{' '}
+                {tcSel.resumen.dias_para_cierre === 1 ? 'día' : 'días'} para el cierre real de
+                esta tarjeta. Si cierras ahora, los cargos que registres después abrirán un
+                ciclo aparte.
+              </p>
+            )}
             {errCerrar && <p className="text-danger text-sm mb-3">{errCerrar}</p>}
             <div className="flex gap-3">
               <button
