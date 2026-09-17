@@ -34,6 +34,18 @@
   /* 16px es el mínimo: por debajo, Safari en iOS hace zoom al enfocar el input
      y NO vuelve al salir. La solución NO es `user-scalable=no`. */
   input, textarea, select { font-size: 16px; }
+}
+
+/* Este bloque va FUERA de @layer base a propósito, con !important: los inputs
+   de la app llevan `text-sm`, y una utilidad de Tailwind siempre le gana a una
+   regla de la capa base — o sea que la de arriba sola no evita el zoom. Va
+   acotado a punteros gruesos, así que en escritorio el tamaño del diseño se
+   respeta y solo en táctil se fuerza el piso. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: 16px !important; }
+}
+
+@layer base {
 
   button, a, [role='button'] {
     /* Mata el retardo de ~300ms del doble-tap-zoom. */
