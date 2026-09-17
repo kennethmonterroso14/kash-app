@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { formatQ, toCentavos, calcEstadoPresupuesto, esGastoComputable } from '../lib/finanzas'
 import { MESES, mesActual } from '../lib/constants'
+import { colores } from '../lib/tokens'
 import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { userId: string }
@@ -403,7 +404,7 @@ export default function BudgetPage({ userId }: Props) {
       {presupuestos.map(p => {
         const gastado = gastadoPorCat[p.categoria] ?? 0
         const { pct, estado, restante } = calcEstadoPresupuesto(gastado, p.monto_limite)
-        const barColor = estado === 'excedido' ? '#f87171' : estado === 'alerta' ? '#fbbf24' : '#4ade80'
+        const barColor = estado === 'excedido' ? colores.danger : estado === 'alerta' ? colores.warning : colores.success
 
         // La tarjeta es un div normal. Con role="button" el navegador poda sus
         // descendientes del árbol de accesibilidad (children presentational), así que

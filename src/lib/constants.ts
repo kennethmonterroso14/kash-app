@@ -21,6 +21,10 @@ export const CATEGORIAS_GASTO = [
 
 export const CATEGORIAS_INGRESO = ['Ingreso', 'Familia/Regalos', 'Otros']
 
+// Color cuando una categoría no tiene uno asignado. Vive acá y no como hex
+// suelto en las páginas: si no, un cambio de paleta dejaría este gris viejo.
+export const COLOR_CATEGORIA_FALLBACK = '#6b7590'
+
 export const CAT_COLORS: Record<string, string> = {
   'Comida/Restaurantes': '#c8f564',
   'Gasolina/Carro':      '#ff7c5c',

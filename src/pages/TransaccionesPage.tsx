@@ -5,7 +5,8 @@ import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { formatQ } from '../lib/finanzas'
 import { toCentavos } from '../lib/finanzas'
-import { MESES, hoyGT, mesActual } from '../lib/constants'
+import { MESES, hoyGT, mesActual, COLOR_CATEGORIA_FALLBACK } from '../lib/constants'
+import { colores } from '../lib/tokens'
 import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { user: User }
@@ -361,7 +362,7 @@ export default function TransaccionesPage({ user }: Props) {
           <div key={t.id} className="bg-surface rounded-2xl px-4 py-3 flex items-center gap-3">
             <div
               className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ background: coloresCategorias[t.categoria] ?? '#6b7590' }}
+              style={{ background: coloresCategorias[t.categoria] ?? COLOR_CATEGORIA_FALLBACK }}
             />
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm truncate">{t.descripcion}</p>
@@ -529,7 +530,7 @@ export default function TransaccionesPage({ user }: Props) {
                       :                    'text-white'
                       : 'text-muted'
                   }`}
-                  style={tipo === t && t === 'transferencia' ? { background: '#60a5fa' } : undefined}
+                  style={tipo === t && t === 'transferencia' ? { background: colores.accentAlt } : undefined}
                 >
                   {t === 'gasto' ? 'Gasto' : t === 'ingreso' ? 'Ingreso' : t === 'gasto_tc' ? 'Cargo TC' : 'Transferencia'}
                 </button>
@@ -581,8 +582,7 @@ export default function TransaccionesPage({ user }: Props) {
                   <p role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{formError}</p>
                 )}
                 <button type="submit" disabled={transferSaving || transferDe === transferA}
-                  className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
-                  style={{ background: '#60a5fa', color: 'white' }}>
+                  className="w-full bg-accentAlt text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50">
                   {transferSaving ? 'Guardando...' : 'Transferir'}
                 </button>
               </form>

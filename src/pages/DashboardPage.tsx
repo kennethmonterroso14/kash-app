@@ -10,7 +10,8 @@ import { useResumen6Meses } from '../hooks/useResumen6Meses'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { useInversiones } from '../hooks/useInversiones'
 import { formatQ, calcEstadisticasMes, calcDisponibleReal, calcPatrimonioNeto } from '../lib/finanzas'
-import { MESES, mesActual } from '../lib/constants'
+import { MESES, mesActual, COLOR_CATEGORIA_FALLBACK } from '../lib/constants'
+import { colores } from '../lib/tokens'
 import { useCategorias } from '../hooks/useCategorias'
 
 interface Props { user: User }
@@ -68,8 +69,10 @@ const PieCustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null
   const { cat, value } = payload[0].payload
   return (
-    <div style={{ background: '#12151c', borderRadius: 10, padding: '6px 10px', fontSize: 12 }}>
-      <span style={{ color: '#e2e8f0' }}>{cat}: {formatQ(value)}</span>
+    // className y no style: estos tooltips son componentes propios, así que la
+    // paleta sigue viviendo solo en tailwind.config.js.
+    <div className="bg-surface rounded-[10px] px-2.5 py-1.5 text-xs">
+      <span className="text-text">{cat}: {formatQ(value)}</span>
     </div>
   )
 }
@@ -78,8 +81,8 @@ const PieCustomTooltip = ({ active, payload }: any) => {
 const BarCustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: '#12151c', borderRadius: 10, padding: '6px 10px', fontSize: 12 }}>
-      <p style={{ color: '#94a3b8', marginBottom: 4 }}>{label}</p>
+    <div className="bg-surface rounded-[10px] px-2.5 py-1.5 text-xs">
+      <p className="text-textDim mb-1">{label}</p>
       {payload.map((p: { name: string; value: number; color: string }) => (
         <p key={p.name} style={{ color: p.color }}>
           {p.name}: {`Q${Number(p.value).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`}
@@ -132,7 +135,7 @@ export default function DashboardPage({ user }: Props) {
       else top.push(['Otros', otrosTotal])
       top.sort(([, a], [, b]) => b - a)  // la rebanada fusionada puede haber cambiado de lugar
     }
-    return top.map(([cat, value]) => ({ cat, value, fill: coloresCategorias[cat] ?? '#6b7590' }))
+    return top.map(([cat, value]) => ({ cat, value, fill: coloresCategorias[cat] ?? COLOR_CATEGORIA_FALLBACK }))
   }, [stats.porCategoria, coloresCategorias])
 
   // Bar chart — centavos → quetzales for display
@@ -405,7 +408,7 @@ export default function DashboardPage({ user }: Props) {
             <BarChart data={barData} barCategoryGap="30%" barGap={2}>
               <XAxis
                 dataKey="mes"
-                tick={{ fill: '#3d4255', fontSize: 11 }}
+                tick={{ fill: colores.muted, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -414,7 +417,7 @@ export default function DashboardPage({ user }: Props) {
               <Legend
                 iconType="circle"
                 iconSize={8}
-                wrapperStyle={{ fontSize: 11, color: '#3d4255', paddingTop: 8 }}
+                wrapperStyle={{ fontSize: 11, color: colores.muted, paddingTop: 8 }}
               />
               <Bar dataKey="Ingresos" fill="#4ade80" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Gastos"   fill="#f87171" radius={[4, 4, 0, 0]} />

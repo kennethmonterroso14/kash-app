@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { useCuentas } from '../hooks/useCuentas'
 import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
+import { colores } from '../lib/tokens'
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -237,13 +238,13 @@ export default function ProyeccionesPage({ userId }: Props) {
                 </defs>
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: '#3d4255', fontSize: 11 }}
+                  tick={{ fill: colores.muted, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={formatYAxis}
-                  tick={{ fill: '#3d4255', fontSize: 11 }}
+                  tick={{ fill: colores.muted, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   width={54}
@@ -256,7 +257,7 @@ export default function ProyeccionesPage({ userId }: Props) {
                   strokeWidth={2}
                   fill={`url(#${gradientId})`}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#7c6af7', strokeWidth: 0 }}
+                  activeDot={{ r: 4, fill: colores.accent, strokeWidth: 0 }}
                 />
               </AreaChart>
             </ResponsiveContainer>

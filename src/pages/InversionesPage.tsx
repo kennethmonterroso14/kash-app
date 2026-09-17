@@ -9,6 +9,7 @@ import {
   formatQ, toCentavos, usdToGTQ, calcRendimientoAnualizado,
 } from '../lib/finanzas'
 import { TIPOS_INVERSION, hoyGT } from '../lib/constants'
+import { colores } from '../lib/tokens'
 
 interface Props { userId: string }
 
@@ -289,10 +290,10 @@ export default function InversionesPage({ userId }: Props) {
                     formatter={(v: unknown) => [formatQ(v as number), 'Valor']}
                     labelFormatter={(l: unknown) => l as string}
                     contentStyle={{
-                      background: '#12151c', border: 'none',
+                      background: colores.surface, border: 'none',
                       borderRadius: 8, fontSize: 12,
                     }}
-                    labelStyle={{ color: '#8b90a0' }}
+                    labelStyle={{ color: colores.textDim }}
                   />
                   <Line
                     type="monotone"
@@ -300,7 +301,7 @@ export default function InversionesPage({ userId }: Props) {
                     stroke="#7c6af7"
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 4, fill: '#7c6af7' }}
+                    activeDot={{ r: 4, fill: colores.accent }}
                   />
                 </LineChart>
               </ResponsiveContainer>
