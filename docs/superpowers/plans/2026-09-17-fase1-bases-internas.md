@@ -96,7 +96,14 @@ del roadmap.
       paso: el chip de "% usado" se partía en dos renglones con un nombre largo, y el vacío se
       mostraba también cuando la consulta fallaba. Verificado con capturas de la lista y los
       cuatro modales.
-- [ ] **1.4.2** `TransaccionesPage` (710)
+- [x] **1.4.2** `TransaccionesPage`: 706 → **192**, en siete piezas (la más grande, 262).
+      `./transacciones/{SelectorMes,FiltrosTxn,FilaTxn,ModalNuevoMovimiento,ModalEditarTxn}` más
+      `exportarCSV.ts` con **10 tests propios**. Los 16 `useState` de formularios se mudaron a sus
+      modales, y con ellos se van los dos `useEffect` que ponían la cuenta y la tarjeta por default.
+      El `formError` que era uno solo para el alta, la edición y la lista (con guardas
+      `!showForm && !editingTxn`) queda separado: cada modal tiene el suyo y la página guarda el de
+      la lista. Cinco defectos encontrados de paso, ver el commit — entre ellos que **la columna de
+      montos del CSV salía como texto** y que la lista no leía el `error` del hook.
 - [ ] **1.4.3** `InversionesPage` (686)
 - [ ] **1.4.4** `BudgetPage` (612)
 - [ ] **1.4.5** `DashboardPage` (436)
