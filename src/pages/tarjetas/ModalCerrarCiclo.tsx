@@ -1,0 +1,86 @@
+import { useState } from 'react'
+import type { TarjetaCredito } from '../../lib/finanzas'
+import { useSesion } from '../../context/sesion'
+import { useMoneda } from '../../hooks/useMoneda'
+import { useFechas } from '../../hooks/useFechas'
+
+interface Props {
+  tc: TarjetaCredito
+  onCerrar: () => void
+}
+
+/**
+ * Confirmación de cierre de ciclo: la deuda del ciclo actual pasa a "pendiente
+ * de pago" y el actual vuelve a 0. Lo hace el RPC `cerrar_ciclo_tc`.
+ */
+export default function ModalCerrarCiclo({ tc, onCerrar }: Props) {
+  const { cerrarCiclo } = useSesion()
+  const fmt = useMoneda()
+  const fechas = useFechas()
+  const [guardando, setGuardando] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  // Días que faltan para el cierre, sobre el calendario del usuario.
+  // NO se usa `resumen.dias_para_cierre`: ese valor nunca es 0 (la fecha
+  // próxima es exclusiva) y el día del cierre salta al largo del mes completo,
+  // así que el aviso se mostraba siempre y justo ese día decía lo contrario.
+  const faltanCierre = (() => {
+    const [anio, mes, dia] = fechas.hoy().split('-').map(Number)
+    const ultimoDiaMes = new Date(anio, mes, 0).getDate()   // día 0 del mes siguiente
+    const diaCierre = Math.min(tc.dia_cierre, ultimoDiaMes)
+    return dia < diaCierre ? diaCierre - dia : 0
+  })()
+
+  const confirmar = async () => {
+    setErr(null)
+    try {
+      setGuardando(true)
+      await cerrarCiclo(tc.id)
+      onCerrar()
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Error al cerrar ciclo')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 scrim flex items-center justify-center z-50 px-4">
+      <div className="vidrio-hoja rounded-tarjeta p-6 max-w-sm w-full">
+        <h2 className="text-text font-semibold mb-2 tracking-titulo">¿Cerrar ciclo?</h2>
+        <p className="text-textDim text-sm mb-1">
+          Tarjeta: <span className="text-text">{tc.nombre}</span>
+        </p>
+        <p className="text-textDim text-sm mb-4">
+          Cargos del ciclo: <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
+          <br />
+          <span className="text-textDim text-xs">
+            Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.
+          </span>
+        </p>
+        {faltanCierre > 0 && (
+          <p className="text-warning text-xs bg-warning/10 rounded-control p-3 mb-3">
+            Faltan {faltanCierre} {faltanCierre === 1 ? 'día' : 'días'} para el cierre real de esta
+            tarjeta. Si cierras ahora, los cargos que registres después abrirán un ciclo aparte.
+          </p>
+        )}
+        {err && <p className="text-danger text-sm mb-3">{err}</p>}
+        <div className="flex gap-3">
+          <button
+            onClick={onCerrar}
+            className="presionable flex-1 py-3 rounded-control bg-bg text-textDim text-sm font-semibold hover:text-text"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={confirmar}
+            disabled={guardando}
+            className="presionable flex-1 py-3 rounded-control bg-danger text-text text-sm font-semibold disabled:opacity-50"
+          >
+            {guardando ? 'Cerrando...' : 'Cerrar ciclo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

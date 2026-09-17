@@ -86,7 +86,16 @@ barrer con `sed`: `tracking-*` según el tamaño del texto, `rounded-*` según l
 `.presionable` en los objetivos grandes (el atenuado al presionar ya es global). Ver la tarea 3.0
 del roadmap.
 
-- [ ] **1.4.1** `TarjetasPage` (748 líneas)
+- [x] **1.4.1** `TarjetasPage`: 748 → **99**, y las seis piezas todas bajo 180.
+      `./tarjetas/{TarjetaTile,ModalTC,ModalCargo,ModalPago,ModalCerrarCiclo}`. Los formularios
+      "Nueva TC" y "Editar TC" eran el MISMO formulario copiado dos veces (~180 líneas), así que
+      quedan en un solo `ModalTC` — un arreglo ahí ya no hay que hacerlo dos veces. El estado de
+      cada formulario se mudó a su modal: como el modal se monta al abrirse, el montaje ES el
+      reset, y desaparecen los cuatro helpers `abrir*` que reseteaban 21 `useState` a mano.
+      Migrados `formatQ` → `useMoneda()` y `hoyGT()` → `useFechas()`. Dos defectos encontrados de
+      paso: el chip de "% usado" se partía en dos renglones con un nombre largo, y el vacío se
+      mostraba también cuando la consulta fallaba. Verificado con capturas de la lista y los
+      cuatro modales.
 - [ ] **1.4.2** `TransaccionesPage` (710)
 - [ ] **1.4.3** `InversionesPage` (686)
 - [ ] **1.4.4** `BudgetPage` (612)
