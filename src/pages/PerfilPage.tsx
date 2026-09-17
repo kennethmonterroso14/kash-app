@@ -10,17 +10,24 @@ interface Props {
 export default function PerfilPage({ user, onSignOut }: Props) {
   const navigate = useNavigate()
   const [nombre, setNombre] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
 
   useEffect(() => {
+    let ignore = false
+    // `profiles` se relaciona con auth.users por `user_id`; `id` es una PK propia
+    // y filtrar por ella nunca coincide. maybeSingle() para que "sin perfil" no sea error.
     supabase
       .from('profiles')
       .select('nombre')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (ignore) return
+        if (error) { setLoadError('No se pudo cargar tu perfil'); return }
         if (data?.nombre) setNombre(data.nombre)
       })
+    return () => { ignore = true }
   }, [user.id])
 
   const firstLetter = (user.email ?? 'U')[0].toUpperCase()
@@ -38,6 +45,9 @@ export default function PerfilPage({ user, onSignOut }: Props) {
           <p className="text-white font-semibold text-lg">{displayName}</p>
           {nombre && user.email && (
             <p className="text-muted text-sm mt-0.5">{user.email}</p>
+          )}
+          {loadError && (
+            <p role="alert" className="text-danger text-xs mt-1">{loadError}</p>
           )}
         </div>
       </div>

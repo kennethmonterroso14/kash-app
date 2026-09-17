@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
@@ -12,16 +12,33 @@ export default function SetupPage({ user, onComplete }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Si ya existe un perfil, precargar el nombre guardado. El prefijo del email
+  // es solo el default del primer ingreso; sin esto, volver a enviar el
+  // formulario sobrescribía el nombre real del usuario.
+  useEffect(() => {
+    let ignore = false
+    supabase
+      .from('profiles')
+      .select('nombre')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!ignore && data?.nombre) setNombre(data.nombre)
+      })
+    return () => { ignore = true }
+  }, [user.id])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!nombre.trim()) return
     setLoading(true)
     setError('')
 
+    // Sin `moneda`: en un re-envío no debe reiniciar la moneda elegida por el usuario.
+    // El default 'GTQ' de la tabla cubre la inserción inicial.
     const { error: profileError } = await supabase.from('profiles').upsert({
       user_id: user.id,
       nombre: nombre.trim(),
-      moneda: 'GTQ',
     }, { onConflict: 'user_id' })
 
     if (profileError) {

@@ -17,9 +17,11 @@ interface Presupuesto {
 export default function BudgetPage({ userId }: Props) {
   const { categoriasGasto } = useCategorias(userId)
   const [mes, setMes] = useState(mesActual())
-  const { txns } = useTransacciones(userId, mes)
-  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
-  const [loading, setLoading] = useState(true)
+  const { txns, loading: txnsLoading } = useTransacciones(userId, mes)
+  // Los presupuestos se guardan etiquetados con su mes: así una respuesta que
+  // llega tarde (el usuario ya cambió de mes) no puede renderizarse ni editarse.
+  const [estado, setEstado] = useState<{ mes: string; rows: Presupuesto[] }>({ mes: '', rows: [] })
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   // Add modal state
   const [showAdd, setShowAdd] = useState(false)
@@ -37,36 +39,57 @@ export default function BudgetPage({ userId }: Props) {
   // Delete state (2-step)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
-  const [intentoCopia, setIntentoCopia] = useState(false)
-  const [bannerCopia, setBannerCopia] = useState<{ n: number; ids: string[] } | null>(null)
+  // Latch de la copia automática, por mes. Es un ref (no dependencia del efecto):
+  // escribirlo no re-renderiza, así que el efecto no se cancela a sí mismo y la
+  // copia alcanza a mostrar el banner con "Deshacer".
+  const copiaIntentadaRef = useRef<string | null>(null)
+  const [vacioAlCargar, setVacioAlCargar] = useState<{ mes: string; vacio: boolean }>({ mes: '', vacio: false })
+  // Banner, error y fila expandida van etiquetados con su mes: así cambiar de mes
+  // los descarta por derivación, sin un efecto que reinicie estado.
+  const [bannerCopia, setBannerCopia] = useState<{ mes: string; n: number; ids: string[] } | null>(null)
+  const [copiaError, setCopiaError] = useState<{ mes: string; msg: string } | null>(null)
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandido, setExpandido] = useState<{ mes: string; id: string } | null>(null)
 
   const [anio, mesNum] = mes.split('-').map(Number)
   const mesLabel = `${MESES[mesNum - 1]} ${anio}`
   const mesInicio = `${mes}-01`
 
+  // loading derivado: mientras el mes pedido y el mes cargado no coincidan.
+  // Evita el frame en que se ven las tarjetas del mes anterior bajo el mes nuevo.
+  const loading = estado.mes !== mesInicio
+  const presupuestos = useMemo(
+    () => (estado.mes === mesInicio ? estado.rows : []),
+    [estado, mesInicio],
+  )
+  const expandedId = expandido?.mes === mesInicio ? expandido.id : null
+  const bannerVisible = bannerCopia?.mes === mesInicio ? bannerCopia : null
+  const errorVisible = copiaError?.mes === mesInicio ? copiaError.msg : null
+
   useEffect(() => {
-    setLoading(true)
+    let ignore = false
     supabase
       .from('presupuestos')
       .select('id, categoria, monto_limite, mes')
       .eq('user_id', userId)
       .eq('mes', mesInicio)
       .eq('activo', true)
-      .then(({ data }) => {
-        setPresupuestos(data ?? [])
-        setLoading(false)
+      .then(({ data, error }) => {
+        if (ignore) return
+        if (error) {
+          // Un fallo de red no debe verse como "sin presupuestos": eso además
+          // armaba la copia automática sobre un mes que sí tenía datos.
+          setFetchError(error.message)
+          return
+        }
+        const rows = data ?? []
+        setFetchError(null)
+        setEstado({ mes: mesInicio, rows })
+        setVacioAlCargar({ mes: mesInicio, vacio: rows.length === 0 })
       })
+    return () => { ignore = true }
   }, [userId, mesInicio])
-
-  // Reset carry-over flag when month changes
-  useEffect(() => {
-    setIntentoCopia(false)
-    setBannerCopia(null)
-    setExpandedId(null)
-  }, [mes])
 
   // Clear banner timer on unmount
   useEffect(() => {
@@ -75,25 +98,31 @@ export default function BudgetPage({ userId }: Props) {
     }
   }, [])
 
-  // Auto-copy previous month's budgets when current month is empty
+  // Copia automática de los presupuestos del mes anterior cuando el mes está vacío.
+  // Se decide con el resultado del fetch (vacioAlCargar), NO con presupuestos.length:
+  // con la longitud viva, borrar la última tarjeta volvía a disparar la copia y
+  // resucitaba justo lo que el usuario acababa de eliminar.
   useEffect(() => {
-    if (presupuestos.length > 0 || loading || intentoCopia) return
+    if (vacioAlCargar.mes !== mesInicio || !vacioAlCargar.vacio) return
+    if (copiaIntentadaRef.current === mesInicio) return
+    // Solo mes anterior -> mes actual. Sin esto, avanzar con "→" materializaba
+    // presupuestos en cada mes futuro visitado (fuera de alcance por diseño).
+    if (mes > mesActual()) return
 
-    let ignore = false
+    copiaIntentadaRef.current = mesInicio
+
     const prevDate = new Date(anio, mesNum - 2, 1)
     const mesPrevInicio = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`
 
     ;(async () => {
-      const { data: prevRows } = await supabase
+      const { data: prevRows, error: prevError } = await supabase
         .from('presupuestos')
         .select('categoria, monto_limite')
         .eq('user_id', userId)
         .eq('mes', mesPrevInicio)
         .eq('activo', true)
 
-      if (ignore) return
-      setIntentoCopia(true)
-
+      if (prevError) { setCopiaError({ mes: mesInicio, msg: prevError.message }); return }
       if (!prevRows || prevRows.length === 0) return
 
       const inserts = prevRows.map(r => ({
@@ -104,27 +133,27 @@ export default function BudgetPage({ userId }: Props) {
         activo: true,
       }))
 
-      const { data: inserted } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('presupuestos')
         .insert(inserts)
         .select('id, categoria, monto_limite, mes')
 
-      if (ignore) return
+      if (insertError) { setCopiaError({ mes: mesInicio, msg: insertError.message }); return }
       if (!inserted || inserted.length === 0) return
 
-      setPresupuestos(inserted)
-      setBannerCopia({ n: inserted.length, ids: inserted.map(r => r.id) })
+      setEstado(prev => (prev.mes === mesInicio ? { mes: mesInicio, rows: inserted } : prev))
+      setBannerCopia({ mes: mesInicio, n: inserted.length, ids: inserted.map(r => r.id) })
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
       bannerTimerRef.current = setTimeout(() => setBannerCopia(null), 4000)
     })()
+  }, [vacioAlCargar, mes, anio, mesNum, userId, mesInicio])
 
-    return () => { ignore = true }
-  }, [presupuestos.length, loading, intentoCopia, anio, mesNum, userId, mesInicio])
-
-  // Gastos por categoría del mes
+  // Gastos por categoría del mes. Incluye gasto_tc: un gasto con tarjeta es gasto
+  // igual, y omitirlo hacía que Presupuestos y Dashboard reportaran cifras distintas.
+  // pago_tc queda fuera a propósito: mueve deuda, no es consumo nuevo.
   const gastadoPorCat = useMemo(() => {
     const map: Record<string, number> = {}
-    txns.filter(t => t.tipo === 'gasto').forEach(t => {
+    txns.filter(t => t.tipo === 'gasto' || t.tipo === 'gasto_tc').forEach(t => {
       map[t.categoria] = (map[t.categoria] ?? 0) + Math.abs(t.cantidad)
     })
     return map
@@ -184,10 +213,13 @@ export default function BudgetPage({ userId }: Props) {
     }
 
     if (data) {
-      setPresupuestos(prev => {
-        const exists = prev.find(p => p.id === data.id)
-        if (exists) return prev.map(p => p.id === data.id ? data : p)
-        return [...prev, data]
+      setEstado(prev => {
+        if (prev.mes !== mesInicio) return prev
+        const exists = prev.rows.find(p => p.id === data.id)
+        return {
+          mes: prev.mes,
+          rows: exists ? prev.rows.map(p => p.id === data.id ? data : p) : [...prev.rows, data],
+        }
       })
     }
 
@@ -214,20 +246,32 @@ export default function BudgetPage({ userId }: Props) {
     setEditError('')
 
     const centavos = toCentavos(val)
-    const { error } = await supabase
+    // Acotar por user_id y mes: si por cualquier motivo el id fuera de otro mes,
+    // la escritura afecta 0 filas en lugar de reescribir un mes ya cerrado.
+    const { data: updated, error } = await supabase
       .from('presupuestos')
       .update({ monto_limite: centavos })
       .eq('id', editingId)
+      .eq('user_id', userId)
+      .eq('mes', mesInicio)
+      .select('id')
 
     if (error) {
       setEditError(error.message)
       setEditSaving(false)
       return
     }
+    if (!updated || updated.length === 0) {
+      setEditError('El presupuesto ya no existe en este mes')
+      setEditSaving(false)
+      return
+    }
 
-    setPresupuestos(prev =>
-      prev.map(p => p.id === editingId ? { ...p, monto_limite: centavos } : p)
-    )
+    setEstado(prev => (
+      prev.mes === mesInicio
+        ? { mes: prev.mes, rows: prev.rows.map(p => p.id === editingId ? { ...p, monto_limite: centavos } : p) }
+        : prev
+    ))
     setEditingId(null)
     setEditSaving(false)
   }
@@ -235,8 +279,18 @@ export default function BudgetPage({ userId }: Props) {
   const handleDelete = async (id: string) => {
     if (pendingDelete === id) {
       setPendingDelete(null)
-      await supabase.from('presupuestos').delete().eq('id', id)
-      setPresupuestos(prev => prev.filter(p => p.id !== id))
+      const { error } = await supabase
+        .from('presupuestos')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId)
+        .eq('mes', mesInicio)
+      if (error) { setCopiaError({ mes: mesInicio, msg: error.message }); return }
+      setEstado(prev => (
+        prev.mes === mesInicio
+          ? { mes: prev.mes, rows: prev.rows.filter(p => p.id !== id) }
+          : prev
+      ))
     } else {
       setPendingDelete(id)
       setTimeout(() => setPendingDelete(p => p === id ? null : p), 3000)
@@ -244,23 +298,46 @@ export default function BudgetPage({ userId }: Props) {
   }
 
   const handleUndo = async () => {
-    if (!bannerCopia) return
+    if (!bannerVisible) return
     if (bannerTimerRef.current) {
       clearTimeout(bannerTimerRef.current)
       bannerTimerRef.current = null
     }
-    const { error } = await supabase.from('presupuestos').delete().in('id', bannerCopia.ids)
+    const { error } = await supabase
+      .from('presupuestos')
+      .delete()
+      .in('id', bannerVisible.ids)
+      .eq('user_id', userId)
     if (error) {
-      console.error('Undo failed:', error.message)
+      setCopiaError({ mes: mesInicio, msg: error.message })
       return
     }
-    setPresupuestos([])
+    setEstado(prev => (prev.mes === mesInicio ? { mes: prev.mes, rows: [] } : prev))
     setBannerCopia(null)
-    // intentoCopia stays true — prevents re-copy in the same month session.
-    // Navigating to another month and back resets it via the mes-reset effect.
+    // El latch queda puesto para este mes: deshacer no debe re-disparar la copia.
+    // Navegar a otro mes y volver lo reinicia en el efecto de cambio de mes.
+    copiaIntentadaRef.current = mesInicio
   }
 
-  if (loading) {
+  if (fetchError) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6">
+        <div className="bg-surface rounded-2xl p-6 text-center space-y-3">
+          <p className="text-white font-semibold">No se pudieron cargar tus presupuestos</p>
+          <p className="text-muted text-sm">{fetchError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || txnsLoading) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <p className="text-muted text-center">Cargando...</p>
@@ -287,10 +364,10 @@ export default function BudgetPage({ userId }: Props) {
       </div>
 
       {/* Carry-over banner */}
-      {bannerCopia && (
+      {bannerVisible && (
         <div className="flex justify-between items-center bg-accent text-bg rounded-xl px-4 py-2.5">
           <span className="text-sm font-medium">
-            Se copiaron {bannerCopia.n} presupuestos del mes anterior
+            Se copiaron {bannerVisible.n} presupuestos del mes anterior
           </span>
           <button
             type="button"
@@ -300,6 +377,12 @@ export default function BudgetPage({ userId }: Props) {
             ↩ Deshacer
           </button>
         </div>
+      )}
+
+      {errorVisible && (
+        <p role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">
+          {errorVisible}
+        </p>
       )}
 
       {/* Empty state */}
@@ -322,46 +405,48 @@ export default function BudgetPage({ userId }: Props) {
         const { pct, estado, restante } = calcEstadoPresupuesto(gastado, p.monto_limite)
         const barColor = estado === 'excedido' ? '#f87171' : estado === 'alerta' ? '#fbbf24' : '#4ade80'
 
+        // La tarjeta es un div normal. Con role="button" el navegador poda sus
+        // descendientes del árbol de accesibilidad (children presentational), así que
+        // el %, lo gastado, el límite y la lista de transacciones quedaban inaudibles.
+        // Solo el encabezado izquierdo es el botón que expande.
         return (
-          <div
-            key={p.id}
-            role="button"
-            tabIndex={0}
-            aria-expanded={expandedId === p.id}
-            aria-label={expandedId === p.id
-              ? `${p.categoria} — ocultar transacciones`
-              : `${p.categoria} — ver transacciones`}
-            className="bg-surface rounded-2xl p-4 cursor-pointer"
-            onClick={() => setExpandedId(prev => prev === p.id ? null : p.id)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                setExpandedId(prev => prev === p.id ? null : p.id)
-              }
-            }}
-          >
+          <div key={p.id} className="bg-surface rounded-2xl p-4">
             <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setExpandido(prev => (prev?.mes === mesInicio && prev.id === p.id ? null : { mes: mesInicio, id: p.id }))}
+                aria-expanded={expandedId === p.id}
+                aria-controls={`txns-${p.id}`}
+                className="flex items-center gap-2 rounded-lg -m-1 p-1 hover:opacity-80 transition-opacity"
+              >
                 <span className="text-white text-sm font-medium">{p.categoria}</span>
-                <span className={`text-xs ${expandedId === p.id ? 'text-accent' : 'text-muted'}`}>
+                <span aria-hidden="true" className={`text-xs ${expandedId === p.id ? 'text-accent' : 'text-muted'}`}>
                   {expandedId === p.id ? '▴' : '▾'}
                 </span>
-              </div>
+              </button>
               <div className="flex items-center gap-1">
-                <span className={`text-xs font-mono font-semibold ${
-                  estado === 'excedido' ? 'text-danger' : estado === 'alerta' ? 'text-yellow-400' : 'text-success'
-                }`}>
+                <span
+                  aria-label={`${pct}% del límite usado`}
+                  className={`text-xs font-mono font-semibold ${
+                    estado === 'excedido' ? 'text-danger' : estado === 'alerta' ? 'text-yellow-400' : 'text-success'
+                  }`}
+                >
                   {pct}%
                 </span>
                 <button
-                  onClick={e => { e.stopPropagation(); openEdit(p) }}
+                  type="button"
+                  onClick={() => openEdit(p)}
                   className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors"
-                  aria-label="Editar"
+                  aria-label={`Editar límite de ${p.categoria}`}
                 >
                   ✎
                 </button>
                 <button
-                  onClick={e => { e.stopPropagation(); handleDelete(p.id) }}
+                  type="button"
+                  onClick={() => handleDelete(p.id)}
+                  aria-label={pendingDelete === p.id
+                    ? 'Confirmar eliminación'
+                    : `Eliminar presupuesto de ${p.categoria}`}
                   className={`text-xs px-2 py-1 rounded-lg transition-colors ${
                     pendingDelete === p.id
                       ? 'bg-danger text-white'
@@ -372,7 +457,7 @@ export default function BudgetPage({ userId }: Props) {
                 </button>
               </div>
             </div>
-            <div className="h-2 bg-bg rounded-full overflow-hidden mb-2">
+            <div aria-hidden="true" className="h-2 bg-bg rounded-full overflow-hidden mb-2">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${Math.min(pct, 100)}%`, background: barColor }}
@@ -386,11 +471,13 @@ export default function BudgetPage({ userId }: Props) {
             </div>
             <div className="text-xs text-muted mt-0.5 text-right">Límite: {formatQ(p.monto_limite)}</div>
             {expandedId === p.id && (() => {
+              // Mismo criterio que gastadoPorCat: incluir gasto_tc para que el
+              // detalle sume exactamente lo que muestra la barra.
               const txsCat = txns
-                .filter(t => t.tipo === 'gasto' && t.categoria === p.categoria)
+                .filter(t => (t.tipo === 'gasto' || t.tipo === 'gasto_tc') && t.categoria === p.categoria)
                 .sort((a, b) => b.fecha.localeCompare(a.fecha))
               return (
-                <div className="border-t border-muted/20 mt-3 pt-3">
+                <div id={`txns-${p.id}`} className="border-t border-muted/20 mt-3 pt-3">
                   <p className="text-muted text-xs uppercase tracking-wider mb-2">
                     {txsCat.length} transacciones
                   </p>

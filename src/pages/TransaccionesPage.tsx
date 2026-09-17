@@ -58,6 +58,10 @@ export default function TransaccionesPage({ user }: Props) {
   const [editCategoria, setEditCategoria] = useState('')
   const [editFecha, setEditFecha] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  // Error de guardado para alta de movimientos y transferencias
+  const [formError, setFormError] = useState('')
 
   const txnsFiltrados = useMemo(() => {
     return txns.filter(t => {
@@ -68,16 +72,32 @@ export default function TransaccionesPage({ user }: Props) {
     })
   }, [txns, filterCuenta, filterTipo, filterBusqueda])
 
+  // Escapa un campo CSV: comillas siempre, y neutraliza la inyección de fórmulas
+  // (Excel/Sheets evalúan un campo que empieza con = + - @, tab o CR).
+  const csvCampo = (valor: string | number) => {
+    const s = String(valor)
+    const seguro = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+    return `"${seguro.replace(/"/g, '""')}"`
+  }
+
   const handleExportCSV = () => {
     const headers = ['fecha', 'descripcion', 'categoria', 'tipo', 'cantidad_Q', 'cuenta']
     const getCuentaNombre = (id: string) => cuentas.find(c => c.id === id)?.nombre ?? id
+    const getTarjetaNombre = (id: string) =>
+      resumenTCs.find(r => r.tc.id === id)?.tc.nombre ?? id
     const rows = txnsFiltrados.map(t => [
-      t.fecha,
-      `"${t.descripcion.replace(/"/g, '""')}"`,
-      t.categoria,
-      t.tipo,
-      (t.cantidad / 100).toFixed(2),
-      t.cuenta_id ? getCuentaNombre(t.cuenta_id) : (t.tarjeta_id ?? 'TC'),
+      csvCampo(t.fecha),
+      csvCampo(t.descripcion),
+      csvCampo(t.categoria),
+      csvCampo(t.tipo),
+      csvCampo((t.cantidad / 100).toFixed(2)),
+      csvCampo(
+        t.cuenta_id
+          ? getCuentaNombre(t.cuenta_id)
+          : t.tarjeta_id
+            ? getTarjetaNombre(t.tarjeta_id)
+            : 'TC',
+      ),
     ].join(','))
     const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -96,10 +116,12 @@ export default function TransaccionesPage({ user }: Props) {
     if (tipo === 'transferencia') return
     setSaving(true)
 
+    setFormError('')
+
     if (tipo === 'gasto_tc') {
-      if (!tcId) { setSaving(false); return }
+      if (!tcId) { setSaving(false); setFormError('Selecciona una tarjeta'); return }
       const monto = parseFloat(cantidad)
-      if (isNaN(monto) || monto <= 0) { setSaving(false); return }
+      if (isNaN(monto) || monto <= 0) { setSaving(false); setFormError('Ingresa un monto mayor a Q0'); return }
       try {
         await registrarCargo({
           tarjeta_id:  tcId,
@@ -111,7 +133,7 @@ export default function TransaccionesPage({ user }: Props) {
         setShowForm(false)
         setCantidad(''); setDescripcion(''); setCategoria(categoriasGasto[0])
       } catch (e: unknown) {
-        console.error('Error registrando cargo TC:', e)
+        setFormError(e instanceof Error ? e.message : 'No se pudo registrar el cargo')
       } finally {
         setSaving(false)
       }
@@ -119,38 +141,52 @@ export default function TransaccionesPage({ user }: Props) {
     }
 
     const val = parseFloat(cantidad)
-    if (isNaN(val) || val <= 0 || !descripcion || !cuentaId) { setSaving(false); return }
+    if (isNaN(val) || val <= 0) { setSaving(false); setFormError('Ingresa un monto mayor a Q0'); return }
+    if (!descripcion.trim()) { setSaving(false); setFormError('Agrega una descripción'); return }
+    if (!cuentaId) { setSaving(false); setFormError('Selecciona una cuenta'); return }
 
     const centavos = toCentavos(val)
     const cantidadFinal = tipo === 'gasto' ? -centavos : centavos
     const tipoTxn: TipoTxn = tipo
 
-    await addTxn({ cuenta_id: cuentaId, cantidad: cantidadFinal, descripcion, categoria, tipo: tipoTxn, fecha })
+    const { error } = await addTxn({ cuenta_id: cuentaId, cantidad: cantidadFinal, descripcion, categoria, tipo: tipoTxn, fecha })
+
+    setSaving(false)
+    if (error) {
+      setFormError(typeof error === 'string' ? error : error.message)
+      return
+    }
 
     setCantidad('')
     setDescripcion('')
     setFecha(hoyGT())
     setShowForm(false)
-    setSaving(false)
   }
 
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
     const val = parseFloat(cantidad)
-    if (isNaN(val) || val <= 0 || !transferDe || !transferA || transferDe === transferA) return
+    if (isNaN(val) || val <= 0) { setFormError('Ingresa un monto mayor a Q0'); return }
+    if (!transferDe || !transferA) { setFormError('Selecciona ambas cuentas'); return }
+    if (transferDe === transferA) { setFormError('Las cuentas deben ser distintas'); return }
     setTransferSaving(true)
-    await addTransferencia({
+    const { error } = await addTransferencia({
       deCuentaId: transferDe,
       aCuentaId: transferA,
       cantidad: toCentavos(val),
       descripcion: descripcion || 'Transferencia',
       fecha,
     })
+    setTransferSaving(false)
+    if (error) {
+      setFormError(typeof error === 'string' ? error : error.message)
+      return
+    }
     setCantidad('')
     setDescripcion('')
     setFecha(hoyGT())
     setShowForm(false)
-    setTransferSaving(false)
   }
 
   const handleDelete = (id: string) => {
@@ -168,7 +204,14 @@ export default function TransaccionesPage({ user }: Props) {
     }
   }
 
+  // Los movimientos de TC los administra el trigger actualizar_deuda_tc, cuya rama
+  // UPDATE solo contempla gasto_tc: editarlos desincroniza la deuda de la tarjeta.
+  // Se corrigen borrando y volviendo a registrarlos desde Tarjetas.
+  const esEditable = (t: Transaccion) => t.tipo !== 'gasto_tc' && t.tipo !== 'pago_tc'
+
   const handleEditOpen = (t: Transaccion) => {
+    if (!esEditable(t)) return
+    setEditError('')
     setEditingTxn(t)
     setEditCantidad(String(Math.abs(t.cantidad) / 100))
     setEditDescripcion(t.descripcion)
@@ -180,18 +223,26 @@ export default function TransaccionesPage({ user }: Props) {
     e.preventDefault()
     if (!editingTxn) return
     const val = parseFloat(editCantidad)
-    if (isNaN(val) || val <= 0) return
+    if (isNaN(val) || val <= 0) { setEditError('Ingresa un monto mayor a Q0'); return }
     setEditSaving(true)
+    setEditError('')
     const centavos = toCentavos(val)
-    const cantidadFinal = editingTxn.tipo === 'gasto' ? -centavos : centavos
-    await updateTxn(editingTxn.id, {
+    // Preservar el signo guardado. Derivarlo del tipo volteaba el signo de todo lo
+    // que no fuera 'gasto' (ajustes, patas de transferencia, movimientos de TC) y el
+    // trigger de saldo aplicaba 2x el monto. 'ajuste' es legítimamente de cualquier signo.
+    const cantidadFinal = editingTxn.cantidad < 0 ? -centavos : centavos
+    const { error } = await updateTxn(editingTxn.id, {
       cantidad: cantidadFinal,
       descripcion: editDescripcion,
       categoria: editCategoria,
       fecha: editFecha,
     })
-    setEditingTxn(null)
     setEditSaving(false)
+    if (error) {
+      setEditError(typeof error === 'string' ? error : error.message)
+      return
+    }
+    setEditingTxn(null)
   }
 
   const handleUndo = async () => {
@@ -235,7 +286,8 @@ export default function TransaccionesPage({ user }: Props) {
             ↓ CSV
           </button>
           <button
-            onClick={() => setShowForm(true)}
+            type="button"
+            onClick={() => { setFormError(''); setShowForm(true) }}
             className="bg-accent text-bg font-semibold text-sm px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
           >
             + Agregar
@@ -295,15 +347,20 @@ export default function TransaccionesPage({ user }: Props) {
             <span className={`font-mono text-sm font-semibold flex-shrink-0 ${t.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
               {t.cantidad > 0 ? '+' : ''}{formatQ(t.cantidad)}
             </span>
+            {esEditable(t) && (
+              <button
+                type="button"
+                onClick={() => handleEditOpen(t)}
+                className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors flex-shrink-0"
+                aria-label={`Editar ${t.descripcion}`}
+              >
+                ✎
+              </button>
+            )}
             <button
-              onClick={() => handleEditOpen(t)}
-              className="text-xs px-2 py-1 rounded-lg text-muted hover:text-accent transition-colors flex-shrink-0"
-              aria-label="Editar"
-            >
-              ✎
-            </button>
-            <button
+              type="button"
               onClick={() => handleDelete(t.id)}
+              aria-label={pendingDelete === t.id ? 'Confirmar eliminación' : `Eliminar ${t.descripcion}`}
               className={`text-xs px-2 py-1 rounded-lg transition-colors flex-shrink-0 ${
                 pendingDelete === t.id
                   ? 'bg-danger text-white'
@@ -400,6 +457,10 @@ export default function TransaccionesPage({ user }: Props) {
                 />
               </div>
 
+              {editError && (
+                <p role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{editError}</p>
+              )}
+
               <button
                 type="submit"
                 disabled={editSaving}
@@ -493,6 +554,9 @@ export default function TransaccionesPage({ user }: Props) {
                   <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
                     className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent" />
                 </div>
+                {formError && (
+                  <p role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{formError}</p>
+                )}
                 <button type="submit" disabled={transferSaving || transferDe === transferA}
                   className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50"
                   style={{ background: '#60a5fa', color: 'white' }}>
@@ -597,6 +661,10 @@ export default function TransaccionesPage({ user }: Props) {
                   className="w-full bg-bg border border-muted/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent"
                 />
               </div>
+
+              {formError && (
+                <p role="alert" className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{formError}</p>
+              )}
 
               <button
                 type="submit"
