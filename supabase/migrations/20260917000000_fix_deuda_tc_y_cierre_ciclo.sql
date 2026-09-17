@@ -12,6 +12,20 @@
 -- esto (los dos archivos definen las mismas funciones; schema.sql es el
 -- autoritativo).
 --
+-- ORDEN: correr este archivo y después supabase/schema.sql. Los dos traen el
+-- mismo backfill con el trigger de deuda neutralizado, así que el orden
+-- inverso también funciona; este primero solo porque imprime los NOTICE con
+-- el conteo de pagos cuyo reparto se reconstruyó.
+--
+-- ⚠️  ANTES DE CORRER: el PASO 2 reconstruye el reparto de los pago_tc
+--     históricos con una SUPOSICIÓN (100% contra deuda_ciclo_anterior),
+--     porque el reparto real no es derivable del ledger. Guardá primero la
+--     lista que está al inicio del PASO 2: después ya no se distingue.
+--     Y al terminar, compará el total de deuda de cada tarjeta contra tu
+--     estado de cuenta (PASO 7d): los buckets pueden venir ya desviados por
+--     los defectos D1/D2 que estuvieron vivos, y eso no se puede
+--     re-simular — se corrige a mano.
+--
 -- Defectos que corrige (todos en el bloque SQL de
 -- docs/superpowers/plans/2026-04-03-fase6-tarjetas-credito.md, que queda
 -- superseded por supabase/schema.sql):
@@ -77,6 +91,35 @@ alter table transacciones
 --    order by fecha;
 -- ══════════════════════════════════════════════════════════════════════
 
+-- ⚠️  EL BACKFILL TIENE QUE CORRER SIN EL TRIGGER DE DEUDA.
+--     Cada UPDATE de abajo dispararía el trigger VIEJO (AFTER), cuya rama
+--     UPDATE no es simétrica: hace
+--         deuda_actual = greatest(0, deuda_actual - abs(OLD.cantidad))
+--     y después, en otro statement,
+--         deuda_actual = deuda_actual + abs(NEW.cantidad)
+--     Como el backfill NO cambia `cantidad`, eso equivale a
+--         deuda_actual := max(deuda_actual, abs(cantidad))
+--     que es neutro SOLO mientras deuda_actual >= el monto de la fila. En una
+--     tarjeta ya pagada, o con el ciclo cerrado (donde el monto vive en
+--     deuda_ciclo_anterior y deuda_actual es 0), el backfill le INVENTABA
+--     deuda inexistente, fila por fila, y el resultado no se puede distinguir
+--     después de la deuda real.
+--     Se usa `disable` y no `drop`: si el script aborta a mitad, un trigger
+--     deshabilitado es recuperable y el PASO 7a lo detecta; uno borrado
+--     dejaría la tabla sin control de deuda sin que se note.
+do $$
+begin
+  if exists (
+    select 1 from pg_trigger
+     where tgname = 'trg_deuda_tc'
+       and tgrelid = 'public.transacciones'::regclass
+       and not tgisinternal
+  ) then
+    alter table transacciones disable trigger trg_deuda_tc;
+    raise notice 'trg_deuda_tc deshabilitado para el backfill.';
+  end if;
+end $$;
+
 -- 2a. gasto_tc: EXACTO. Un cargo siempre sumó su monto completo a
 --     `deuda_actual`, nunca hubo reparto ni clamp.
 update transacciones
@@ -126,14 +169,36 @@ begin
   end if;
 end $$;
 
+-- Rehabilitar el trigger de deuda. Si esto no corre (script abortado antes de
+-- llegar acá), el PASO 7a lo detecta: la tabla queda con el trigger
+-- deshabilitado y los movimientos de TC dejan de actualizar la deuda.
+do $$
+begin
+  if exists (
+    select 1 from pg_trigger
+     where tgname = 'trg_deuda_tc'
+       and tgrelid = 'public.transacciones'::regclass
+       and not tgisinternal
+  ) then
+    alter table transacciones enable trigger trg_deuda_tc;
+    raise notice 'trg_deuda_tc rehabilitado.';
+  end if;
+end $$;
+
 
 -- ══════════════════════════════════════════════════════════════════════
 -- PASO 3 (D1, D2, D4) — Trigger de deuda exactamente reversible
 --
 -- Pasa de AFTER a BEFORE porque tiene que escribir el reparto en la fila.
 -- Estructura: revertir OLD (update/delete) → aplicar NEW (insert/update),
--- así los tres branches son inversos exactos y un cambio de monto, de tipo
--- o de tarjeta_id queda consistente.
+-- así los tres branches son inversos y un cambio de monto, de tipo o de
+-- tarjeta_id queda consistente.
+--
+-- Alcance honesto de "inverso exacto": lo es mientras el ciclo del cargo siga
+-- abierto. cerrar_ciclo_tc mueve deuda_actual → deuda_ciclo_anterior, y el
+-- PASO 5 migra el reparto de las filas que arrastra para que la reversión
+-- siga cuadrando; el término de sobrante en el paso 1 cubre el caso de una
+-- fila cuyo reparto quedó viejo de todas formas.
 -- La tarjeta se bloquea con `for update` antes de calcular el reparto (dos
 -- pago_tc concurrentes ya no pueden leer el mismo saldo previo) y se filtra
 -- por user_id (D4: la función es SECURITY DEFINER y RLS no la limita).
@@ -152,23 +217,58 @@ declare
   v_d_ant bigint;   -- delta a aplicar sobre deuda_ciclo_anterior
   v_d_act bigint;   -- delta a aplicar sobre deuda_actual
 begin
+  -- Escape hatch para operaciones que reescriben el reparto a mano:
+  -- cerrar_ciclo_tc migra el reparto de los cargos que arrastra de un bucket
+  -- al otro, y sin esto el paso 2 lo recalcularía desde `cantidad` y volvería
+  -- a aplicar el delta. `set_config(..., true)` es local a la transacción, así
+  -- que no puede quedar encendido ni filtrarse a otra sesión.
+  if coalesce(current_setting('vorta.reparto_manual', true), 'off') = 'on' then
+    if TG_OP = 'DELETE' then
+      return OLD;
+    end if;
+    return NEW;
+  end if;
+
   -- ── 1. Revertir el efecto de OLD (UPDATE y DELETE) ──────────────────
   if TG_OP in ('UPDATE', 'DELETE')
      and OLD.tarjeta_id is not null
      and OLD.tipo in ('gasto_tc', 'pago_tc') then
 
     if OLD.aplicado_ciclo_anterior is null or OLD.aplicado_actual is null then
-      -- Fila anterior a esta migración cuyo reparto no se guardó. Adivinarlo
-      -- puede borrar deuda real, así que se rechaza la operación en vez de
-      -- corromper la tarjeta en silencio. Corré el PASO 2.
-      raise exception
-        'La transacción % no tiene reparto de deuda registrado (aplicado_ciclo_anterior / aplicado_actual). Corré el backfill del PASO 2 de esta migración antes de editarla o eliminarla.',
-        OLD.id;
+      if OLD.tipo = 'gasto_tc' then
+        -- Reparto exacto y conocido: un cargo siempre sumó su monto completo
+        -- a deuda_actual (ver PASO 2a). No hay nada que adivinar, así que
+        -- rechazar la operación sería gratuito.
+        v_d_ant := 0;
+        v_d_act := abs(OLD.cantidad);
+      else
+        -- Solo pago_tc es irrecuperable: el INSERT repartía entre los dos
+        -- buckets con clamp y ese reparto no quedó guardado. Adivinarlo puede
+        -- borrar deuda real, así que se rechaza en vez de corromper en
+        -- silencio. Corré el PASO 2.
+        raise exception
+          'El pago % no tiene reparto de deuda registrado (aplicado_ciclo_anterior / aplicado_actual). Corré el backfill del PASO 2 de esta migración antes de editarlo o eliminarlo.',
+          OLD.id;
+      end if;
+    else
+      v_d_ant := OLD.aplicado_ciclo_anterior;
+      v_d_act := OLD.aplicado_actual;
     end if;
 
+    -- El sobrante que no alcanza a restarse de deuda_actual se resta de
+    -- deuda_ciclo_anterior: si hubo un cierre de ciclo entre el INSERT y esta
+    -- reversión, cerrar_ciclo_tc movió el monto de bucket. Sin este término,
+    -- el greatest(0, …) lo descartaba y la tarjeta quedaba con deuda fantasma.
+    -- Para un pago_tc los deltas son negativos, así que el término es 0 y no
+    -- cambia nada.
     update tarjetas_credito
-       set deuda_ciclo_anterior = greatest(0, deuda_ciclo_anterior - OLD.aplicado_ciclo_anterior),
-           deuda_actual         = greatest(0, deuda_actual         - OLD.aplicado_actual)
+       set deuda_actual = greatest(0, deuda_actual - v_d_act),
+           deuda_ciclo_anterior = greatest(
+             0,
+             deuda_ciclo_anterior
+               - v_d_ant
+               - greatest(0, v_d_act - deuda_actual)
+           )
      where id = OLD.tarjeta_id
        and user_id = OLD.user_id;
   end if;
@@ -268,6 +368,7 @@ declare
   v_uid           uuid := auth.uid();
   v_tc            record;
   v_ciclo_id      uuid;
+  v_ciclos_cerr   uuid[];
   v_ultimo_cierre date;
   v_inicio        date;
   v_cierre        date;
@@ -311,6 +412,15 @@ begin
     return;
   end if;
 
+  -- Se capturan ANTES de cerrarlos, para migrar solo el reparto de las filas
+  -- que este cierre arrastra (y que un segundo cierre sea idempotente).
+  select coalesce(array_agg(id), '{}')
+    into v_ciclos_cerr
+    from ciclos_tc
+   where tarjeta_id = p_tarjeta_id
+     and user_id = v_uid
+     and estado = 'abierto';
+
   update ciclos_tc
      set estado = 'cerrado',
          saldo_final = v_tc.deuda_actual
@@ -323,6 +433,23 @@ begin
          deuda_actual = 0
    where id = p_tarjeta_id
      and user_id = v_uid;
+
+  -- El cierre acaba de mover estos cargos de deuda_actual a
+  -- deuda_ciclo_anterior, así que su reparto guardado tiene que moverse con
+  -- ellos. Sin esto, aplicado_actual apunta a un bucket donde el monto ya no
+  -- está y al eliminar el cargo la reversión resta del bucket equivocado
+  -- (era la vía por la que D1 seguía siendo alcanzable tras un cierre).
+  perform set_config('vorta.reparto_manual', 'on', true);
+  update transacciones
+     set aplicado_ciclo_anterior = coalesce(aplicado_ciclo_anterior, 0) + aplicado_actual,
+         aplicado_actual         = 0
+   where tarjeta_id = p_tarjeta_id
+     and user_id    = v_uid
+     and tipo       = 'gasto_tc'
+     and aplicado_actual is not null
+     and aplicado_actual <> 0
+     and ciclo_id = any(v_ciclos_cerr);
+  perform set_config('vorta.reparto_manual', 'off', true);
 
   -- ── Sucesor: contiguo al último cierre registrado ──
   -- Se deriva del ciclo CERRADO, no de hoy: así las fechas no se pisan y no
