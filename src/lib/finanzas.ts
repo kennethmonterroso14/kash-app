@@ -215,11 +215,45 @@ export interface PatrimonioNeto {
   tendencia: 'positiva' | 'negativa' | 'neutral'
 }
 
+/**
+ * Limita `dia` al último día real del mes indicado (mes 0-11, estilo Date.getMonth).
+ * Ej: _diaClamp(2026, 1, 31) → 28 (febrero 2026 no es bisiesto)
+ */
+function _diaClamp(año: number, mes: number, dia: number): number {
+  // día 0 del mes siguiente = último día de `mes`
+  return Math.min(dia, new Date(año, mes + 1, 0).getDate())
+}
+
+/** Date local del `dia` (clampado) de un mes 1-12. */
+function _diaEnMes(año: number, mes: number, dia: number): Date {
+  return new Date(año, mes - 1, _diaClamp(año, mes - 1, dia))
+}
+
+/** Formatea un Date local como 'YYYY-MM-DD' sin depender de locale ni de UTC. */
+function _fechaISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Próxima ocurrencia del `dia` del mes a partir de `desde` (exclusivo).
+ * El día se clampa al último día real del mes objetivo, así que una tarjeta
+ * con cierre 31 cierra el 28/29 en febrero y el 30 en los meses de 30 días,
+ * en lugar de desbordarse al mes siguiente. Conserva la hora de `desde`.
+ */
 function _proximaFechaDelDia(desde: Date, dia: number): Date {
-  const d = new Date(desde)
-  d.setDate(dia)
-  if (d <= desde) d.setMonth(d.getMonth() + 1)
-  return d
+  const año = desde.getFullYear()
+  const mes = desde.getMonth()
+
+  const esteMes = new Date(desde)
+  esteMes.setDate(_diaClamp(año, mes, dia))
+  if (esteMes > desde) return esteMes
+
+  const sigAño = mes === 11 ? año + 1 : año
+  const sigMes = (mes + 1) % 12
+  const siguiente = new Date(desde)
+  // setFullYear(y, m, d) asigna los tres campos a la vez → no hay desbordamiento
+  siguiente.setFullYear(sigAño, sigMes, _diaClamp(sigAño, sigMes, dia))
+  return siguiente
 }
 
 export function calcResumenTC(tc: TarjetaCredito): ResumenTC {
@@ -381,25 +415,35 @@ export function calcResumenPortafolio(
 
 /**
  * Computa la evolución total del portafolio para la gráfica.
- * Para cada fecha única en historial, suma el último valor conocido de cada inversión
- * (convirtiendo a GTQ). Inversiones sin historial previo a esa fecha usan monto_invertido.
+ * Para cada fecha única del historial de las inversiones ACTIVAS, suma el último
+ * valor conocido de cada inversión activa (convirtiendo a GTQ).
+ * Una inversión sin historial previo a esa fecha usa monto_invertido, pero solo
+ * si la fecha es >= su fecha_inicio: antes de existir aporta 0.
  */
 export function computeEvolucionPortafolio(
   inversiones: Inversion[],
   historial: InversionHistorial[],
   tipoCambioUSD: number = 775
 ): Array<{ fecha: string; valor_total: number }> {
-  const fechas = [...new Set(historial.map(h => h.fecha))].sort()
+  const activas = inversiones.filter(i => i.activa)
+  // Solo fechas de inversiones activas: una inversión archivada no debe inyectar
+  // fechas al eje X si sus valores quedan fuera de la suma (reescribiría el pasado).
+  const idsActivas = new Set(activas.map(i => i.id))
+  const histActivo = historial.filter(h => idsActivas.has(h.inversion_id))
+
+  const fechas = [...new Set(histActivo.map(h => h.fecha))].sort()
   if (fechas.length === 0) return []
 
   const toGTQ = (inv: Inversion, val: number): number =>
     inv.moneda === 'USD' ? usdToGTQ(val, tipoCambioUSD) : val
 
   return fechas.map(fecha => {
-    const valor_total = inversiones.filter(i => i.activa).reduce((sum, inv) => {
-      const entradas = historial
+    const valor_total = activas.reduce((sum, inv) => {
+      const entradas = histActivo
         .filter(h => h.inversion_id === inv.id && h.fecha <= fecha)
         .sort((a, b) => b.fecha.localeCompare(a.fecha))
+      // Antes de fecha_inicio la inversión no existía → aporta 0
+      if (entradas.length === 0 && fecha < inv.fecha_inicio) return sum
       const val = entradas[0]?.valor ?? inv.monto_invertido
       return sum + toGTQ(inv, val)
     }, 0)
@@ -439,6 +483,10 @@ export interface AlertaTC {
  * - El pago siempre cae DESPUÉS del cierre:
  *   si diaPago > diaCierre: mismo mes que el cierre
  *   si diaPago <= diaCierre: mes siguiente al cierre
+ *
+ * Los días se clampan al último día real del mes objetivo (cierre 31 → 28/29 en
+ * febrero, 30 en abril/junio/septiembre/noviembre), porque ciclos_tc.fecha_cierre
+ * y .fecha_pago son columnas `date` y Postgres rechaza un '2026-02-31'.
  */
 export function calcFechasCiclo(
   diaCierre: number,
@@ -456,14 +504,16 @@ export function calcFechasCiclo(
     cierreMes += 1
     if (cierreMes > 12) { cierreMes = 1; cierreAño += 1 }
   }
-  const fechaCierre = `${cierreAño}-${String(cierreMes).padStart(2, '0')}-${String(diaCierre).padStart(2, '0')}`
+  const fechaCierre = _fechaISO(_diaEnMes(cierreAño, cierreMes, diaCierre))
 
-  // Inicio = día después del cierre anterior (usar Date para manejar overflow de días)
+  // Inicio = día siguiente al cierre ANTERIOR ya clampado, para que dos ciclos
+  // consecutivos siempre sean contiguos (feb cierra el 28 → marzo inicia el 1)
   let inicioAño = cierreAño
   let inicioMes = cierreMes - 1
   if (inicioMes < 1) { inicioMes = 12; inicioAño -= 1 }
-  const inicioDate = new Date(inicioAño, inicioMes - 1, diaCierre + 1)
-  const fechaInicio = inicioDate.toLocaleDateString('en-CA')
+  const inicioDate = _diaEnMes(inicioAño, inicioMes, diaCierre)
+  inicioDate.setDate(inicioDate.getDate() + 1)
+  const fechaInicio = _fechaISO(inicioDate)
 
   // Pago: después del cierre
   let pagoAño = cierreAño
@@ -472,7 +522,7 @@ export function calcFechasCiclo(
     pagoMes += 1
     if (pagoMes > 12) { pagoMes = 1; pagoAño += 1 }
   }
-  const fechaPago = `${pagoAño}-${String(pagoMes).padStart(2, '0')}-${String(diaPago).padStart(2, '0')}`
+  const fechaPago = _fechaISO(_diaEnMes(pagoAño, pagoMes, diaPago))
 
   return { fecha_inicio: fechaInicio, fecha_cierre: fechaCierre, fecha_pago: fechaPago }
 }
@@ -492,7 +542,11 @@ export function calcAlertasTC(
   for (const tc of tarjetas) {
     // Pago vencido
     if (tc.deuda_ciclo_anterior > 0) {
-      const diaPagoEsteMes = new Date(hoy.getFullYear(), hoy.getMonth(), tc.dia_pago)
+      const diaPagoEsteMes = new Date(
+        hoy.getFullYear(),
+        hoy.getMonth(),
+        _diaClamp(hoy.getFullYear(), hoy.getMonth(), tc.dia_pago)
+      )
       if (hoy >= diaPagoEsteMes) {
         alertas.push({ tipo: 'pago_vencido', tc, monto: tc.deuda_ciclo_anterior })
       }

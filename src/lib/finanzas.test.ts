@@ -6,6 +6,7 @@ import {
   computeEvolucionPortafolio,
   calcFechasCiclo,
   calcAlertasTC,
+  calcResumenTC,
   type Inversion,
   type InversionHistorial,
   type TarjetaCredito,
@@ -128,6 +129,34 @@ describe('computeEvolucionPortafolio', () => {
     const result = computeEvolucionPortafolio([inv, inv2], hist)
     expect(result[0].valor_total).toBe(105_000 + 50_000)
   })
+  it('aporta 0 en fechas anteriores a fecha_inicio (no rellena con monto_invertido)', () => {
+    const tardia: Inversion = {
+      ...inv, id: '2', monto_invertido: 50_000, valor_actual: 50_000,
+      fecha_inicio: '2026-09-01',
+    }
+    const histTardia: InversionHistorial[] = [
+      ...hist,
+      { id: 'h4', inversion_id: '2', valor: 50_000, fecha: '2026-09-01' },
+    ]
+    const result = computeEvolucionPortafolio([inv, tardia], histTardia)
+    expect(result).toHaveLength(4)
+    // La inversión tardía todavía no existía en feb/mar/abr → no suma nada
+    expect(result[0]).toEqual({ fecha: '2026-02-01', valor_total: 105_000 })
+    expect(result[2]).toEqual({ fecha: '2026-04-01', valor_total: 115_000 })
+    expect(result[3]).toEqual({ fecha: '2026-09-01', valor_total: 115_000 + 50_000 })
+  })
+
+  it('ignora las fechas que solo aporta una inversión archivada', () => {
+    const archivada: Inversion = {
+      ...inv, id: '2', activa: false, fecha_inicio: '2025-01-01',
+    }
+    const histArchivada: InversionHistorial[] = [
+      { id: 'a1', inversion_id: '2', valor: 900_000, fecha: '2025-06-01' },
+    ]
+    const result = computeEvolucionPortafolio([inv, archivada], [...histArchivada, ...hist])
+    expect(result.map(r => r.fecha)).toEqual(['2026-02-01', '2026-03-01', '2026-04-01'])
+  })
+
   it('convierte inversiones USD a GTQ en el valor total', () => {
     const usdInv: Inversion = {
       id: '2', nombre: 'B', tipo: 'acciones',
@@ -180,6 +209,92 @@ describe('calcFechasCiclo', () => {
     expect(r.fecha_inicio).toBe('2026-12-16')
     expect(r.fecha_pago).toBe('2027-02-05')
   })
+
+  // ── días 29-31: el día debe clamparse al último día real del mes ──
+  it('clampa dia_cierre 31 a febrero no bisiesto', () => {
+    const hoy = new Date(2026, 1, 5)   // 5 feb 2026 (no bisiesto)
+    const r = calcFechasCiclo(31, 5, hoy)
+    expect(r.fecha_cierre).toBe('2026-02-28')
+    expect(r.fecha_inicio).toBe('2026-02-01')  // 31 ene + 1 día
+    expect(r.fecha_pago).toBe('2026-03-05')
+  })
+
+  it('clampa dia_cierre 31 a febrero bisiesto', () => {
+    const hoy = new Date(2028, 1, 5)   // 5 feb 2028 (bisiesto)
+    const r = calcFechasCiclo(31, 5, hoy)
+    expect(r.fecha_cierre).toBe('2028-02-29')
+    expect(r.fecha_inicio).toBe('2028-02-01')
+    expect(r.fecha_pago).toBe('2028-03-05')
+  })
+
+  it('clampa dia_cierre 30 en febrero', () => {
+    const hoy = new Date(2026, 1, 5)
+    const r = calcFechasCiclo(30, 15, hoy)
+    expect(r.fecha_cierre).toBe('2026-02-28')
+    expect(r.fecha_inicio).toBe('2026-01-31')  // 30 ene + 1 día
+    expect(r.fecha_pago).toBe('2026-03-15')
+  })
+
+  it('clampa dia_cierre 29 en febrero no bisiesto', () => {
+    const hoy = new Date(2026, 1, 3)
+    const r = calcFechasCiclo(29, 10, hoy)
+    expect(r.fecha_cierre).toBe('2026-02-28')
+    expect(r.fecha_pago).toBe('2026-03-10')
+  })
+
+  it('clampa dia_cierre 31 en meses de 30 días', () => {
+    const r = calcFechasCiclo(31, 5, new Date(2026, 3, 10))   // abril
+    expect(r.fecha_cierre).toBe('2026-04-30')
+    expect(r.fecha_inicio).toBe('2026-04-01')                 // 31 mar + 1 día
+    const s = calcFechasCiclo(31, 15, new Date(2026, 8, 17))  // septiembre
+    expect(s.fecha_cierre).toBe('2026-09-30')
+    expect(s.fecha_inicio).toBe('2026-09-01')
+  })
+
+  it('clampa dia_pago 31 en meses de 30 días', () => {
+    const r = calcFechasCiclo(20, 31, new Date(2026, 8, 5))   // pago mismo mes (31 > 20)
+    expect(r.fecha_cierre).toBe('2026-09-20')
+    expect(r.fecha_pago).toBe('2026-09-30')
+  })
+
+  it('cruza el año con dia_cierre 31', () => {
+    const hoy = new Date(2026, 11, 31)   // 31 dic 2026, dia >= dia_cierre
+    const r = calcFechasCiclo(31, 15, hoy)
+    expect(r.fecha_cierre).toBe('2027-01-31')
+    expect(r.fecha_inicio).toBe('2027-01-01')  // 31 dic 2026 + 1 día
+    expect(r.fecha_pago).toBe('2027-02-15')
+  })
+
+  it('nunca emite un día que el mes no tiene y mantiene ciclos contiguos', () => {
+    const esFechaReal = (iso: string) => {
+      const [a, m, d] = iso.split('-').map(Number)
+      const dt = new Date(a, m - 1, d)
+      return dt.getFullYear() === a && dt.getMonth() === m - 1 && dt.getDate() === d
+    }
+    const diaSiguiente = (iso: string) => {
+      const [a, m, d] = iso.split('-').map(Number)
+      const dt = new Date(a, m - 1, d + 1)
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+    }
+
+    for (const dia of [28, 29, 30, 31]) {
+      let anterior: { fecha_cierre: string } | null = null
+      for (let mes = 0; mes < 26; mes++) {
+        // día 2 de cada mes: siempre < dia_cierre → el cierre cae en ese mes
+        const hoy = new Date(2026, mes, 2)
+        const r = calcFechasCiclo(dia, dia, hoy)
+        expect(esFechaReal(r.fecha_inicio)).toBe(true)
+        expect(esFechaReal(r.fecha_cierre)).toBe(true)
+        expect(esFechaReal(r.fecha_pago)).toBe(true)
+        expect(r.fecha_inicio <= r.fecha_cierre).toBe(true)
+        expect(r.fecha_cierre < r.fecha_pago).toBe(true)
+        if (anterior) {
+          expect(r.fecha_inicio).toBe(diaSiguiente(anterior.fecha_cierre))
+        }
+        anterior = r
+      }
+    }
+  })
 })
 
 // ── calcAlertasTC ───────────────────────────────────────────
@@ -231,5 +346,82 @@ describe('calcAlertasTC', () => {
     const hoy = new Date(2026, 4, 18)
     const alertas = calcAlertasTC([tc], hoy)
     expect(alertas[0].tipo).toBe('pago_vencido')
+  })
+
+  // ── días 29-31: el día se clampa al último día real del mes ──
+  it('detecta pago vencido con dia_pago 30 el último día de febrero', () => {
+    const tc = { ...TC_BASE, deuda_ciclo_anterior: 400_000, dia_pago: 30 }
+    const hoy = new Date(2026, 1, 28)   // 28 feb 2026 = último día
+    const alertas = calcAlertasTC([tc], hoy)
+    expect(alertas).toHaveLength(1)
+    expect(alertas[0].tipo).toBe('pago_vencido')
+    expect(alertas[0].monto).toBe(400_000)
+  })
+
+  it('detecta pago vencido con dia_pago 29 y 31 el último día de febrero', () => {
+    for (const dia_pago of [29, 31]) {
+      const tc = { ...TC_BASE, deuda_ciclo_anterior: 400_000, dia_pago }
+      const alertas = calcAlertasTC([tc], new Date(2026, 1, 28))
+      expect(alertas.map(a => a.tipo)).toContain('pago_vencido')
+    }
+  })
+
+  it('detecta pago vencido con dia_pago 31 el 30 de septiembre', () => {
+    const tc = { ...TC_BASE, deuda_ciclo_anterior: 300_000, dia_pago: 31 }
+    const alertas = calcAlertasTC([tc], new Date(2026, 8, 30))
+    expect(alertas).toHaveLength(1)
+    expect(alertas[0].tipo).toBe('pago_vencido')
+  })
+
+  it('detecta cierre próximo con dia_cierre 31 en febrero', () => {
+    const tc = { ...TC_BASE, dia_cierre: 31 }
+    const alertas = calcAlertasTC([tc], new Date(2026, 1, 26))   // 26 feb 2026
+    expect(alertas).toHaveLength(1)
+    expect(alertas[0].tipo).toBe('cierre_proximo')
+    expect(alertas[0].diasRestantes).toBe(2)   // cierra el 28, no el 3 de marzo
+  })
+})
+
+// ── calcResumenTC: días para cierre/pago con días 29-31 ─────
+describe('calcResumenTC', () => {
+  const TC: TarjetaCredito = {
+    id: '1', nombre: 'Visa BI',
+    limite_credito: 1_000_000,
+    deuda_actual: 200_000, deuda_ciclo_anterior: 0,
+    dia_cierre: 30, dia_pago: 15,
+    color: '', activa: true,
+  }
+
+  it('no salta febrero para una tarjeta con cierre día 30', () => {
+    vi.setSystemTime(new Date(2026, 0, 31, 12, 0, 0))   // 31 ene 2026
+    const r = calcResumenTC(TC)
+    expect(r.proximo_cierre.getMonth()).toBe(1)          // febrero
+    expect(r.proximo_cierre.getDate()).toBe(28)
+    expect(r.dias_para_cierre).toBe(28)
+  })
+
+  it('cierre día 31 en septiembre cae el 30, no el 1 de octubre', () => {
+    vi.setSystemTime(new Date(2026, 8, 28, 12, 0, 0))   // 28 sep 2026
+    const r = calcResumenTC({ ...TC, dia_cierre: 31 })
+    expect(r.proximo_cierre.getMonth()).toBe(8)          // septiembre
+    expect(r.proximo_cierre.getDate()).toBe(30)
+    expect(r.dias_para_cierre).toBe(2)
+  })
+
+  it('cierre día 31 el mismo día del cierre rueda al mes siguiente clampado', () => {
+    vi.setSystemTime(new Date(2026, 0, 31, 12, 0, 0))   // 31 ene 2026
+    const r = calcResumenTC({ ...TC, dia_cierre: 31 })
+    expect(r.proximo_cierre.getMonth()).toBe(1)          // febrero, no marzo
+    expect(r.proximo_cierre.getDate()).toBe(28)
+    expect(r.dias_para_cierre).toBe(28)
+  })
+
+  it('cruza el año para una tarjeta con cierre día 31 el 31 de diciembre', () => {
+    vi.setSystemTime(new Date(2026, 11, 31, 12, 0, 0))
+    const r = calcResumenTC({ ...TC, dia_cierre: 31 })
+    expect(r.proximo_cierre.getFullYear()).toBe(2027)
+    expect(r.proximo_cierre.getMonth()).toBe(0)
+    expect(r.proximo_cierre.getDate()).toBe(31)
+    expect(r.dias_para_cierre).toBe(31)
   })
 })
