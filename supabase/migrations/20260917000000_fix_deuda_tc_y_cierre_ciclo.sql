@@ -2,10 +2,25 @@
 -- VORTA — Migración correctiva: deuda de TC + cierre de ciclo
 -- Archivo: supabase/migrations/20260917000000_fix_deuda_tc_y_cierre_ciclo.sql
 --
--- NO SE APLICÓ NADA. Este archivo es SQL que hay que correr a mano en
--- Supabase → SQL Editor → New query (este repo no tiene herramienta de
--- migraciones ni acceso a la base). Es idempotente y se puede correr dos
--- veces sin efecto extra.
+-- ESTADO: APLICADO en el proyecto de producción "Finanzas app"
+-- (bduvzluntatmhfujqvvm) el 2026-09-17, por pasos, vía el conector de
+-- Supabase. Registrado ahí como dos migraciones:
+--   fix_deuda_tc_trigger_reversible        (PASO 3)
+--   fix_cerrar_ciclo_tc_scoped_y_sucesor   (PASOS 4 y 5)
+-- Los PASOS 1, 2 y 6 se aplicaron como SQL directo. El reparto de los 5
+-- pago_tc existentes se rellenó con el valor EXACTO derivado de la evidencia
+-- (ver PASO 2c), no con la suposición genérica.
+--
+-- Verificado después de aplicar: trigger BEFORE y habilitado, 0 filas sin
+-- reparto, 1 ciclo abierto por tarjeta, 11 tablas con RLS y 11 policies, y un
+-- insert+delete de gasto_tc de prueba revirtió exactamente al estado inicial
+-- sin dejar rastro (602 transacciones antes y después).
+--
+-- Este repo no tiene herramienta de migraciones, así que para OTRA base este
+-- archivo se corre a mano en Supabase → SQL Editor → New query. Es idempotente
+-- y se puede correr dos veces sin efecto extra. Ojo: si hay texto
+-- seleccionado, el editor corre SOLO la selección — fue lo que dejó la
+-- primera aplicación a medias (solo el PASO 1).
 --
 -- Contiene SOLO lo correctivo para una base YA DESPLEGADA. Para provisionar
 -- un proyecto nuevo alcanza con supabase/schema.sql, que ya incluye todo
@@ -17,10 +32,11 @@
 -- inverso también funciona; este primero solo porque imprime los NOTICE con
 -- el conteo de pagos cuyo reparto se reconstruyó.
 --
--- ⚠️  ANTES DE CORRER: el PASO 2 reconstruye el reparto de los pago_tc
---     históricos con una SUPOSICIÓN (100% contra deuda_ciclo_anterior),
---     porque el reparto real no es derivable del ledger. Guardá primero la
---     lista que está al inicio del PASO 2: después ya no se distingue.
+-- ⚠️  ANTES DE CORRER EN OTRA BASE: el PASO 2c reconstruye el reparto de los
+--     pago_tc históricos con una SUPOSICIÓN, salvo que se pueda derivar (el
+--     propio PASO 2c explica cómo verificarlo y qué usar en su lugar).
+--     Guardá primero la lista que está al inicio del PASO 2: después ya no se
+--     distingue un reparto reconstruido de uno real.
 --     Y al terminar, compará el total de deuda de cada tarjeta contra tu
 --     estado de cuenta (PASO 7d): los buckets pueden venir ya desviados por
 --     los defectos D1/D2 que estuvieron vivos, y eso no se puede
@@ -146,7 +162,33 @@ update transacciones
  where (tarjeta_id is null or tipo not in ('gasto_tc', 'pago_tc'))
    and (aplicado_ciclo_anterior is null or aplicado_actual is null);
 
--- 2c. pago_tc: NO ES RECUPERABLE.
+-- 2c. pago_tc: NO ES RECUPERABLE *EN GENERAL*.
+--
+--     ⚠️  ANTES DE CORRER ESTE BLOQUE, VERIFICAR SI EL REPARTO SÍ ES
+--     DERIVABLE EN TU BASE. Si nunca se cerró un ciclo, `deuda_ciclo_anterior`
+--     fue 0 durante toda la historia de la tarjeta, y entonces el trigger
+--     viejo mandó CADA pago 100% contra `deuda_actual` — exactamente lo
+--     contrario de lo que asume el UPDATE de abajo. Comprobarlo con:
+--
+--       select (select count(*) from ciclos_tc where estado <> 'abierto')
+--                as ciclos_cerrados,
+--              (select count(*) from tarjetas_credito
+--                where deuda_ciclo_anterior <> 0) as tarjetas_con_facturado;
+--
+--     Si las dos columnas dan 0, el reparto exacto es el opuesto y este
+--     bloque hay que reemplazarlo por:
+--
+--       update transacciones
+--          set aplicado_ciclo_anterior = 0,
+--              aplicado_actual         = -abs(cantidad)
+--        where tipo = 'pago_tc' and tarjeta_id is not null
+--          and (aplicado_ciclo_anterior is null or aplicado_actual is null);
+--
+--     (Así se aplicó en la base de producción el 2026-09-17: 5 pagos, todos
+--     con reparto EXACTO, no reconstruido.)
+--
+--     Cuando sí hubo cierres de ciclo, el reparto real no se puede
+--     re-derivar del ledger:
 --     El reparto que hizo el INSERT no quedó registrado en ninguna parte y
 --     no se puede re-derivar del ledger: haría falta re-simular la historia
 --     de la tarjeta, y los cierres de ciclo (cerrar_ciclo_tc mueve
