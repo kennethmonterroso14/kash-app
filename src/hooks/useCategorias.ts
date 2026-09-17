@@ -1,5 +1,5 @@
 // src/hooks/useCategorias.ts
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CAT_COLORS } from '../lib/constants'
 
@@ -22,21 +22,28 @@ export function useCategorias(userId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Contador de generación: descarta la respuesta de un userId viejo o de un
+  // `cargar` que quedó atrás cuando se dispararon dos seguidos.
+  const genRef = useRef(0)
+
   const cargar = useCallback(async () => {
     if (!userId) return
+    const gen = ++genRef.current
     try {
-      setLoading(true)
       const { data, error } = await supabase
         .from('categorias_usuario')
         .select('id, nombre, tipo, color')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
+      if (gen !== genRef.current) return
       if (error) throw new Error(error.message)
+      setError(null)
       setCustom(data ?? [])
     } catch (e: unknown) {
+      if (gen !== genRef.current) return
       setError(e instanceof Error ? e.message : 'Error al cargar categorías')
     } finally {
-      setLoading(false)
+      if (gen === genRef.current) setLoading(false)
     }
   }, [userId])
 
@@ -107,5 +114,6 @@ export function useCategorias(userId: string) {
     error,
     agregarCategoria,
     eliminarCategoria,
+    recargar: cargar,
   }
 }

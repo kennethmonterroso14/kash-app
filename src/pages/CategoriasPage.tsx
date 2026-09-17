@@ -1,10 +1,10 @@
 // src/pages/CategoriasPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCategorias, type CategoriaUsuario } from '../hooks/useCategorias'
+import { type CategoriaUsuario } from '../hooks/useCategorias'
+import { useSesion } from '../context/sesion'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from '../lib/constants'
 
-interface Props { userId: string }
 
 type Tipo = 'gasto' | 'ingreso' | 'ambos'
 
@@ -20,9 +20,17 @@ const TIPO_COLOR: Record<Tipo, string> = {
   ambos:   'bg-accent/15 text-accent',
 }
 
-export default function CategoriasPage({ userId }: Props) {
+export default function CategoriasPage() {
   const navigate = useNavigate()
-  const { custom, loading, error, agregarCategoria, eliminarCategoria } = useCategorias(userId)
+  // Datos del contexto de sesión: ya cargados una vez en el provider, no se
+  // vuelve a consultar categorias_usuario al entrar a esta página.
+  const {
+    categoriasPropias: custom,
+    cargando, error: errores,
+    agregarCategoria, eliminarCategoria,
+  } = useSesion()
+  const loading = cargando.categorias
+  const error = errores.categorias
 
   const [showAdd, setShowAdd]         = useState(false)
   const [nombre, setNombre]           = useState('')

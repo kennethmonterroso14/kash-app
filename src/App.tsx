@@ -18,6 +18,7 @@ import TarjetasPage from './pages/TarjetasPage'
 import TarjetaHistorialPage from './pages/TarjetaHistorialPage'
 import InversionesPage from './pages/InversionesPage'
 import { useAutoApplyPagos } from './hooks/useAutoApplyPagos'
+import { SesionProvider } from './context/SesionProvider'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
@@ -82,24 +83,29 @@ export default function App() {
     return <SetupPage user={user} onComplete={() => setSetup({ userId: user.id, value: true })} />
   }
 
+  // El provider envuelve TODO lo que hay detrás del gate de auth, así que
+  // cualquier página puede usar useSesion(). Perfil, cuentas, categorías y
+  // tarjetas se cargan una vez acá en lugar de una vez por página.
   return (
-    <Layout onSignOut={signOut} userId={user.id}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage user={user} />} />
-        <Route path="/txns" element={<TransaccionesPage user={user} />} />
-        <Route path="/cuentas" element={<CuentasPage user={user} />} />
-        <Route path="/budget" element={<BudgetPage userId={user.id} />} />
-        <Route path="/metas" element={<MetasPage userId={user.id} />} />
-        <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
-        <Route path="/pagos" element={<PagosRecurrentesPage userId={user.id} />} />
-        <Route path="/tarjetas" element={<TarjetasPage userId={user.id} />} />
-        <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage userId={user.id} />} />
-        <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
-        <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
-        <Route path="/categorias" element={<CategoriasPage userId={user.id} />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Layout>
+    <SesionProvider userId={user.id}>
+      <Layout onSignOut={signOut} userId={user.id}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage user={user} />} />
+          <Route path="/txns" element={<TransaccionesPage user={user} />} />
+          <Route path="/cuentas" element={<CuentasPage user={user} />} />
+          <Route path="/budget" element={<BudgetPage userId={user.id} />} />
+          <Route path="/metas" element={<MetasPage userId={user.id} />} />
+          <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
+          <Route path="/pagos" element={<PagosRecurrentesPage userId={user.id} />} />
+          <Route path="/tarjetas" element={<TarjetasPage userId={user.id} />} />
+          <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage userId={user.id} />} />
+          <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
+          <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
+          <Route path="/categorias" element={<CategoriasPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Layout>
+    </SesionProvider>
   )
 }
