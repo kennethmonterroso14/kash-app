@@ -37,7 +37,10 @@ export function useTarjetas(userId: string) {
         .eq('user_id', userId)
         .eq('activa', true)
         .order('created_at')
-      if (error) throw error
+      // `throw error` perdía la causa: el objeto de PostgREST no es
+      // instanceof Error, así que el catch caía al mensaje genérico y el
+      // motivo real (red, RLS, columna faltante) quedaba invisible.
+      if (error) throw new Error(error.message)
       setTarjetas(data ?? [])
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al cargar tarjetas')
