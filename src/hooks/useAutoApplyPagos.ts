@@ -40,11 +40,11 @@ export function useAutoApplyPagos(userId: string | undefined) {
     const diaHoy = parseInt(hoy.split('-')[2], 10)
     const [anio, mesNum] = hoy.split('-').map(Number)     // mesNum es 1-based
 
-    // El día se recorta al último real del mes destino. La UI solo ofrece 1-28,
-    // pero la tabla en producción tiene `dia_del_mes integer` y no se puede dar
-    // por hecho que exista el check 1-28: con un 31 guardado, pegar el día a un
-    // `YYYY-MM` produciría '2026-02-31', que Postgres rechaza, y el pago no se
-    // aplicaría nunca.
+    // El día se recorta al último real del mes destino. La base tiene el check
+    // 1-28 (verificado: pagos_recurrentes_dia_del_mes_check), así que hoy esto
+    // no cambia nada; se mantiene como defensa en profundidad porque la columna
+    // es `integer` y con un 31 guardado pegar el día a un `YYYY-MM` produciría
+    // '2026-02-31', que Postgres rechaza, y el pago no se aplicaría nunca.
     const vencimientoEn = (mesIndex: number, dia: number) => {
       const d = new Date(anio, mesIndex, 1)
       const a = d.getFullYear()

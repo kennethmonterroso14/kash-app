@@ -71,10 +71,19 @@ export function useCategorias(userId: string) {
     color?: string
   ) => {
     const autoColor = color ?? PALETTE[custom.length % PALETTE.length]
+    const limpio = nombre.trim()
     const { error } = await supabase
       .from('categorias_usuario')
-      .insert({ user_id: userId, nombre: nombre.trim(), tipo, color: autoColor })
-    if (error) throw new Error(`Error al agregar categoría: ${error.message}`)
+      .insert({ user_id: userId, nombre: limpio, tipo, color: autoColor })
+    if (error) {
+      // 23505 = unique_violation sobre categorias_usuario(user_id, nombre).
+      // Sin este caso salía el mensaje crudo de Postgres con el nombre del
+      // índice, que no le dice nada al usuario.
+      if (error.code === '23505') {
+        throw new Error(`Ya tienes una categoría llamada "${limpio}"`)
+      }
+      throw new Error(`Error al agregar categoría: ${error.message}`)
+    }
     await cargar()
   }
 

@@ -327,10 +327,10 @@ create table if not exists metas_ahorro (
 --   • `dia_del_mes` 1-28 (el selector de la UI es Array.from({length: 28})).
 --   • `activo` es borrado lógico: deletePago hace update({activo: false}).
 --   • `ultima_aplicacion` es la idempotencia del auto-apply (date o NULL).
--- Verificada contra la base real por introspección (information_schema).
--- Ojo: `created_at` es NULLABLE y `dia_del_mes` es `integer` en producción; no
--- se sabe si la tabla real tiene el check 1-28, así que el cliente recorta el
--- día al último del mes en lugar de confiar en la constraint.
+-- Verificada contra la base real por introspección (columnas y constraints).
+-- Ojo: `created_at` es NULLABLE y `dia_del_mes` es `integer` en producción.
+-- El check 1-28 SÍ existe (pagos_recurrentes_dia_del_mes_check); el cliente
+-- igual recorta el día al último del mes, como defensa en profundidad.
 create table if not exists pagos_recurrentes (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid references auth.users(id) on delete cascade not null,
@@ -343,8 +343,8 @@ create table if not exists pagos_recurrentes (
   ultima_aplicacion  date,
   created_at         timestamptz default now(),
 
-  constraint pago_rec_monto_positivo check (monto > 0),
-  constraint pago_rec_dia_valido     check (dia_del_mes between 1 and 28)
+  constraint pagos_recurrentes_monto_check       check (monto > 0),
+  constraint pagos_recurrentes_dia_del_mes_check check (dia_del_mes between 1 and 28)
 );
 
 -- ─── CATEGORÍAS DE USUARIO ─ verificado contra la base real ───────────
@@ -362,7 +362,12 @@ create table if not exists categorias_usuario (
   color       varchar(50) not null,
   created_at  timestamptz not null default now(),
 
-  constraint cat_usuario_tipo_valido check (tipo in ('gasto', 'ingreso', 'ambos'))
+  -- Nombres de constraint iguales a los de la base real, para que una
+  -- provisión nueva quede idéntica a producción.
+  constraint categorias_usuario_tipo_check check (tipo in ('gasto', 'ingreso', 'ambos')),
+  -- Existe en producción y no estaba declarado acá: useCategorias traduce el
+  -- 23505 a "ya tienes una categoría llamada X".
+  constraint categorias_usuario_user_id_nombre_key unique (user_id, nombre)
 );
 
 -- ─── INVERSIONES ─────────── verificado contra la base real ───────────
@@ -389,7 +394,7 @@ create table if not exists inversiones (
   activa               boolean not null default true,
   created_at           timestamptz not null default now(),
 
-  constraint inv_monto_positivo     check (monto_invertido > 0),
+  constraint inv_invertido_positivo check (monto_invertido > 0),
   constraint inv_valor_no_negativo  check (valor_actual >= 0)
 );
 
