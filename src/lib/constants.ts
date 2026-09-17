@@ -51,19 +51,71 @@ export const MESES = [
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
 ]
 
-// Fecha de hoy en zona horaria Guatemala (UTC-6, sin DST)
-export const hoyGT = (): string =>
-  new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' })
+// ─── FECHAS ───────────────────────────────────────────────────────────
+//
+// Todo lo que se guarda se fecha en la zona horaria del USUARIO, no en la del
+// navegador. Ojo con el alcance de esto: de acá salen los límites de mes de
+// todas las consultas, así que cambiarle la zona a un usuario mueve qué
+// transacciones caen en qué mes. Se parametriza ahora; el selector en la UI es
+// de la Fase 2.
 
-// Date con los campos de calendario de HOY en Guatemala.
-// Se ancla al mediodía local para que getFullYear/getMonth/getDate nunca
-// se corran por DST ni por el cruce de medianoche. No es un instante real
-// en GT: sirve solo para leer campos de calendario.
-export const ahoraGT = (): Date => new Date(`${hoyGT()}T12:00:00`)
+/** Default de `profiles.zona_horaria`. UTC-6, sin horario de verano. */
+export const ZONA_GT = 'America/Guatemala'
 
-// Mes actual ('YYYY-MM') en zona horaria Guatemala — igual que hoyGT(),
-// no el calendario del navegador.
-export const mesActual = (): string => hoyGT().substring(0, 7)
+const formateadoresFecha = new Map<string, Intl.DateTimeFormat>()
+
+/**
+ * `true` si es una zona IANA que este runtime conoce.
+ *
+ * Existe porque las funciones de abajo LANZAN con una zona inválida, y quien
+ * lee el perfil necesita poder detectarlo y mostrar un error en lugar de que
+ * el render se caiga. No tiene un default a propósito: adivinar la zona
+ * escribiría fechas equivocadas en la base, que es peor que no escribir nada.
+ */
+export function zonaValida(zona: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: zona })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function formateadorFecha(zona: string): Intl.DateTimeFormat {
+  const guardado = formateadoresFecha.get(zona)
+  if (guardado) return guardado
+  // Campos explícitos y no `toLocaleDateString('en-CA')` pelado: así el
+  // 'YYYY-MM-DD' no depende de qué formato le dé ICU a ese locale.
+  const f = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zona,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  formateadoresFecha.set(zona, f)
+  return f
+}
+
+/** Hoy como 'YYYY-MM-DD' en una zona horaria. Lanza si la zona no existe. */
+export const hoyEn = (zona: string): string => formateadorFecha(zona).format(new Date())
+
+/**
+ * Date con los campos de calendario de HOY en una zona.
+ * Se ancla al mediodía local para que getFullYear/getMonth/getDate nunca se
+ * corran por DST ni por el cruce de medianoche. NO es un instante real en esa
+ * zona: sirve solo para leer campos de calendario.
+ */
+export const ahoraEn = (zona: string): Date => new Date(`${hoyEn(zona)}T12:00:00`)
+
+/** Mes actual ('YYYY-MM') en una zona horaria. */
+export const mesActualEn = (zona: string): string => hoyEn(zona).substring(0, 7)
+
+// Alias de Guatemala. Se quedan mientras haya sitios sin migrar a `useFechas()`
+// (viajan con la partición de páginas de la tarea 1.4) y se retiran cuando no
+// queden.
+export const hoyGT = (): string => hoyEn(ZONA_GT)
+export const ahoraGT = (): Date => ahoraEn(ZONA_GT)
+export const mesActual = (): string => mesActualEn(ZONA_GT)
 
 export const TIPOS_INVERSION = [
   { value: 'fondo',     label: 'Fondo de inversión' },
