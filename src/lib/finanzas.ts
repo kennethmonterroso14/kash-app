@@ -1,18 +1,98 @@
 // ─── FORMATEO ────────────────────────────────────────────────
 
+export interface OpcionesMoneda {
+  /** Código ISO 4217: 'GTQ', 'USD', 'HNL', … */
+  moneda: string
+  /** Etiqueta BCP 47: 'es-GT', 'en-US', … Decide separadores y posición. */
+  locale: string
+}
+
+/** Lo que usa `formatQ`. Es el default de `profiles`, no una constante global. */
+export const MONEDA_GT: OpcionesMoneda = { moneda: 'GTQ', locale: 'es-GT' }
+
+// Construir un Intl.NumberFormat no es gratis y esto se llama por fila
+// renderizada, así que se memoizan por par locale+moneda. Son dos o tres por
+// sesión (la moneda del perfil, y USD en inversiones).
+const formateadores = new Map<string, Intl.NumberFormat>()
+
+function formateador(locale: string, moneda: string): Intl.NumberFormat | null {
+  const clave = `${locale}|${moneda}`
+  const guardado = formateadores.get(clave)
+  if (guardado) return guardado
+  try {
+    const f = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: moneda,
+      // Sin narrowSymbol, 'es-GT' + USD sale como "USD 1,234.56" en lugar
+      // de "$1,234.56".
+      currencyDisplay: 'narrowSymbol',
+      // Forzados porque el modelo de datos guarda centésimos SIEMPRE. El
+      // default de ICU para COP es 0 decimales, y respetarlo redondearía el
+      // monto guardado. (Corolario: una moneda sin centésimos, como JPY, no
+      // encaja en este modelo de datos, no solo en este formateador.)
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    formateadores.set(clave, f)
+    return f
+  } catch {
+    // Un locale mal formado o un código de moneda inválido lanzan RangeError.
+    // Acá NO se lanza: esto corre en render y tumbaría el árbol por un dato de
+    // configuración. El fallback de abajo muestra el código, que es honesto
+    // ("GTQ 1,234.56") en lugar de inventar un símbolo.
+    return null
+  }
+}
+
 /**
- * Convierte centavos a string formateado en quetzales
+ * Convierte centavos al formato de una moneda y un locale.
+ *
+ * Es PURA a propósito: no lee el contexto de sesión. Quien tiene el perfil es
+ * `useMoneda()`, que currifica esta función con la moneda y el locale del
+ * usuario. Meter el contexto acá rompería tanto la pureza como los tests.
+ *
+ *   formatMoneda(123456, { moneda: 'GTQ', locale: 'es-GT' })  → "Q1,234.56"
+ *   formatMoneda(123456, { moneda: 'USD', locale: 'en-US' })  → "$1,234.56"
+ *   formatMoneda(123456, { moneda: 'EUR', locale: 'de-DE' })  → "1.234,56 €"
+ */
+export function formatMoneda(centavos: number, { moneda, locale }: OpcionesMoneda): string {
+  if (!Number.isInteger(centavos)) {
+    throw new Error(`formatMoneda espera un entero (centavos). Recibió: ${centavos}`)
+  }
+  const unidades = centavos / 100
+  const f = formateador(locale, moneda)
+  if (!f) {
+    const abs = Math.abs(unidades).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return `${unidades < 0 ? '-' : ''}${moneda} ${abs}`
+  }
+
+  // Se arma por partes para poder quitar el espacio ENTRE el símbolo y el
+  // número cuando el símbolo va adelante ("Q 1,234.56" → "Q1,234.56", que es
+  // como se ve la app hoy) sin tocar los locales que lo ponen atrás, donde el
+  // espacio sí es correcto ("1.234,56 €").
+  const partes = f.formatToParts(unidades)
+  return partes
+    .filter((parte, i) => !(
+      parte.type === 'literal' &&
+      /^\s+$/.test(parte.value) &&
+      partes[i - 1]?.type === 'currency'
+    ))
+    .map(parte => parte.value)
+    .join('')
+}
+
+/**
+ * Alias de `formatMoneda` en quetzales. Se queda mientras haya sitios sin
+ * migrar a `useMoneda()` (viajan con la partición de páginas de la tarea 1.4)
+ * y se retira cuando no queden.
+ *
  * Ejemplo: formatQ(123456) → "Q1,234.56"
  */
 export function formatQ(centavos: number): string {
-  if (!Number.isInteger(centavos)) {
-    throw new Error(`formatQ espera un entero (centavos). Recibió: ${centavos}`)
-  }
-  const quetzales = centavos / 100
-  return `Q${quetzales.toLocaleString('es-GT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
+  return formatMoneda(centavos, MONEDA_GT)
 }
 
 /**

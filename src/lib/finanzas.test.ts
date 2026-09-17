@@ -9,6 +9,8 @@ import {
   calcResumenTC,
   type Inversion,
   type InversionHistorial,
+  formatMoneda,
+  formatQ,
   type TarjetaCredito,
 } from './finanzas'
 
@@ -17,6 +19,82 @@ const HACE_UN_ANIO = '2025-04-04'
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-04-04T12:00:00Z')) })
 afterEach(() => { vi.useRealTimers() })
+
+// ── formatMoneda ────────────────────────────────────────
+describe('formatMoneda', () => {
+  const GTQ = { moneda: 'GTQ', locale: 'es-GT' }
+  const USD = { moneda: 'USD', locale: 'en-US' }
+  const HNL = { moneda: 'HNL', locale: 'es-HN' }
+
+  it('formatea quetzales igual que antes: símbolo pegado al número', () => {
+    expect(formatMoneda(0, GTQ)).toBe('Q0.00')
+    expect(formatMoneda(1, GTQ)).toBe('Q0.01')
+    expect(formatMoneda(123456, GTQ)).toBe('Q1,234.56')
+    expect(formatMoneda(100000000, GTQ)).toBe('Q1,000,000.00')
+  })
+
+  it('pone el signo ANTES del símbolo, no entre el símbolo y el número', () => {
+    // El formateador viejo emitía "Q-1,234.56" porque pegaba la "Q" a mano.
+    expect(formatMoneda(-123456, GTQ)).toBe('-Q1,234.56')
+    expect(formatMoneda(-1, GTQ)).toBe('-Q0.01')
+  })
+
+  it('cambia el símbolo con la moneda', () => {
+    expect(formatMoneda(123456, USD)).toBe('$1,234.56')
+    expect(formatMoneda(123456, HNL)).toBe('L1,234.56')
+    expect(formatMoneda(-123456, HNL)).toBe('-L1,234.56')
+  })
+
+  it('usa el símbolo corto y no el código cuando el locale no es el de la moneda', () => {
+    // Sin currencyDisplay: 'narrowSymbol', 'es-GT' + USD sale "USD 1,234.56".
+    expect(formatMoneda(123456, { moneda: 'USD', locale: 'es-GT' })).toBe('$1,234.56')
+  })
+
+  it('respeta los separadores y la posición del símbolo del locale', () => {
+    // El símbolo va DESPUÉS y el espacio de ese lado sí se conserva. Es el
+    // espacio duro que emite ICU (U+00A0), no uno normal: escrito literal, este
+    // test pasa o falla según el editor que guardó el archivo.
+    expect(formatMoneda(123456, { moneda: 'EUR', locale: 'de-DE' })).toBe('1.234,56\u00A0€')
+    expect(formatMoneda(123456, { moneda: 'COP', locale: 'es-CO' })).toBe('$1.234,56')
+  })
+
+  it('siempre emite dos decimales, aunque la moneda no los use por default', () => {
+    // El default de ICU para COP es 0 decimales. Respetarlo redondearía el
+    // monto guardado, y el modelo de datos guarda centésimos siempre.
+    expect(formatMoneda(123456, { moneda: 'COP', locale: 'es-CO' })).toMatch(/,56$/)
+    expect(formatMoneda(100, { moneda: 'COP', locale: 'es-CO' })).toBe('$1,00')
+  })
+
+  it('lanza con un no-entero: los centavos son enteros por definición', () => {
+    expect(() => formatMoneda(1234.5, GTQ)).toThrow(/entero/)
+    expect(() => formatMoneda(NaN, GTQ)).toThrow(/entero/)
+  })
+
+  it('con una moneda inválida muestra el código en lugar de tumbar el render', () => {
+    // Esto corre en render: lanzar desmontaría el árbol por un dato de
+    // configuración. Mostrar el código es honesto; inventar un símbolo no.
+    expect(formatMoneda(123456, { moneda: 'NOEXISTE', locale: 'es-GT' })).toBe('NOEXISTE 1,234.56')
+    expect(formatMoneda(-123456, { moneda: 'NOEXISTE', locale: 'es-GT' })).toBe('-NOEXISTE 1,234.56')
+  })
+
+  it('el caché de formateadores no mezcla monedas', () => {
+    // Se memoizan por par locale+moneda; una clave mal armada daría el mismo
+    // símbolo para todas después de la primera llamada.
+    expect(formatMoneda(100, GTQ)).toBe('Q1.00')
+    expect(formatMoneda(100, USD)).toBe('$1.00')
+    expect(formatMoneda(100, GTQ)).toBe('Q1.00')
+    expect(formatMoneda(100, { moneda: 'GTQ', locale: 'en-US' })).toBe('Q1.00')
+  })
+})
+
+// ── formatQ ─────────────────────────────────────────────
+describe('formatQ', () => {
+  it('es exactamente el alias de GTQ/es-GT', () => {
+    for (const c of [0, 1, 99, 100, -1, 123456, -123456, 100000000]) {
+      expect(formatQ(c)).toBe(formatMoneda(c, { moneda: 'GTQ', locale: 'es-GT' }))
+    }
+  })
+})
 
 // ── usdToGTQ ────────────────────────────────────────────
 describe('usdToGTQ', () => {
