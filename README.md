@@ -42,15 +42,27 @@ npm run lint         # eslint .
 
 ## Tokens de diseño
 
-Definidos en `tailwind.config.js`. **Usar los tokens, nunca hex en `className`** (el hex sí va para
-colores que vienen de datos, como las categorías).
+Definidos en `src/lib/tokens.js` — fuente única: `tailwind.config.js` los importa y los mapea a
+utilidades, y las gráficas de Recharts (que necesitan colores reales, no clases) leen el mismo
+objeto. **Usar los tokens, nunca hex en `className`** (el hex sí va para colores que vienen de
+datos, como las categorías).
 
 ```
-bg:        #0a0c10   surface:   #12151c   surface2:  #1a1e28
+bg:        #06070a   surface:   #12141a   surface2:  #1b1e26
 accent:    #7c6af7   accentAlt: #a78bfa
-success:   #4ade80   danger:    #f87171   warning:   #fbbf24
-text:      #e8eaf0   textDim:   #8b90a0   muted:     #3d4255
+success:   #30d158   danger:    #ff453a   warning:   #ff9f0a    ← system colors de iOS
+text:      #f2f3f7   textDim:   #9aa0b0
 ```
+
+El resto de los tokens sale de las mismas reglas: materiales translúcidos con su desenfoque, canto
+y sombra (`.vidrio-chip` < `.vidrio-panel` < `.vidrio-chrome` < `.vidrio-hoja`), radios continuos
+(`rounded-{chip,control,panel,tarjeta,hoja}`), tracking por tamaño
+(`tracking-{display,titulo,base,micro}`), y curvas y duraciones
+(`ease-{salida,entrada,estandar}`, `duration-{presion,rapida,normal,lenta}`).
+
+El lenguaje visual es el de Apple, y las reglas están en el repo: `.claude/skills/apple-design` y
+`.claude/skills/mobile-native`, vendorizadas desde
+[`emilkowalski/skills`](https://github.com/emilkowalski/skills). Leerlas antes de cambiar un token.
 
 ---
 

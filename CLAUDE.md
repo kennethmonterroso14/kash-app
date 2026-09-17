@@ -148,14 +148,36 @@ commit per task.
 
 - **UI strings, identifiers, DB columns and most comments are Spanish**; keep new code consistent
   rather than mixing in English column names.
-- **Tailwind semantic tokens only** — `bg`, `surface`, `surface2`, `accent`, `accentAlt`, `success`,
-  `danger`, `warning`, `text`, `textDim`, `muted` from `tailwind.config.js`. No raw hex in
-  `className`. Raw hex is fine for chart/category colors that come from data.
+- **Tailwind semantic tokens only** — every token comes from `src/lib/tokens.js` (the single
+  source: `tailwind.config.js` imports it, and so do the Recharts props that need real colors).
+  Colors: `bg`, `surface`, `surface2`, `accent`, `accentAlt`, `success`, `danger`, `warning`,
+  `text`, `textDim`. Also `rounded-{chip,control,panel,tarjeta,hoja}`,
+  `tracking-{display,titulo,base,micro}`, `duration-{presion,rapida,normal,lenta}`,
+  `ease-{salida,entrada,estandar}`, `border-{canto,perimetro}`, `shadow-{chip,panel,chrome,hoja}`.
+  No raw hex in `className`. Raw hex is fine for chart/category colors that come from data.
+  There is deliberately **no `muted` color**: it was a #3a3f4d grey used as text at ~1.5:1
+  contrast on 238 sites. Dim text is `textDim`; hairlines are `border-perimetro`.
+- **The design language is Apple's**, and the rules live in the repo: `.claude/skills/apple-design`
+  (materials, motion, typography) and `.claude/skills/mobile-native` (the platform layer, which
+  matters twice over because this ships inside a Capacitor WebView). They are vendored upstream —
+  read them before changing a token or adding an animation, and don't edit them.
+- **Translucency only through the `.vidrio-*` classes** in `src/index.css` (`chip` < `panel` <
+  `chrome` < `hoja`, lightest to heaviest). Never stack a light material on another light one.
+  The chrome in `Layout` is a floating glass layer with the page scrolling *under* it — if the
+  scroll container moves back into `<main>`, the blur has nothing behind it and reads as flat
+  color. `prefers-reduced-transparency`, `prefers-contrast` and `prefers-reduced-motion` each have
+  a fallback at the bottom of `index.css`; a new material has to be added to those three lists.
+- **Press feedback is on `:active`, never on `click`.** `index.css` dims every
+  `button`/`a`/`[role=button]` on press globally (it replaces the tap highlight that was removed);
+  add `.presionable` for the scale on top, for large targets. The global
+  `-webkit-tap-highlight-color: transparent` means a control with neither gives no feedback at all.
+- **Body text uses the system font** (`font-sans` → SF Pro inside the iOS WebView). `font-display`
+  (Outfit, the only webfont left) is the wordmark only.
 - **Destructive actions are 2-tap**, not `window.confirm`: a `pendingDelete` state holds the row id
   and the button relabels to "Confirmar". Transaction deletes additionally show an undo toast backed
   by `restoreTxn`.
-- New pages take `{ userId: string }`. `DashboardPage`, `TransaccionesPage`, `CuentasPage` and
-  `PerfilPage` still take a `user` object — legacy, don't copy it.
+- Pages take no data props: they read `useSesion()`. The exception is `SetupPage`, which takes
+  `user` because it runs *before* the provider mounts (it is what decides whether to mount it).
 - Modals are inline JSX driven by local state; there is no modal/dialog abstraction.
 
 ## Error handling

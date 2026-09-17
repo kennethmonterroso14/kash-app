@@ -160,6 +160,42 @@ la marca y exportarla a los tamaños de cada tienda.
 **Depende de 0.1.** Con Capacitor se hace sobre los componentes actuales; con React Native, es una
 reescritura y cambia todo este bloque.
 
+### 3.0 Lenguaje visual — HECHO en parte  · S
+
+Decidido: la estética es la de Apple, incluido el vidrio translúcido. Las reglas viven en el repo
+(`.claude/skills/apple-design`, `.claude/skills/mobile-native`) para que el criterio no dependa de
+quién aplique el cambio.
+
+Lo que ya está:
+
+- `src/lib/tokens.js` pasó de paleta a tokens completos: materiales con su desenfoque/canto/sombra,
+  radios, curvas, duraciones y tracking. Un cambio ahí mueve clases y gráficas a la vez.
+- `src/index.css` trae la base de `mobile-native` (tap highlight, `touch-action`, inputs de 16px,
+  `overscroll-behavior`, safe areas) y las clases `.vidrio-*` con sus tres fallbacks
+  (`prefers-reduced-transparency`, `prefers-contrast`, `prefers-reduced-motion`).
+- El cromo (header + nav) ya es vidrio con el contenido pasando por debajo.
+- Barrido de clases: `text-muted` → `text-textDim` (238 sitios que estaban a ~1.5:1 de contraste),
+  `text-white` → `text-text`, bordes a `border-{canto,perimetro}`, estados a los system colors.
+- La fuente del sistema reemplaza a Inter y JetBrains Mono. Quedó una sola webfont (Outfit, el
+  logotipo).
+
+Lo que falta, y por qué no se hizo junto:
+
+- **El tracking y los radios nuevos no están aplicados página por página.** Aplicarlos bien es
+  por tamaño de texto y por tipo de superficie, o sea decisión por sitio — y eso viaja con 1.4,
+  que ya va a tocar cada archivo. Ponerlos ahora sería tocar los mismos 3,500 renglones dos veces.
+- **Los paneles siguen opacos (`bg-surface`).** Es correcto por ahora: §12 reserva el material
+  para el cromo y las hojas; una tarjeta sobre un fondo plano no gana nada y apilar vidrio sobre
+  vidrio se lee peor. Se revisa con los primitivos de 3.2.
+- **No hay animación con resortes.** Requiere una librería (Motion) y decidir sobre gestos, que es
+  3.2. Los tokens de curva y duración ya están para cuando llegue.
+- **Riesgo medido a mano en un teléfono, pendiente:** `backdrop-filter` en un WebView de Capacitor
+  sobre Android de gama media es lo primero que hay que verificar cuando exista el shell (0.1).
+  Si cuesta frames, el escape es subir la opacidad de los materiales y bajar el desenfoque — un
+  cambio en `tokens.js`, no en las páginas, que es justamente por lo que está centralizado.
+- **Nadie ha visto las doce páginas corriendo** con estos cambios: se verificaron tipos, lint,
+  tests y el CSS emitido, no la pantalla.
+
 ### 3.1 Arquitectura de información  · M
 
 **6 de las 11 secciones están escondidas detrás de Perfil**: Inversiones, Tarjetas, Pagos Fijos,

@@ -70,6 +70,11 @@ recibía `user` cambiar la prop a nada.
 Una página por commit, extrayendo por sección y migrando de paso sus `formatQ`/`hoyGT` a los hooks
 de 1.3. Objetivo: ninguna sobre 300 líneas.
 
+Cada página que se parte se lleva también el trabajo visual que es decisión por sitio y no se puede
+barrer con `sed`: `tracking-*` según el tamaño del texto, `rounded-*` según la superficie, y
+`.presionable` en los objetivos grandes (el atenuado al presionar ya es global). Ver la tarea 3.0
+del roadmap.
+
 - [ ] **1.4.1** `TarjetasPage` (748 líneas)
 - [ ] **1.4.2** `TransaccionesPage` (710)
 - [ ] **1.4.3** `InversionesPage` (686)
