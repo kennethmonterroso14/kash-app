@@ -16,14 +16,14 @@ Commit `08c5cee`. `CUENTAS_INICIALES` (saldos bancarios reales de una persona) y
 
 ## Task 1.1 — `SesionProvider`
 
-- [ ] **1.1.1** Crear `src/context/SesionContext.tsx` con el provider y `useSesion()`, usando por
+- [x] **1.1.1** Crear `src/context/SesionContext.tsx` con el provider y `useSesion()`, usando por
       dentro los hooks existentes (`useCuentas`, `useCategorias`, `useTarjetas`) más una consulta
       nueva de `profiles`. Error por slice, no global.
-- [ ] **1.1.2** Montarlo en `App.tsx` dentro del gate de auth, envolviendo `Layout` y las rutas.
+- [x] **1.1.2** Montarlo en `App.tsx` dentro del gate de auth, envolviendo `Layout` y las rutas.
       Verificar en la pestaña de red que el Dashboard pasa de 6 fetch a 1 por slice.
 - [ ] **1.1.3** Mover al provider la consulta de `profiles` que hoy está duplicada en `App.tsx`,
       `PerfilPage`, `SetupPage` y `useInversiones` (4 de los 6 sitios; los otros 2 son writes).
-- [ ] **1.1.4** Exponer `refrescar.{perfil,cuentas,categorias,tarjetas}` y mover ahí los writers
+- [x] **1.1.4** Exponer `refrescar.{perfil,cuentas,categorias,tarjetas}` y mover ahí los writers
       que hoy viven en los hooks, para que cada write invalide su slice.
 
 ## Task 1.2 — Migrar las páginas al contexto
@@ -31,14 +31,14 @@ Commit `08c5cee`. `CUENTAS_INICIALES` (saldos bancarios reales de una persona) y
 Una página por commit. Cada una: quitar la instanciación del hook, leer de `useSesion()`, y si
 recibía `user` cambiar la prop a nada.
 
-- [ ] **1.2.1** `CategoriasPage` (la más chica, sirve de patrón)
-- [ ] **1.2.2** `ProyeccionesPage`
-- [ ] **1.2.3** `MetasPage`
-- [ ] **1.2.4** `PagosRecurrentesPage`
-- [ ] **1.2.5** `CuentasPage` — además quitar los dos `window.location.reload()` usando
+- [x] **1.2.1** `CategoriasPage` (la más chica, sirve de patrón)
+- [x] **1.2.2** `ProyeccionesPage`
+- [x] **1.2.3** `MetasPage`
+- [x] **1.2.4** `PagosRecurrentesPage`
+- [x] **1.2.5** `CuentasPage` — además quitar los dos `window.location.reload()` usando
       `refrescar.cuentas()` (cierra la tarea 1.5 del roadmap)
 - [ ] **1.2.6** `BudgetPage`
-- [ ] **1.2.7** `TarjetaHistorialPage`
+- [x] **1.2.7** `TarjetaHistorialPage`
 - [ ] **1.2.8** `TarjetasPage`
 - [ ] **1.2.9** `InversionesPage`
 - [ ] **1.2.10** `DashboardPage`
@@ -78,14 +78,14 @@ de 1.3. Objetivo: ninguna sobre 300 líneas.
 
 ## Task 1.5 — Tests de hooks
 
-- [ ] **1.5.1** Agregar `@testing-library/react` y un `setup` de Vitest para React.
+- [x] **1.5.1** Agregar `@testing-library/react` y un `setup` de Vitest para React.
 - [ ] **1.5.2** Carry-over de presupuestos: no resucita lo borrado, no escribe meses futuros, el
       banner y "Deshacer" son alcanzables.
 - [ ] **1.5.3** `useAutoApplyPagos`: idempotencia por mes al editar `dia_del_mes`, el
       compare-and-swap, y que un insert fallido no deje avanzado `ultima_aplicacion`.
 - [ ] **1.5.4** Reparto de deuda de TC en insert / update / delete.
 - [ ] **1.5.5** Carreras de cambio de mes en `useTransacciones` y `BudgetPage`.
-- [ ] **1.5.6** `SesionProvider`: una sola carga por slice, y que el error de un slice no tumbe los
+- [x] **1.5.6** `SesionProvider`: una sola carga por slice, y que el error de un slice no tumbe los
       otros.
 
 ## Cierre de fase

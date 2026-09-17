@@ -7,15 +7,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { useCuentas } from '../hooks/useCuentas'
 import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
+import { useSesion } from '../context/sesion'
 import { colores } from '../lib/tokens'
 
 // ─── Types ───────────────────────────────────────────────────
-
-interface Props {
-  userId: string
-}
 
 interface ChartPoint {
   label: string   // "2026"
@@ -77,9 +73,11 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 
 // ─── Page ────────────────────────────────────────────────────
 
-export default function ProyeccionesPage({ userId }: Props) {
+export default function ProyeccionesPage() {
   const gradientId = useId()
-  const { totalPatrimonio, loading, error: cuentasError } = useCuentas(userId)
+  const { totalPatrimonio, cargando, error: errores } = useSesion()
+  const loading = cargando.cuentas
+  const cuentasError = errores.cuentas
 
   const [ahorroMensualQ, setAhorroMensualQ] = useState(2000)
   const [rendimientoPct, setRendimientoPct] = useState(7)

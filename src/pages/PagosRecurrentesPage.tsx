@@ -1,18 +1,14 @@
 import { useState, useMemo } from 'react'
 import { usePagosRecurrentes } from '../hooks/usePagosRecurrentes'
-import { useCuentas } from '../hooks/useCuentas'
 import { formatQ, toCentavos } from '../lib/finanzas'
 import { hoyGT } from '../lib/constants'
-import { useCategorias } from '../hooks/useCategorias'
-
-interface Props { userId: string }
+import { useSesion } from '../context/sesion'
 
 const DIAS = Array.from({ length: 28 }, (_, i) => i + 1)
 
-export default function PagosRecurrentesPage({ userId }: Props) {
-  const { categoriasGasto } = useCategorias(userId)
+export default function PagosRecurrentesPage() {
+  const { userId, categoriasGasto, cuentas } = useSesion()
   const { pagos, loading, addPago, updatePago, deletePago } = usePagosRecurrentes(userId)
-  const { cuentas } = useCuentas(userId)
 
   const [showAdd, setShowAdd] = useState(false)
   const [addNombre, setAddNombre] = useState('')

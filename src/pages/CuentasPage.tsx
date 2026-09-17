@@ -1,11 +1,8 @@
 import { useState } from 'react'
-import type { User } from '@supabase/supabase-js'
-import { useCuentas } from '../hooks/useCuentas'
 import { formatQ, toCentavos } from '../lib/finanzas'
 import { supabase } from '../lib/supabase'
 import { hoyGT } from '../lib/constants'
-
-interface Props { user: User }
+import { useSesion } from '../context/sesion'
 
 const TIPO_OPCIONES = ['ahorro', 'corriente', 'efectivo', 'inversion', 'otro'] as const
 const COLORES = [
@@ -14,8 +11,13 @@ const COLORES = [
   '#c8f564','#facc15','#94a3b8','#86efac','#c4b5fd',
 ]
 
-export default function CuentasPage({ user }: Props) {
-  const { cuentas, loading, error: cuentasError, totalPatrimonio } = useCuentas(user.id)
+export default function CuentasPage() {
+  const {
+    userId, cuentas, totalPatrimonio,
+    cargando, error: errores, refrescar,
+  } = useSesion()
+  const loading = cargando.cuentas
+  const cuentasError = errores.cuentas
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -49,7 +51,7 @@ export default function CuentasPage({ user }: Props) {
     // 1. Crear la cuenta con saldo 0 (el trigger lo actualizará)
     const { data: cuenta, error: cuentaError } = await supabase
       .from('cuentas')
-      .insert({ user_id: user.id, nombre: nombre.trim(), tipo, saldo: 0, color })
+      .insert({ user_id: userId, nombre: nombre.trim(), tipo, saldo: 0, color })
       .select('id, nombre')
       .single()
 
@@ -58,7 +60,7 @@ export default function CuentasPage({ user }: Props) {
     // 2. Insertar ajuste inicial si el saldo > 0
     if (saldoCentavos > 0) {
       const { error: txnError } = await supabase.from('transacciones').insert({
-        user_id: user.id,
+        user_id: userId,
         cuenta_id: cuenta.id,
         fecha: hoyGT(),
         cantidad: saldoCentavos,
@@ -74,7 +76,7 @@ export default function CuentasPage({ user }: Props) {
           .from('cuentas')
           .delete()
           .eq('id', cuenta.id)
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
         setError(
           rollbackError
             ? `${txnError.message} — la cuenta "${cuenta.nombre}" quedó creada con saldo Q0.00; ajusta su saldo manualmente.`
@@ -92,8 +94,9 @@ export default function CuentasPage({ user }: Props) {
     setColor(COLORES[0])
     setShowForm(false)
     setSaving(false)
-    // Recargar cuentas
-    window.location.reload()
+    // Antes esto era window.location.reload(): useCuentas no tenía forma de
+    // refetch. Ahora se invalida solo el slice que el trigger de saldo tocó.
+    await refrescar.cuentas()
   }
 
   const handleAjuste = async (e: React.FormEvent) => {
@@ -104,7 +107,7 @@ export default function CuentasPage({ user }: Props) {
     setAjusteSaving(true)
     setAjusteError('')
     const { error: txnError } = await supabase.from('transacciones').insert({
-      user_id: user.id,
+      user_id: userId,
       cuenta_id: ajustandoCuenta.id,
       fecha: hoyGT(),
       cantidad: toCentavos(Math.abs(val)) * (val < 0 ? -1 : 1),
@@ -116,7 +119,7 @@ export default function CuentasPage({ user }: Props) {
     setAjustandoCuenta(null)
     setAjusteInput('')
     setAjusteSaving(false)
-    window.location.reload()
+    await refrescar.cuentas()
   }
 
   return (

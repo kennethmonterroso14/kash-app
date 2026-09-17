@@ -2,10 +2,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
-import { useTarjetas } from '../hooks/useTarjetas'
 import { formatQ } from '../lib/finanzas'
-
-interface Props { userId: string }
+import { useSesion } from '../context/sesion'
 
 const MESES_LOCAL = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -24,10 +22,10 @@ function formatPeriodo(inicio: string, cierre: string): string {
   return `${id} ${MESES_LOCAL[im - 1].slice(0, 3)} – ${cd} ${MESES_LOCAL[cm - 1].slice(0, 3)}`
 }
 
-export default function TarjetaHistorialPage({ userId }: Props) {
+export default function TarjetaHistorialPage() {
   const { id: tarjetaId = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { tarjetas } = useTarjetas(userId)
+  const { userId, tarjetas } = useSesion()
   const { ciclos, loading, error, fetchTransaccionesCiclo } = useCiclosTC(userId, tarjetaId)
 
   const tc = tarjetas.find(t => t.id === tarjetaId)

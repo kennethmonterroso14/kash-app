@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatQ, toCentavos, calcTiempoParaMeta } from '../lib/finanzas'
-
-interface Props { userId: string }
+import { useSesion } from '../context/sesion'
 
 interface Meta {
   id: string
@@ -15,7 +14,8 @@ interface Meta {
 
 const DEFAULT_AHORRO_MENSUAL_Q = 2000
 
-export default function MetasPage({ userId }: Props) {
+export default function MetasPage() {
+  const { userId } = useSesion()
   const [metas, setMetas] = useState<Meta[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

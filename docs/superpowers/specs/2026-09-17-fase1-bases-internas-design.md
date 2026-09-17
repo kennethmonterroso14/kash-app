@@ -130,7 +130,10 @@ por lo fácil:
 
 - Abrir el Dashboard dispara **una** consulta de perfil, cuentas, categorías y tarjetas — no seis.
 - Ninguna página recibe el objeto `User`; todas leen del contexto.
-- Ningún `window.location.reload()` en `src/`.
+- Ningún `window.location.reload()` usado como REFETCH. Los de las pantallas de
+  error ("Reintentar" en ErrorBoundary, en el gate de perfil y en el fetch de
+  presupuestos) se quedan: ahí una recarga completa es la recuperación correcta,
+  no un parche.
 - Ninguna página sobre 300 líneas.
 - `formatQ` sin llamadas propias (solo el alias) y `formatMoneda` cubierto por tests con al menos
   tres monedas.

@@ -93,13 +93,13 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage user={user} />} />
           <Route path="/txns" element={<TransaccionesPage user={user} />} />
-          <Route path="/cuentas" element={<CuentasPage user={user} />} />
+          <Route path="/cuentas" element={<CuentasPage />} />
           <Route path="/budget" element={<BudgetPage userId={user.id} />} />
-          <Route path="/metas" element={<MetasPage userId={user.id} />} />
-          <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
-          <Route path="/pagos" element={<PagosRecurrentesPage userId={user.id} />} />
+          <Route path="/metas" element={<MetasPage />} />
+          <Route path="/proyecciones" element={<ProyeccionesPage />} />
+          <Route path="/pagos" element={<PagosRecurrentesPage />} />
           <Route path="/tarjetas" element={<TarjetasPage userId={user.id} />} />
-          <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage userId={user.id} />} />
+          <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage />} />
           <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
           <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
           <Route path="/categorias" element={<CategoriasPage />} />
