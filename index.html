@@ -3,7 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      viewport-fit=cover deja que la página pase por debajo del notch y del
+      indicador de home; sin él los `env(safe-area-inset-*)` de index.css valen
+      0px. interactive-widget=resizes-content hace que el teclado de Android
+      encoja el viewport, como ya hace iOS, para que `dvh` y lo anclado abajo
+      reaccionen igual en las dos plataformas.
+      NO agregar user-scalable=no ni maximum-scale: los inputs de 16px ya evitan
+      el zoom al enfocar, y bloquear el zoom es una falla de accesibilidad.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <!-- La barra de estado toma su color de acá. El valor es el del cromo
+         (el header translúcido sobre el fondo), no el color de marca. -->
+    <meta name="theme-color" content="#0a0b0f" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Vorta</title>
   </head>
   <body>

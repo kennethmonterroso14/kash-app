@@ -1,7 +1,170 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Solo Outfit queda de Google Fonts: es el logotipo. El resto del texto usa la
+   fuente del sistema (apple-design §15), que además no cuesta una petición de
+   red — relevante dentro del WebView de Capacitor, que puede abrir sin señal. */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background-color: #0a0c10; color: #e8eaf0; font-family: 'Inter', sans-serif; }
+/* ==========================================================================
+   Base — las correcciones de `.claude/skills/mobile-native`. Cada una está
+   acá porque sin ella la app se delata como una página web en un teléfono, y
+   ninguna se reproduce en el emulador del navegador de escritorio.
+   ========================================================================== */
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    /* El destello gris/azul al tocar es la señal más fuerte de "esto es una
+       web". Al quitarlo, el feedback de presión pasa a ser `.presionable`. */
+    -webkit-tap-highlight-color: transparent;
+    /* Sin esto el texto se infla al girar el teléfono. */
+    -webkit-text-size-adjust: 100%;
+    /* Mata el pull-to-refresh y el rebote de toda la página: esto es una app
+       con sus propios contenedores de scroll, no un documento. */
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-bg text-text font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 16px es el mínimo: por debajo, Safari en iOS hace zoom al enfocar el input
+     y NO vuelve al salir. La solución NO es `user-scalable=no`. */
+  input, textarea, select { font-size: 16px; }
+
+  button, a, [role='button'] {
+    /* Mata el retardo de ~300ms del doble-tap-zoom. */
+    touch-action: manipulation;
+    /* El atenuado al presionar es el highlight por defecto de iOS, y va acá
+       (una regla, no una clase por botón) porque reemplaza al destello gris
+       que se quitó arriba: sin él los controles dejarían de dar feedback.
+       `.presionable` agrega la escala encima, para objetivos grandes. */
+    transition: opacity theme('transitionDuration.presion') theme('transitionTimingFunction.salida');
+    /* Un long-press sobre un control no debe seleccionar su etiqueta ni abrir
+       el menú de copiar. OJO: esto va en controles, nunca en `body` — el texto
+       que es contenido (montos, mensajes de error) se tiene que poder copiar. */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  button:not(:disabled):active,
+  a:active,
+  [role='button']:not([aria-disabled='true']):active { opacity: 0.6; }
+}
+
+/* ==========================================================================
+   Materiales — la única forma en que los tokens de vidrio entran a la UI.
+   Regla de apple-design §12 que hay que respetar al usarlas: NUNCA apilar un
+   material liviano sobre otro liviano (un `.vidrio-chip` dentro de un
+   `.vidrio-panel` está bien; dentro de otro `.vidrio-chip` no).
+   ========================================================================== */
+@layer components {
+  /* Liviano: elementos interactivos. Llama la atención sin separar regiones. */
+  .vidrio-chip {
+    @apply bg-vidrio-chip backdrop-blur-chip backdrop-saturate-150
+           border border-perimetro shadow-chip;
+  }
+
+  /* Medio: tarjetas y paneles de contenido. */
+  .vidrio-panel {
+    @apply bg-vidrio-panel backdrop-blur-panel backdrop-saturate-150
+           border border-perimetro shadow-panel;
+  }
+
+  /* Pesado: cromo estructural (header, nav). Sin borde de perímetro: el canto
+     se pone aparte con `.canto-*` del lado que da al contenido. */
+  .vidrio-chrome {
+    @apply bg-vidrio-chrome backdrop-blur-chrome backdrop-saturate-150;
+  }
+
+  /* El más pesado: hojas y modales, que van sobre un scrim. */
+  .vidrio-hoja {
+    @apply bg-vidrio-hoja backdrop-blur-hoja backdrop-saturate-150
+           border border-perimetro shadow-hoja;
+  }
+
+  .scrim { @apply bg-vidrio-scrim backdrop-blur-chip; }
+
+  /* El canto claro es la luz pegando en el borde del material. */
+  .canto-superior { @apply border-t border-canto; }
+  .canto-inferior { @apply border-b border-canto; }
+
+  /* Degradado donde el contenido se mete debajo del cromo flotante, en lugar
+     de una línea de 1px (§12 "scroll edge effects, not hard dividers"). */
+  .borde-scroll-abajo, .borde-scroll-arriba { position: relative; }
+  .borde-scroll-abajo::after, .borde-scroll-arriba::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 16px;
+    pointer-events: none;
+  }
+  .borde-scroll-abajo::after {
+    top: 100%;
+    background: linear-gradient(to bottom, theme('colors.vidrio.chrome'), transparent);
+  }
+  .borde-scroll-arriba::after {
+    bottom: 100%;
+    background: linear-gradient(to top, theme('colors.vidrio.chrome'), transparent);
+  }
+
+  /* Feedback de presión. Va en el `:active` (no en el `click`) porque un
+     control nativo responde cuando el dedo BAJA; esperar a que se levante se
+     siente como lag aunque no haya un solo milisegundo de retardo. */
+  .presionable {
+    @apply transition-transform duration-presion ease-salida;
+  }
+  .presionable:active { transform: scale(0.97); }
+
+  /* Safe areas. Sin `viewport-fit=cover` en el meta de index.html, todos los
+     `env()` valen 0px y estas clases no hacen nada. */
+  .segura-arriba { padding-top: env(safe-area-inset-top, 0px); }
+  .segura-abajo  { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+/* ==========================================================================
+   Preferencias del sistema (apple-design §14). Movimiento reducido no es
+   "sin feedback": es un equivalente más suave y no vestibular.
+   ========================================================================== */
+
+/* Sin transparencia: el material se vuelve sólido, no desaparece. */
+@media (prefers-reduced-transparency: reduce) {
+  .vidrio-chip, .vidrio-panel, .vidrio-chrome, .vidrio-hoja, .scrim {
+    /* Vaciar las variables es lo que de verdad apaga el desenfoque: el
+       `backdrop-filter` de las clases base se arma con ellas, y sin valores la
+       declaración queda inválida y cae a `none` en todos los navegadores.
+       Las dos líneas de abajo no alcanzan solas — el minificador se queda con
+       una sola de las dos según el navegador al que apunte. */
+    --tw-backdrop-blur: ;
+    --tw-backdrop-saturate: ;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .vidrio-chip  { background-color: theme('colors.surface2'); }
+  .vidrio-panel { background-color: theme('colors.surface'); }
+  .vidrio-chrome, .vidrio-hoja { background-color: theme('colors.surface'); }
+  .scrim { background-color: theme('colors.bg'); }
+  .borde-scroll-abajo::after, .borde-scroll-arriba::after { display: none; }
+  .borde-scroll-abajo { @apply canto-inferior; }
+  .borde-scroll-arriba { @apply canto-superior; }
+}
+
+/* Más contraste: fondo casi sólido y un borde definido. */
+@media (prefers-contrast: more) {
+  .vidrio-chip, .vidrio-panel, .vidrio-chrome, .vidrio-hoja {
+    background-color: theme('colors.bg');
+    border: 1px solid theme('colors.textDim');
+  }
+}
+
+/* Movimiento reducido: la escala se cambia por opacidad, que no desplaza nada. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .presionable { @apply transition-opacity duration-presion; }
+  .presionable:active { transform: none; opacity: 0.66; }
+}
