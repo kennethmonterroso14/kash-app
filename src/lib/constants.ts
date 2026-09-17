@@ -63,10 +63,15 @@ export const MESES = [
 export const hoyGT = (): string =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' })
 
-export const mesActual = (): string => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
+// Date con los campos de calendario de HOY en Guatemala.
+// Se ancla al mediodía local para que getFullYear/getMonth/getDate nunca
+// se corran por DST ni por el cruce de medianoche. No es un instante real
+// en GT: sirve solo para leer campos de calendario.
+export const ahoraGT = (): Date => new Date(`${hoyGT()}T12:00:00`)
+
+// Mes actual ('YYYY-MM') en zona horaria Guatemala — igual que hoyGT(),
+// no el calendario del navegador.
+export const mesActual = (): string => hoyGT().substring(0, 7)
 
 export const TIPOS_INVERSION = [
   { value: 'fondo',     label: 'Fondo de inversión' },
