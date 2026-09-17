@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { hoyGT } from '../lib/constants'
 
+const COLS = 'id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id, ciclo_id, created_at'
+
 export interface Transaccion {
   id: string
   cuenta_id: string | null
@@ -12,32 +14,57 @@ export interface Transaccion {
   tipo: 'ingreso' | 'gasto' | 'ajuste' | 'gasto_tc' | 'pago_tc'
   notas?: string
   tarjeta_id?: string | null
+  ciclo_id?: string | null
+  created_at?: string
 }
 
 export function useTransacciones(userId: string | undefined, mes: string) {
-  const [txns, setTxns] = useState<Transaccion[]>([])
+  // Guardamos el mes al que pertenecen las filas para poder descartar una
+  // respuesta lenta de un mes que el usuario ya dejó atrás.
+  const [state, setState] = useState<{ mes: string | null; rows: Transaccion[] }>({ mes: null, rows: [] })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [recarga, setRecarga] = useState(0)
 
-  const fetchTxns = useCallback(async () => {
+  useEffect(() => {
     if (!userId) return
-    setLoading(true)
-    const desde = `${mes}-01`
-    const [y, m] = mes.split('-').map(Number)
-    const ultimoDia = new Date(y, m, 0).getDate()   // día 0 del mes siguiente = último día del mes actual
-    const hasta = `${mes}-${String(ultimoDia).padStart(2, '0')}`
-    const { data } = await supabase
-      .from('transacciones')
-      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')
-      .eq('user_id', userId)
-      .gte('fecha', desde)
-      .lte('fecha', hasta)
-      .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
-    setTxns(data ?? [])
-    setLoading(false)
-  }, [userId, mes])
+    let ignorar = false
 
-  useEffect(() => { fetchTxns() }, [fetchTxns])
+    ;(async () => {
+      setLoading(true)
+      const desde = `${mes}-01`
+      const [y, m] = mes.split('-').map(Number)
+      const ultimoDia = new Date(y, m, 0).getDate()   // día 0 del mes siguiente = último día del mes actual
+      const hasta = `${mes}-${String(ultimoDia).padStart(2, '0')}`
+      const { data, error: qError } = await supabase
+        .from('transacciones')
+        .select(COLS)
+        .eq('user_id', userId)
+        .gte('fecha', desde)
+        .lte('fecha', hasta)
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false })
+      if (ignorar) return   // el mes cambió: esta respuesta ya no aplica
+      if (qError) {
+        setError(qError.message)
+        setState({ mes, rows: [] })
+      } else {
+        setError(null)
+        setState({ mes, rows: data ?? [] })
+      }
+      setLoading(false)
+    })()
+
+    return () => { ignorar = true }
+  }, [userId, mes, recarga])
+
+  // Nunca devolvemos las filas de otro mes mientras el mes actual carga
+  const txns = state.mes === mes ? state.rows : []
+
+  const setRows = (fn: (prev: Transaccion[]) => Transaccion[]) =>
+    setState(prev => ({ ...prev, rows: fn(prev.rows) }))
+
+  const refresh = useCallback(() => setRecarga(n => n + 1), [])
 
   const addTxn = async (txn: {
     cuenta_id: string
@@ -55,7 +82,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .select()
       .single()
     if (!error && data) {
-      setTxns(prev => [data, ...prev])
+      setRows(prev => [data, ...prev])
     }
     return { data, error }
   }
@@ -63,7 +90,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
   const deleteTxn = async (id: string) => {
     const { error } = await supabase.from('transacciones').delete().eq('id', id)
     if (!error) {
-      setTxns(prev => prev.filter(t => t.id !== id))
+      setRows(prev => prev.filter(t => t.id !== id))
     }
     return { error }
   }
@@ -76,7 +103,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .select()
       .single()
     if (!error && data) {
-      setTxns(prev => [data, ...prev].sort((a, b) => b.fecha.localeCompare(a.fecha)))
+      setRows(prev => [data, ...prev].sort((a, b) => b.fecha.localeCompare(a.fecha)))
     }
     return { data, error }
   }
@@ -91,10 +118,10 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .from('transacciones')
       .update(updates)
       .eq('id', id)
-      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')
+      .select(COLS)
       .single()
     if (!error && data) {
-      setTxns(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+      setRows(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
     }
     return { data, error }
   }
@@ -115,12 +142,12 @@ export function useTransacciones(userId: string | undefined, mes: string) {
         { ...base, cuenta_id: deCuentaId, cantidad: -cantidad },
         { ...base, cuenta_id: aCuentaId,  cantidad: +cantidad },
       ])
-      .select('id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id')
+      .select(COLS)
     if (!error && data) {
-      setTxns(prev => [...data, ...prev])
+      setRows(prev => [...data, ...prev])
     }
     return { data, error }
   }
 
-  return { txns, loading, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia, refresh: fetchTxns }
+  return { txns, loading, error, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia, refresh }
 }

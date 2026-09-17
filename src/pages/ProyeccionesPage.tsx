@@ -7,14 +7,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { useCuentas } from '../hooks/useCuentas'
 import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
+import { useSesion } from '../context/sesion'
+import { colores } from '../lib/tokens'
 
 // ─── Types ───────────────────────────────────────────────────
-
-interface Props {
-  userId: string
-}
 
 interface ChartPoint {
   label: string   // "2026"
@@ -67,8 +64,8 @@ function CustomTooltip({ active, payload }: TooltipProps) {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
   return (
-    <div className="bg-surface border border-muted/40 rounded-xl px-3 py-2 text-sm shadow-lg">
-      <p className="text-muted text-xs mb-0.5">{point.fechaDisplay}</p>
+    <div className="bg-surface border border-canto rounded-xl px-3 py-2 text-sm shadow-lg">
+      <p className="text-textDim text-xs mb-0.5">{point.fechaDisplay}</p>
       <p className="text-success font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
     </div>
   )
@@ -76,9 +73,11 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 
 // ─── Page ────────────────────────────────────────────────────
 
-export default function ProyeccionesPage({ userId }: Props) {
+export default function ProyeccionesPage() {
   const gradientId = useId()
-  const { totalPatrimonio, loading } = useCuentas(userId)
+  const { totalPatrimonio, cargando, error: errores } = useSesion()
+  const loading = cargando.cuentas
+  const cuentasError = errores.cuentas
 
   const [ahorroMensualQ, setAhorroMensualQ] = useState(2000)
   const [rendimientoPct, setRendimientoPct] = useState(7)
@@ -90,8 +89,13 @@ export default function ProyeccionesPage({ userId }: Props) {
 
   const puntos = useMemo(() => {
     if (loading) return []
-    const ahorroMensual = toCentavos(Math.max(0, ahorroMensualQ))
-    const rendimientoAnual = Math.max(0, Math.min(1, rendimientoPct / 100))
+    // Number(e.target.value) puede devolver Infinity ("1e999"): toCentavos lo
+    // deja pasar y formatQ lanza despues durante el render, dejando la app en
+    // blanco (no hay ErrorBoundary). Sanear antes de convertir.
+    const ahorroQ = Number.isFinite(ahorroMensualQ) ? Math.max(0, ahorroMensualQ) : 0
+    const pctSeguro = Number.isFinite(rendimientoPct) ? rendimientoPct : 0
+    const ahorroMensual = toCentavos(ahorroQ)
+    const rendimientoAnual = Math.max(0, Math.min(1, pctSeguro / 100))
     return proyectarPatrimonio({
       patrimonioActual: totalPatrimonio,
       ahorroMensual,
@@ -137,19 +141,26 @@ export default function ProyeccionesPage({ userId }: Props) {
   // ─── Render ──────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-bg text-white pb-24">
+    <div className="min-h-screen bg-bg text-text pb-24">
       <div className="max-w-lg mx-auto px-4 pt-8 space-y-5">
 
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Proyecciones</h1>
-          <p className="text-muted text-sm mt-1">
+          <p className="text-textDim text-sm mt-1">
             Patrimonio actual:{' '}
             {loading
               ? <span className="animate-pulse">cargando…</span>
-              : <span className="text-white font-semibold">{formatQ(totalPatrimonio)}</span>
+              : cuentasError
+                ? <span className="text-danger">no disponible</span>
+                : <span className="text-text font-semibold">{formatQ(totalPatrimonio)}</span>
             }
           </p>
+          {cuentasError && (
+            <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-3 mt-3">
+              No se pudieron cargar tus cuentas: {cuentasError}. La proyección parte de Q0.00.
+            </p>
+          )}
         </div>
 
         {/* Inputs */}
@@ -157,7 +168,7 @@ export default function ProyeccionesPage({ userId }: Props) {
 
           {/* Ahorro mensual */}
           <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
               Ahorro mensual (Q)
             </label>
             <input
@@ -166,13 +177,13 @@ export default function ProyeccionesPage({ userId }: Props) {
               step={100}
               value={ahorroMensualQ}
               onChange={e => setAhorroMensualQ(Number(e.target.value))}
-              className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/60 transition-colors"
+              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
             />
           </div>
 
           {/* Rendimiento anual */}
           <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
               Rendimiento anual (%)
             </label>
             <input
@@ -182,13 +193,13 @@ export default function ProyeccionesPage({ userId }: Props) {
               step={0.5}
               value={rendimientoPct}
               onChange={e => setRendimientoPct(Number(e.target.value))}
-              className="w-full bg-bg border border-muted/30 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/60 transition-colors"
+              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
             />
           </div>
 
           {/* Horizonte segmented control */}
           <div>
-            <label className="text-xs text-muted uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
               Horizonte
             </label>
             <div className="flex bg-bg rounded-xl p-1 gap-1">
@@ -199,7 +210,7 @@ export default function ProyeccionesPage({ userId }: Props) {
                   className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                     horizonteIdx === i
                       ? 'bg-accent text-bg'
-                      : 'text-muted hover:text-white'
+                      : 'text-textDim hover:text-text'
                   }`}
                 >
                   {opt.label}
@@ -211,7 +222,7 @@ export default function ProyeccionesPage({ userId }: Props) {
 
         {/* Chart */}
         <div className="bg-surface rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">
+          <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-4">
             Crecimiento proyectado
           </h2>
           {chartData.length > 0 ? (
@@ -225,13 +236,13 @@ export default function ProyeccionesPage({ userId }: Props) {
                 </defs>
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: '#3d4255', fontSize: 11 }}
+                  tick={{ fill: colores.textDim, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={formatYAxis}
-                  tick={{ fill: '#3d4255', fontSize: 11 }}
+                  tick={{ fill: colores.textDim, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   width={54}
@@ -244,12 +255,12 @@ export default function ProyeccionesPage({ userId }: Props) {
                   strokeWidth={2}
                   fill={`url(#${gradientId})`}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#7c6af7', strokeWidth: 0 }}
+                  activeDot={{ r: 4, fill: colores.accent, strokeWidth: 0 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-60 flex items-center justify-center text-muted text-sm">
+            <div className="h-60 flex items-center justify-center text-textDim text-sm">
               Cargando proyección…
             </div>
           )}
@@ -258,14 +269,14 @@ export default function ProyeccionesPage({ userId }: Props) {
         {/* Milestone summary cards */}
         {milestones.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">
+            <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-3">
               Metas proyectadas
             </h2>
             <div className="grid grid-cols-3 gap-3">
               {milestones.map(m => (
                 <div key={m.label} className="bg-surface rounded-2xl p-4 flex flex-col gap-1">
-                  <span className="text-xs text-muted">{m.label}</span>
-                  <span className="text-sm font-bold text-white leading-tight">
+                  <span className="text-xs text-textDim">{m.label}</span>
+                  <span className="text-sm font-bold text-text leading-tight">
                     {formatQ(m.patrimonio)}
                   </span>
                   <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-success' : 'text-danger'}`}>

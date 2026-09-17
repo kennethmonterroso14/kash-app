@@ -1,28 +1,16 @@
-// Cuentas iniciales de Kenneth — saldos al 2026-03-30
-// Valores en centavos (enteros)
-export const CUENTAS_INICIALES = [
-  { nombre: 'BI Ahorros',   tipo: 'ahorro',   saldo: 1130618, color: '#4ade80' },
-  { nombre: 'BI Monetaria', tipo: 'ahorro',   saldo: 34645,   color: '#34d399' },
-  { nombre: 'BAC ahorros',  tipo: 'ahorro',   saldo: 87004,   color: '#60a5fa' },
-  { nombre: 'Zigi',         tipo: 'ahorro',   saldo: 1993,    color: '#e879f9' },
-  { nombre: 'Nexa',         tipo: 'ahorro',   saldo: 15726,   color: '#fbbf24' },
-  { nombre: 'Intercop',     tipo: 'otro',     saldo: 67887,   color: '#f472b6' },
-  { nombre: 'Billetera',    tipo: 'efectivo', saldo: 219500,  color: '#fb923c' },
-  { nombre: 'Cash',         tipo: 'efectivo', saldo: 10000,   color: '#94a3b8' },
-  { nombre: 'Ahorro Cash',  tipo: 'efectivo', saldo: 148500,  color: '#facc15' },
+/**
+ * Cuentas sugeridas para el onboarding, SIN saldo: cada usuario pone el suyo.
+ *
+ * Antes acá vivían los saldos bancarios reales de una persona (nueve cuentas
+ * con montos). Eran exports muertos, nadie los importaba, y con la app pensada
+ * para terceros eso no puede estar en el repo. Si el onboarding de la Fase 2
+ * los necesita, esta plantilla es el punto de partida.
+ */
+export const CUENTAS_SUGERIDAS = [
+  { nombre: 'Cuenta de ahorros', tipo: 'ahorro',   color: '#4ade80' },
+  { nombre: 'Cuenta monetaria',  tipo: 'corriente', color: '#60a5fa' },
+  { nombre: 'Efectivo',          tipo: 'efectivo', color: '#fb923c' },
 ] as const
-
-// Presupuestos mensuales en centavos
-export const PRESUPUESTOS_INICIALES: Record<string, number> = {
-  'Comida/Restaurantes': 50000,
-  'Gasolina/Carro':      40000,
-  'Pago Deudas':         25700,
-  'Gym/Deporte':         24000,
-  'Familia/Regalos':     20000,
-  'Telecom':             12000,
-  'Suscripciones':       2353,
-  'Parqueo':             2500,
-}
 
 export const CATEGORIAS_GASTO = [
   'Comida/Restaurantes', 'Gasolina/Carro', 'Supermercado', 'Gym/Deporte',
@@ -32,6 +20,10 @@ export const CATEGORIAS_GASTO = [
 ]
 
 export const CATEGORIAS_INGRESO = ['Ingreso', 'Familia/Regalos', 'Otros']
+
+// Color cuando una categoría no tiene uno asignado. Vive acá y no como hex
+// suelto en las páginas: si no, un cambio de paleta dejaría este gris viejo.
+export const COLOR_CATEGORIA_FALLBACK = '#6b7590'
 
 export const CAT_COLORS: Record<string, string> = {
   'Comida/Restaurantes': '#c8f564',
@@ -59,14 +51,71 @@ export const MESES = [
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
 ]
 
-// Fecha de hoy en zona horaria Guatemala (UTC-6, sin DST)
-export const hoyGT = (): string =>
-  new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' })
+// ─── FECHAS ───────────────────────────────────────────────────────────
+//
+// Todo lo que se guarda se fecha en la zona horaria del USUARIO, no en la del
+// navegador. Ojo con el alcance de esto: de acá salen los límites de mes de
+// todas las consultas, así que cambiarle la zona a un usuario mueve qué
+// transacciones caen en qué mes. Se parametriza ahora; el selector en la UI es
+// de la Fase 2.
 
-export const mesActual = (): string => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+/** Default de `profiles.zona_horaria`. UTC-6, sin horario de verano. */
+export const ZONA_GT = 'America/Guatemala'
+
+const formateadoresFecha = new Map<string, Intl.DateTimeFormat>()
+
+/**
+ * `true` si es una zona IANA que este runtime conoce.
+ *
+ * Existe porque las funciones de abajo LANZAN con una zona inválida, y quien
+ * lee el perfil necesita poder detectarlo y mostrar un error en lugar de que
+ * el render se caiga. No tiene un default a propósito: adivinar la zona
+ * escribiría fechas equivocadas en la base, que es peor que no escribir nada.
+ */
+export function zonaValida(zona: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: zona })
+    return true
+  } catch {
+    return false
+  }
 }
+
+function formateadorFecha(zona: string): Intl.DateTimeFormat {
+  const guardado = formateadoresFecha.get(zona)
+  if (guardado) return guardado
+  // Campos explícitos y no `toLocaleDateString('en-CA')` pelado: así el
+  // 'YYYY-MM-DD' no depende de qué formato le dé ICU a ese locale.
+  const f = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zona,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  formateadoresFecha.set(zona, f)
+  return f
+}
+
+/** Hoy como 'YYYY-MM-DD' en una zona horaria. Lanza si la zona no existe. */
+export const hoyEn = (zona: string): string => formateadorFecha(zona).format(new Date())
+
+/**
+ * Date con los campos de calendario de HOY en una zona.
+ * Se ancla al mediodía local para que getFullYear/getMonth/getDate nunca se
+ * corran por DST ni por el cruce de medianoche. NO es un instante real en esa
+ * zona: sirve solo para leer campos de calendario.
+ */
+export const ahoraEn = (zona: string): Date => new Date(`${hoyEn(zona)}T12:00:00`)
+
+/** Mes actual ('YYYY-MM') en una zona horaria. */
+export const mesActualEn = (zona: string): string => hoyEn(zona).substring(0, 7)
+
+// Alias de Guatemala. Se quedan mientras haya sitios sin migrar a `useFechas()`
+// (viajan con la partición de páginas de la tarea 1.4) y se retiran cuando no
+// queden.
+export const hoyGT = (): string => hoyEn(ZONA_GT)
+export const ahoraGT = (): Date => ahoraEn(ZONA_GT)
+export const mesActual = (): string => mesActualEn(ZONA_GT)
 
 export const TIPOS_INVERSION = [
   { value: 'fondo',     label: 'Fondo de inversión' },

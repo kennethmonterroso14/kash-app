@@ -18,21 +18,36 @@ import TarjetasPage from './pages/TarjetasPage'
 import TarjetaHistorialPage from './pages/TarjetaHistorialPage'
 import InversionesPage from './pages/InversionesPage'
 import { useAutoApplyPagos } from './hooks/useAutoApplyPagos'
+import { SesionProvider } from './context/SesionProvider'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
   useAutoApplyPagos(user?.id)
-  const [hasSetup, setHasSetup] = useState<boolean | null>(null)
+  // Etiquetado con el userId al que corresponde, para derivar el estado del gate
+  // en lugar de reiniciarlo desde el efecto al cambiar de usuario.
+  const [setup, setSetup] = useState<{ userId: string; value: boolean | 'error' } | null>(null)
 
-  // Verificar si el usuario ya tiene cuentas configuradas
+  // El onboarding se completa escribiendo `profiles`, así que el gate consulta
+  // esa fila — no el conteo de `cuentas`, que SetupPage nunca crea.
+  // Depende de user?.id (no del objeto) para no re-evaluarse en cada TOKEN_REFRESHED.
+  const userId = user?.id
+  const hasSetup = setup && setup.userId === userId ? setup.value : null
+
   useEffect(() => {
-    if (!user) { setHasSetup(null); return }
+    if (!userId) return
+    let ignore = false
     supabase
-      .from('cuentas')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .then(({ count }) => setHasSetup((count ?? 0) > 0))
-  }, [user])
+      .from('profiles')
+      .select('nombre')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (ignore) return
+        // Un error de red no debe mandar a un usuario establecido al onboarding
+        setSetup({ userId, value: error ? 'error' : !!data })
+      })
+    return () => { ignore = true }
+  }, [userId])
 
   if (loading || (user && hasSetup === null)) {
     return (
@@ -44,28 +59,53 @@ export default function App() {
 
   if (!user) return <LoginPage />
 
-  if (!hasSetup) {
-    return <SetupPage user={user} onComplete={() => setHasSetup(true)} />
+  if (hasSetup === 'error') {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+        <div className="bg-surface rounded-2xl p-6 max-w-sm text-center space-y-3">
+          <p className="text-text font-semibold">No se pudo cargar tu perfil</p>
+          <p className="text-textDim text-sm">
+            Revisa tu conexión e intenta de nuevo. No se hizo ningún cambio en tus datos.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
   }
 
+  if (!hasSetup) {
+    return <SetupPage user={user} onComplete={() => setSetup({ userId: user.id, value: true })} />
+  }
+
+  // El provider envuelve TODO lo que hay detrás del gate de auth, así que
+  // cualquier página puede usar useSesion(). Perfil, cuentas, categorías y
+  // tarjetas se cargan una vez acá en lugar de una vez por página.
   return (
-    <Layout onSignOut={signOut} userId={user.id}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage user={user} />} />
-        <Route path="/txns" element={<TransaccionesPage user={user} />} />
-        <Route path="/cuentas" element={<CuentasPage user={user} />} />
-        <Route path="/budget" element={<BudgetPage userId={user.id} />} />
-        <Route path="/metas" element={<MetasPage userId={user.id} />} />
-        <Route path="/proyecciones" element={<ProyeccionesPage userId={user.id} />} />
-        <Route path="/pagos" element={<PagosRecurrentesPage userId={user.id} />} />
-        <Route path="/tarjetas" element={<TarjetasPage userId={user.id} />} />
-        <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage userId={user.id} />} />
-        <Route path="/inversiones" element={<InversionesPage userId={user.id} />} />
-        <Route path="/perfil" element={<PerfilPage user={user} onSignOut={signOut} />} />
-        <Route path="/categorias" element={<CategoriasPage userId={user.id} />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Layout>
+    <SesionProvider userId={user.id} email={user.email ?? null}>
+      <Layout onSignOut={signOut} userId={user.id}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/txns" element={<TransaccionesPage />} />
+          <Route path="/cuentas" element={<CuentasPage />} />
+          <Route path="/budget" element={<BudgetPage />} />
+          <Route path="/metas" element={<MetasPage />} />
+          <Route path="/proyecciones" element={<ProyeccionesPage />} />
+          <Route path="/pagos" element={<PagosRecurrentesPage />} />
+          <Route path="/tarjetas" element={<TarjetasPage />} />
+          <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage />} />
+          <Route path="/inversiones" element={<InversionesPage />} />
+          <Route path="/perfil" element={<PerfilPage onSignOut={signOut} />} />
+          <Route path="/categorias" element={<CategoriasPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Layout>
+    </SesionProvider>
   )
 }

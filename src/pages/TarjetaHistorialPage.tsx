@@ -2,10 +2,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
-import { useTarjetas } from '../hooks/useTarjetas'
 import { formatQ } from '../lib/finanzas'
-
-interface Props { userId: string }
+import { useSesion } from '../context/sesion'
 
 const MESES_LOCAL = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -24,10 +22,10 @@ function formatPeriodo(inicio: string, cierre: string): string {
   return `${id} ${MESES_LOCAL[im - 1].slice(0, 3)} – ${cd} ${MESES_LOCAL[cm - 1].slice(0, 3)}`
 }
 
-export default function TarjetaHistorialPage({ userId }: Props) {
+export default function TarjetaHistorialPage() {
   const { id: tarjetaId = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { tarjetas } = useTarjetas(userId)
+  const { userId, tarjetas } = useSesion()
   const { ciclos, loading, error, fetchTransaccionesCiclo } = useCiclosTC(userId, tarjetaId)
 
   const tc = tarjetas.find(t => t.id === tarjetaId)
@@ -57,10 +55,15 @@ export default function TarjetaHistorialPage({ userId }: Props) {
 
   const cicloSel = ciclos.find(c => c.id === cicloSelId) ?? null
 
+  // Totales del modal separados por tipo: sumar cargos y pagos juntos daría un
+  // número sin significado (y contradiría las métricas del ciclo).
+  const cargosModal = txns.reduce((s, t) => t.tipo === 'gasto_tc' ? s + Math.abs(t.cantidad) : s, 0)
+  const pagosModal  = txns.reduce((s, t) => t.tipo === 'pago_tc'  ? s + Math.abs(t.cantidad) : s, 0)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <p className="text-muted text-sm">Cargando...</p>
+        <p className="text-textDim text-sm">Cargando...</p>
       </div>
     )
   }
@@ -77,10 +80,10 @@ export default function TarjetaHistorialPage({ userId }: Props) {
           ←
         </button>
         <div>
-          <h1 className="text-white font-display font-bold text-xl">
+          <h1 className="text-text font-display font-bold text-xl">
             {tc?.nombre ?? 'Historial'}
           </h1>
-          <p className="text-muted text-xs">Estados de cuenta</p>
+          <p className="text-textDim text-xs">Estados de cuenta</p>
         </div>
       </div>
 
@@ -88,10 +91,10 @@ export default function TarjetaHistorialPage({ userId }: Props) {
         <p className="text-danger text-sm bg-danger/10 rounded-xl p-3 mb-4">{error}</p>
       )}
 
-      {ciclos.length === 0 && !loading && (
+      {ciclos.length === 0 && !loading && !error && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">📋</p>
-          <p className="text-muted text-sm">Sin ciclos registrados</p>
+          <p className="text-textDim text-sm">Sin ciclos registrados</p>
           <p className="text-textDim text-xs mt-1">Los ciclos aparecen al registrar cargos</p>
         </div>
       )}
@@ -105,10 +108,10 @@ export default function TarjetaHistorialPage({ userId }: Props) {
               {/* Encabezado del ciclo */}
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="text-white text-sm font-semibold">
+                  <p className="text-text text-sm font-semibold">
                     {formatPeriodo(ciclo.fecha_inicio, ciclo.fecha_cierre)}
                   </p>
-                  <p className="text-muted text-xs mt-0.5">
+                  <p className="text-textDim text-xs mt-0.5">
                     Pago: {ciclo.fecha_pago}
                   </p>
                 </div>
@@ -120,20 +123,20 @@ export default function TarjetaHistorialPage({ userId }: Props) {
               {/* Métricas del ciclo */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="bg-bg rounded-xl p-2.5 text-center">
-                  <p className="text-muted text-xs mb-0.5">Cargos</p>
+                  <p className="text-textDim text-xs mb-0.5">Cargos</p>
                   <p className="text-danger font-mono font-semibold text-xs">
                     {formatQ(ciclo.total_cargos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
-                  <p className="text-muted text-xs mb-0.5">Pagos</p>
+                  <p className="text-textDim text-xs mb-0.5">Pagos</p>
                   <p className="text-success font-mono font-semibold text-xs">
                     {formatQ(ciclo.total_pagos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
-                  <p className="text-muted text-xs mb-0.5">Saldo</p>
-                  <p className={`font-mono font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-white'}`}>
+                  <p className="text-textDim text-xs mb-0.5">Saldo</p>
+                  <p className={`font-mono font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
                     {formatQ(ciclo.saldo_final)}
                   </p>
                 </div>
@@ -160,18 +163,18 @@ export default function TarjetaHistorialPage({ userId }: Props) {
           >
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-white font-semibold text-sm">Transacciones del ciclo</h2>
+                <h2 className="text-text font-semibold text-sm">Transacciones del ciclo</h2>
                 {cicloSel && (
-                  <p className="text-muted text-xs mt-0.5">
+                  <p className="text-textDim text-xs mt-0.5">
                     {formatPeriodo(cicloSel.fecha_inicio, cicloSel.fecha_cierre)}
                   </p>
                 )}
               </div>
-              <button onClick={cerrarModal} className="text-muted hover:text-white text-lg">✕</button>
+              <button onClick={cerrarModal} className="text-textDim hover:text-text text-lg">✕</button>
             </div>
 
             {loadingTxns && (
-              <p className="text-muted text-sm text-center py-8">Cargando...</p>
+              <p className="text-textDim text-sm text-center py-8">Cargando...</p>
             )}
 
             {errTxns && (
@@ -179,15 +182,15 @@ export default function TarjetaHistorialPage({ userId }: Props) {
             )}
 
             {!loadingTxns && txns.length === 0 && !errTxns && (
-              <p className="text-muted text-sm text-center py-8">Sin transacciones en este ciclo</p>
+              <p className="text-textDim text-sm text-center py-8">Sin transacciones en este ciclo</p>
             )}
 
             <div className="flex flex-col gap-2">
               {txns.map(tx => (
-                <div key={tx.id} className="flex justify-between items-center py-2.5 border-b border-muted/10 last:border-0">
+                <div key={tx.id} className="flex justify-between items-center py-2.5 border-b border-perimetro last:border-0">
                   <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-white text-sm truncate">{tx.descripcion}</p>
-                    <p className="text-muted text-xs">{tx.categoria} · {tx.fecha}</p>
+                    <p className="text-text text-sm truncate">{tx.descripcion}</p>
+                    <p className="text-textDim text-xs">{tx.categoria} · {tx.fecha}</p>
                   </div>
                   <p className={`font-mono text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
                     {tx.cantidad < 0 ? '−' : '+'}{formatQ(Math.abs(tx.cantidad))}
@@ -196,13 +199,26 @@ export default function TarjetaHistorialPage({ userId }: Props) {
               ))}
             </div>
 
-            {/* Total del modal */}
+            {/* Totales del modal */}
             {txns.length > 0 && (
-              <div className="border-t border-muted/20 pt-3 mt-2 flex justify-between">
-                <span className="text-muted text-sm">{txns.length} transacciones</span>
-                <span className="font-mono text-sm text-white font-semibold">
-                  {formatQ(txns.reduce((s, t) => s + Math.abs(t.cantidad), 0))}
-                </span>
+              <div className="border-t border-perimetro pt-3 mt-2 flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span className="text-textDim text-sm">{txns.length} transacciones</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-textDim text-xs">Cargos</span>
+                  <span className="font-mono text-sm text-danger font-semibold">
+                    {formatQ(cargosModal)}
+                  </span>
+                </div>
+                {pagosModal > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-textDim text-xs">Pagos</span>
+                    <span className="font-mono text-sm text-success font-semibold">
+                      {formatQ(pagosModal)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

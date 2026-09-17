@@ -1,5 +1,5 @@
 // src/hooks/useCategorias.ts
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CAT_COLORS } from '../lib/constants'
 
@@ -22,21 +22,28 @@ export function useCategorias(userId: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Contador de generación: descarta la respuesta de un userId viejo o de un
+  // `cargar` que quedó atrás cuando se dispararon dos seguidos.
+  const genRef = useRef(0)
+
   const cargar = useCallback(async () => {
     if (!userId) return
+    const gen = ++genRef.current
     try {
-      setLoading(true)
       const { data, error } = await supabase
         .from('categorias_usuario')
         .select('id, nombre, tipo, color')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
+      if (gen !== genRef.current) return
       if (error) throw new Error(error.message)
+      setError(null)
       setCustom(data ?? [])
     } catch (e: unknown) {
+      if (gen !== genRef.current) return
       setError(e instanceof Error ? e.message : 'Error al cargar categorías')
     } finally {
-      setLoading(false)
+      if (gen === genRef.current) setLoading(false)
     }
   }, [userId])
 
@@ -71,10 +78,19 @@ export function useCategorias(userId: string) {
     color?: string
   ) => {
     const autoColor = color ?? PALETTE[custom.length % PALETTE.length]
+    const limpio = nombre.trim()
     const { error } = await supabase
       .from('categorias_usuario')
-      .insert({ user_id: userId, nombre: nombre.trim(), tipo, color: autoColor })
-    if (error) throw new Error(`Error al agregar categoría: ${error.message}`)
+      .insert({ user_id: userId, nombre: limpio, tipo, color: autoColor })
+    if (error) {
+      // 23505 = unique_violation sobre categorias_usuario(user_id, nombre).
+      // Sin este caso salía el mensaje crudo de Postgres con el nombre del
+      // índice, que no le dice nada al usuario.
+      if (error.code === '23505') {
+        throw new Error(`Ya tienes una categoría llamada "${limpio}"`)
+      }
+      throw new Error(`Error al agregar categoría: ${error.message}`)
+    }
     await cargar()
   }
 
@@ -98,5 +114,6 @@ export function useCategorias(userId: string) {
     error,
     agregarCategoria,
     eliminarCategoria,
+    recargar: cargar,
   }
 }
