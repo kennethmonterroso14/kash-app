@@ -104,7 +104,14 @@ del roadmap.
       `!showForm && !editingTxn`) queda separado: cada modal tiene el suyo y la página guarda el de
       la lista. Cinco defectos encontrados de paso, ver el commit — entre ellos que **la columna de
       montos del CSV salía como texto** y que la lista no leía el `error` del hook.
-- [ ] **1.4.3** `InversionesPage` (686)
+- [x] **1.4.3** `InversionesPage`: 687 → **139**, en seis piezas más `tipoCambio.ts` con 5 tests.
+      `./inversiones/{ResumenPortafolio,InversionTile,ModalInversion,ModalActualizarValor,ModalTipoCambio}`.
+      "Nueva" y "Editar" eran otra vez el mismo formulario copiado; la única diferencia real es que
+      la moneda se elige al crear y es de solo lectura al editar. Tres defectos: los montos USD se
+      armaban a mano y **perdían el separador de miles** (`$3187.50` en lugar de `$3,187.50`),
+      archivar usaba `window.confirm` contra la convención del repo, y el color de la gráfica era
+      un hex suelto. El chequeo de "tipo de cambio viejo" sale a una función pura con tests, y el
+      reloj se lee una sola vez en el inicializador del estado (leerlo en render es impuro).
 - [ ] **1.4.4** `BudgetPage` (612)
 - [ ] **1.4.5** `DashboardPage` (436)
 - [ ] **1.4.6** `MetasPage` (368) y `PagosRecurrentesPage` (367)

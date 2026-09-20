@@ -117,6 +117,16 @@ export const hoyGT = (): string => hoyEn(ZONA_GT)
 export const ahoraGT = (): Date => ahoraEn(ZONA_GT)
 export const mesActual = (): string => mesActualEn(ZONA_GT)
 
+/**
+ * Inflación anual de referencia, en %. Es el umbral contra el que se dice si una
+ * inversión "supera la inflación".
+ *
+ * Está cableado a Guatemala. Con la app abierta a más países esto tendría que
+ * salir del perfil, como la moneda y la zona horaria — queda anotado en el
+ * roadmap; parametrizarlo ahora sin un dato por país solo movería el problema.
+ */
+export const INFLACION_ANUAL_REF = 4
+
 export const TIPOS_INVERSION = [
   { value: 'fondo',     label: 'Fondo de inversión' },
   { value: 'acciones',  label: 'Acciones / ETF' },
