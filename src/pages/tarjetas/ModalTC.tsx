@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
 import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
@@ -90,87 +91,78 @@ export default function ModalTC({ tc, onCerrar }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 scrim flex items-end z-50">
-      <div className="vidrio-hoja w-full rounded-t-hoja p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] max-h-[92dvh] overflow-y-auto overscroll-contain">
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-text font-semibold tracking-titulo">
-            {editando ? 'Editar tarjeta' : 'Nueva tarjeta'}
-          </h2>
-          <button onClick={onCerrar} className="presionable text-textDim hover:text-text text-lg">✕</button>
+    <Hoja titulo={editando ? 'Editar tarjeta' : 'Nueva tarjeta'} onCerrar={onCerrar}>
+      <div className="flex flex-col gap-3">
+        <input
+          placeholder="Nombre (ej: Visa BAC Personal)"
+          value={nombre} onChange={e => setNombre(e.target.value)}
+          className={CLASE_INPUT}
+        />
+        <input
+          placeholder="Banco (opcional)"
+          value={banco} onChange={e => setBanco(e.target.value)}
+          className={CLASE_INPUT}
+        />
+        <input
+          placeholder="Últimos 4 dígitos (opcional)"
+          value={ult4} onChange={e => setUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          inputMode="numeric" maxLength={4}
+          className={CLASE_INPUT}
+        />
+        <input
+          placeholder="Límite de crédito (Q)"
+          value={limite} onChange={e => setLimite(e.target.value)}
+          inputMode="decimal"
+          className={CLASE_INPUT}
+        />
+        <div className="flex gap-2">
+          <input
+            placeholder="Día de cierre"
+            value={cierre} onChange={e => setCierre(e.target.value)}
+            inputMode="numeric"
+            className={`flex-1 ${CLASE_INPUT}`}
+          />
+          <input
+            placeholder="Día de pago"
+            value={pago} onChange={e => setPago(e.target.value)}
+            inputMode="numeric"
+            className={`flex-1 ${CLASE_INPUT}`}
+          />
         </div>
 
-        <div className="flex flex-col gap-3">
-          <input
-            placeholder="Nombre (ej: Visa BAC Personal)"
-            value={nombre} onChange={e => setNombre(e.target.value)}
-            className={CLASE_INPUT}
-          />
-          <input
-            placeholder="Banco (opcional)"
-            value={banco} onChange={e => setBanco(e.target.value)}
-            className={CLASE_INPUT}
-          />
-          <input
-            placeholder="Últimos 4 dígitos (opcional)"
-            value={ult4} onChange={e => setUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            inputMode="numeric" maxLength={4}
-            className={CLASE_INPUT}
-          />
-          <input
-            placeholder="Límite de crédito (Q)"
-            value={limite} onChange={e => setLimite(e.target.value)}
-            inputMode="decimal"
-            className={CLASE_INPUT}
-          />
-          <div className="flex gap-2">
-            <input
-              placeholder="Día de cierre"
-              value={cierre} onChange={e => setCierre(e.target.value)}
-              inputMode="numeric"
-              className={`flex-1 ${CLASE_INPUT}`}
-            />
-            <input
-              placeholder="Día de pago"
-              value={pago} onChange={e => setPago(e.target.value)}
-              inputMode="numeric"
-              className={`flex-1 ${CLASE_INPUT}`}
-            />
+        <div>
+          <p className="text-textDim text-xs mb-2 tracking-micro">Color de la tarjeta</p>
+          <div className="flex gap-2 flex-wrap">
+            {COLORES_TC.map(c => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                aria-label={`Color ${c}`}
+                className={`presionable w-8 h-8 rounded-full border-2 ${color === c ? 'border-text scale-110' : 'border-transparent'}`}
+                style={{ background: c }}
+              />
+            ))}
           </div>
+        </div>
 
-          <div>
-            <p className="text-textDim text-xs mb-2 tracking-micro">Color de la tarjeta</p>
-            <div className="flex gap-2 flex-wrap">
-              {COLORES_TC.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  aria-label={`Color ${c}`}
-                  className={`presionable w-8 h-8 rounded-full border-2 ${color === c ? 'border-text scale-110' : 'border-transparent'}`}
-                  style={{ background: c }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {err && <p className="text-danger text-sm">{err}</p>}
+        {err && <p className="text-danger text-sm">{err}</p>}
+        <button
+          onClick={guardar}
+          disabled={guardando}
+          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-2"
+        >
+          {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar tarjeta'}
+        </button>
+        {editando && (
           <button
-            onClick={guardar}
+            onClick={archivar}
             disabled={guardando}
-            className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-2"
+            className="presionable w-full py-2 rounded-control bg-transparent text-danger/70 text-xs hover:text-danger"
           >
-            {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar tarjeta'}
+            Archivar tarjeta
           </button>
-          {editando && (
-            <button
-              onClick={archivar}
-              disabled={guardando}
-              className="presionable w-full py-2 rounded-control bg-transparent text-danger/70 text-xs hover:text-danger"
-            >
-              Archivar tarjeta
-            </button>
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </Hoja>
   )
 }

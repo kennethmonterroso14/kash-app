@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
 import { supabase } from '../../lib/supabase'
 import { CLASE_INPUT } from '../../lib/clasesUI'
@@ -76,71 +77,61 @@ export default function ModalNuevaCuenta({ onCerrar }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 scrim flex items-end justify-center z-50"
-      onClick={e => { if (e.target === e.currentTarget) onCerrar() }}
-    >
-      <div className="vidrio-hoja w-full max-w-lg rounded-t-hoja p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4 max-h-[92dvh] overflow-y-auto overscroll-contain">
-        <div className="flex justify-between items-center">
-          <h2 className="text-text font-semibold tracking-titulo">Nueva cuenta</h2>
-          <button onClick={onCerrar} aria-label="Cerrar" className="presionable text-textDim text-xl">×</button>
+    <Hoja titulo="Nueva cuenta" onCerrar={onCerrar}>
+      <form onSubmit={enviar} className="space-y-3">
+        <div>
+          <label htmlFor={`${id}-nombre`} className="text-textDim text-xs mb-1 block tracking-micro">Nombre</label>
+          <input
+            id={`${id}-nombre`} type="text" required placeholder="ej. BI Ahorros"
+            value={nombre} onChange={e => setNombre(e.target.value)}
+            className={`w-full ${CLASE_INPUT}`}
+          />
         </div>
 
-        <form onSubmit={enviar} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor={`${id}-nombre`} className="text-textDim text-xs mb-1 block tracking-micro">Nombre</label>
-            <input
-              id={`${id}-nombre`} type="text" required placeholder="ej. BI Ahorros"
-              value={nombre} onChange={e => setNombre(e.target.value)}
+            <label htmlFor={`${id}-tipo`} className="text-textDim text-xs mb-1 block tracking-micro">Tipo</label>
+            <select
+              id={`${id}-tipo`} value={tipo}
+              onChange={e => setTipo(e.target.value as (typeof TIPOS)[number])}
               className={`w-full ${CLASE_INPUT}`}
+            >
+              {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`${id}-saldo`} className="text-textDim text-xs mb-1 block tracking-micro">Saldo inicial (Q)</label>
+            <input
+              id={`${id}-saldo`} type="number" step="0.01" min="0" placeholder="0.00"
+              value={saldo} onChange={e => setSaldo(e.target.value)}
+              className={`w-full font-mono ${CLASE_INPUT}`}
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor={`${id}-tipo`} className="text-textDim text-xs mb-1 block tracking-micro">Tipo</label>
-              <select
-                id={`${id}-tipo`} value={tipo}
-                onChange={e => setTipo(e.target.value as (typeof TIPOS)[number])}
-                className={`w-full ${CLASE_INPUT}`}
-              >
-                {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor={`${id}-saldo`} className="text-textDim text-xs mb-1 block tracking-micro">Saldo inicial (Q)</label>
-              <input
-                id={`${id}-saldo`} type="number" step="0.01" min="0" placeholder="0.00"
-                value={saldo} onChange={e => setSaldo(e.target.value)}
-                className={`w-full font-mono ${CLASE_INPUT}`}
+        <div>
+          <p className="text-textDim text-xs mb-2 tracking-micro">Color</p>
+          <div className="flex gap-2 flex-wrap">
+            {paletaDatos.map(c => (
+              <button
+                key={c} type="button" onClick={() => setColor(c)}
+                aria-label={`Color ${c}`}
+                className={`presionable w-8 h-8 rounded-full border-2 ${color === c ? 'border-text scale-110' : 'border-transparent'}`}
+                style={{ background: c }}
               />
-            </div>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <p className="text-textDim text-xs mb-2 tracking-micro">Color</p>
-            <div className="flex gap-2 flex-wrap">
-              {paletaDatos.map(c => (
-                <button
-                  key={c} type="button" onClick={() => setColor(c)}
-                  aria-label={`Color ${c}`}
-                  className={`presionable w-8 h-8 rounded-full border-2 ${color === c ? 'border-text scale-110' : 'border-transparent'}`}
-                  style={{ background: c }}
-                />
-              ))}
-            </div>
-          </div>
+        {err && <p role="alert" className="text-danger text-xs">{err}</p>}
 
-          {err && <p role="alert" className="text-danger text-xs">{err}</p>}
-
-          <button
-            type="submit" disabled={guardando}
-            className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control disabled:opacity-50"
-          >
-            {guardando ? 'Guardando...' : 'Crear cuenta'}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button
+          type="submit" disabled={guardando}
+          className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control disabled:opacity-50"
+        >
+          {guardando ? 'Guardando...' : 'Crear cuenta'}
+        </button>
+      </form>
+    </Hoja>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
 import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
@@ -44,56 +45,49 @@ export default function ModalPago({ tc, onCerrar }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 scrim flex items-end z-50">
-      <div className="vidrio-hoja w-full rounded-t-hoja p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-text font-semibold tracking-titulo">Pagar — {tc.nombre}</h2>
-          <button onClick={onCerrar} className="presionable text-textDim hover:text-text text-lg">✕</button>
+    <Hoja titulo={`Pagar — ${tc.nombre}`} onCerrar={onCerrar}>
+      <div className="bg-bg rounded-control p-3 space-y-1.5">
+        <div className="flex justify-between text-xs">
+          <span className="text-textDim">Deuda vencida (pagar ya)</span>
+          <span className={`font-mono ${tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-textDim'}`}>
+            {fmt(tc.deuda_ciclo_anterior)}
+          </span>
         </div>
-
-        <div className="bg-bg rounded-control p-3 mb-4 space-y-1.5">
-          <div className="flex justify-between text-xs">
-            <span className="text-textDim">Deuda vencida (pagar ya)</span>
-            <span className={`font-mono ${tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-textDim'}`}>
-              {fmt(tc.deuda_ciclo_anterior)}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-textDim">Deuda ciclo actual</span>
-            <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <input
-            placeholder="Monto a pagar (Q)"
-            value={monto} onChange={e => setMonto(e.target.value)}
-            inputMode="decimal"
-            className={CLASE_INPUT}
-          />
-          <select
-            value={cuenta} onChange={e => setCuenta(e.target.value)}
-            className={CLASE_INPUT}
-          >
-            {cuentas.map(c => (
-              <option key={c.id} value={c.id}>{c.nombre} — {fmt(c.saldo)}</option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={fecha} onChange={e => setFecha(e.target.value)}
-            className={CLASE_INPUT}
-          />
-          {err && <p className="text-danger text-sm">{err}</p>}
-          <button
-            onClick={registrar}
-            disabled={guardando}
-            className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50"
-          >
-            {guardando ? 'Registrando...' : 'Registrar pago'}
-          </button>
+        <div className="flex justify-between text-xs">
+          <span className="text-textDim">Deuda ciclo actual</span>
+          <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
         </div>
       </div>
-    </div>
+
+      <div className="flex flex-col gap-3">
+        <input
+          placeholder="Monto a pagar (Q)"
+          value={monto} onChange={e => setMonto(e.target.value)}
+          inputMode="decimal"
+          className={CLASE_INPUT}
+        />
+        <select
+          value={cuenta} onChange={e => setCuenta(e.target.value)}
+          className={CLASE_INPUT}
+        >
+          {cuentas.map(c => (
+            <option key={c.id} value={c.id}>{c.nombre} — {fmt(c.saldo)}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={fecha} onChange={e => setFecha(e.target.value)}
+          className={CLASE_INPUT}
+        />
+        {err && <p className="text-danger text-sm">{err}</p>}
+        <button
+          onClick={registrar}
+          disabled={guardando}
+          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50"
+        >
+          {guardando ? 'Registrando...' : 'Registrar pago'}
+        </button>
+      </div>
+    </Hoja>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TarjetaCredito } from '../../lib/finanzas'
+import Dialogo from '../../components/Dialogo'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
@@ -45,42 +46,39 @@ export default function ModalCerrarCiclo({ tc, onCerrar }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 scrim flex items-center justify-center z-50 px-4">
-      <div className="vidrio-hoja rounded-tarjeta p-6 max-w-sm w-full">
-        <h2 className="text-text font-semibold mb-2 tracking-titulo">¿Cerrar ciclo?</h2>
-        <p className="text-textDim text-sm mb-1">
-          Tarjeta: <span className="text-text">{tc.nombre}</span>
+    <Dialogo titulo="¿Cerrar ciclo?" onCerrar={onCerrar}>
+      <p className="text-textDim text-sm mb-1">
+        Tarjeta: <span className="text-text">{tc.nombre}</span>
+      </p>
+      <p className="text-textDim text-sm mb-4">
+        Cargos del ciclo: <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
+        <br />
+        <span className="text-textDim text-xs">
+          Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.
+        </span>
+      </p>
+      {faltanCierre > 0 && (
+        <p className="text-warning text-xs bg-warning/10 rounded-control p-3 mb-3">
+          Faltan {faltanCierre} {faltanCierre === 1 ? 'día' : 'días'} para el cierre real de esta
+          tarjeta. Si cierras ahora, los cargos que registres después abrirán un ciclo aparte.
         </p>
-        <p className="text-textDim text-sm mb-4">
-          Cargos del ciclo: <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
-          <br />
-          <span className="text-textDim text-xs">
-            Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.
-          </span>
-        </p>
-        {faltanCierre > 0 && (
-          <p className="text-warning text-xs bg-warning/10 rounded-control p-3 mb-3">
-            Faltan {faltanCierre} {faltanCierre === 1 ? 'día' : 'días'} para el cierre real de esta
-            tarjeta. Si cierras ahora, los cargos que registres después abrirán un ciclo aparte.
-          </p>
-        )}
-        {err && <p className="text-danger text-sm mb-3">{err}</p>}
-        <div className="flex gap-3">
-          <button
-            onClick={onCerrar}
-            className="presionable flex-1 py-3 rounded-control bg-bg text-textDim text-sm font-semibold hover:text-text"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={confirmar}
-            disabled={guardando}
-            className="presionable flex-1 py-3 rounded-control bg-danger text-text text-sm font-semibold disabled:opacity-50"
-          >
-            {guardando ? 'Cerrando...' : 'Cerrar ciclo'}
-          </button>
-        </div>
+      )}
+      {err && <p role="alert" className="text-danger text-sm mb-3">{err}</p>}
+      <div className="flex gap-3">
+        <button
+          onClick={onCerrar}
+          className="presionable flex-1 py-3 rounded-control bg-bg text-textDim text-sm font-semibold hover:text-text"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={confirmar}
+          disabled={guardando}
+          className="presionable flex-1 py-3 rounded-control bg-danger text-text text-sm font-semibold disabled:opacity-50"
+        >
+          {guardando ? 'Cerrando...' : 'Cerrar ciclo'}
+        </button>
       </div>
-    </div>
+    </Dialogo>
   )
 }

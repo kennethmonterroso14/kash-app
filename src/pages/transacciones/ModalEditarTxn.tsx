@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
 import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
@@ -50,60 +51,50 @@ export default function ModalEditarTxn({ txn, actualizar, onCerrar }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 scrim flex items-end justify-center z-50"
-      onClick={e => { if (e.target === e.currentTarget) onCerrar() }}
-    >
-      <div className="vidrio-hoja w-full max-w-lg rounded-t-hoja p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-text font-semibold tracking-titulo">Editar movimiento</h2>
-          <button onClick={onCerrar} aria-label="Cerrar" className="presionable text-textDim text-xl">×</button>
+    <Hoja titulo="Editar movimiento" onCerrar={onCerrar}>
+      <form onSubmit={enviar} className="space-y-3">
+        <div>
+          <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">Monto (Q) — {txn.tipo}</label>
+          <input id={`${id}-monto`}
+            type="number" step="0.01" min="0.01" required placeholder="0.00"
+            value={cantidad} onChange={e => setCantidad(e.target.value)}
+            className={`w-full text-xl font-mono ${CLASE_INPUT}`}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${id}-desc`} className="text-textDim text-xs mb-1 block tracking-micro">Descripción</label>
+          <input id={`${id}-desc`}
+            type="text" required placeholder="¿En qué?"
+            value={descripcion} onChange={e => setDescripcion(e.target.value)}
+            className={`w-full ${CLASE_INPUT}`}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${id}-cat`} className="text-textDim text-xs mb-1 block tracking-micro">Categoría</label>
+          <select id={`${id}-cat`}
+            value={categoria} onChange={e => setCategoria(e.target.value)}
+            className={`w-full ${CLASE_INPUT}`}
+          >
+            {opciones.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`${id}-fecha`} className="text-textDim text-xs mb-1 block tracking-micro">Fecha</label>
+          <input id={`${id}-fecha`}
+            type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+            className={`w-full ${CLASE_INPUT}`}
+          />
         </div>
 
-        <form onSubmit={enviar} className="space-y-3">
-          <div>
-            <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">Monto (Q) — {txn.tipo}</label>
-            <input id={`${id}-monto`}
-              type="number" step="0.01" min="0.01" required placeholder="0.00"
-              value={cantidad} onChange={e => setCantidad(e.target.value)}
-              className={`w-full text-xl font-mono ${CLASE_INPUT}`}
-            />
-          </div>
-          <div>
-            <label htmlFor={`${id}-desc`} className="text-textDim text-xs mb-1 block tracking-micro">Descripción</label>
-            <input id={`${id}-desc`}
-              type="text" required placeholder="¿En qué?"
-              value={descripcion} onChange={e => setDescripcion(e.target.value)}
-              className={`w-full ${CLASE_INPUT}`}
-            />
-          </div>
-          <div>
-            <label htmlFor={`${id}-cat`} className="text-textDim text-xs mb-1 block tracking-micro">Categoría</label>
-            <select id={`${id}-cat`}
-              value={categoria} onChange={e => setCategoria(e.target.value)}
-              className={`w-full ${CLASE_INPUT}`}
-            >
-              {opciones.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label htmlFor={`${id}-fecha`} className="text-textDim text-xs mb-1 block tracking-micro">Fecha</label>
-            <input id={`${id}-fecha`}
-              type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-              className={`w-full ${CLASE_INPUT}`}
-            />
-          </div>
+        {err && <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2">{err}</p>}
 
-          {err && <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2">{err}</p>}
-
-          <button
-            type="submit" disabled={guardando}
-            className="presionable w-full font-semibold py-3 rounded-control bg-accent text-bg disabled:opacity-50"
-          >
-            {guardando ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button
+          type="submit" disabled={guardando}
+          className="presionable w-full font-semibold py-3 rounded-control bg-accent text-bg disabled:opacity-50"
+        >
+          {guardando ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+      </form>
+    </Hoja>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Hoja from '../../components/Hoja'
 import { toCentavos, type Inversion } from '../../lib/finanzas'
 import { TIPOS_INVERSION } from '../../lib/constants'
 import { CLASE_INPUT } from '../../lib/clasesUI'
@@ -67,91 +68,82 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
   }
 
   return (
-    <div className="fixed inset-0 scrim flex items-end z-50">
-      <div className="vidrio-hoja w-full rounded-t-hoja p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] max-h-[92dvh] overflow-y-auto overscroll-contain">
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-text font-semibold tracking-titulo">
-            {editando ? 'Editar inversión' : 'Nueva inversión'}
-          </h2>
-          <button onClick={onCerrar} aria-label="Cerrar" className="presionable text-textDim hover:text-text text-lg">✕</button>
-        </div>
+    <Hoja titulo={editando ? 'Editar inversión' : 'Nueva inversión'} onCerrar={onCerrar}>
+      <div className="flex flex-col gap-3">
+        <input
+          placeholder={editando ? 'Nombre' : 'Nombre (ej: Fondo HAPI)'}
+          value={nombre} onChange={e => setNombre(e.target.value)}
+          className={CLASE_INPUT}
+        />
+        <input
+          placeholder={editando ? 'Plataforma (opcional)' : 'Plataforma (opcional, ej: HAPI, SAT, Binance)'}
+          value={plataforma} onChange={e => setPlataforma(e.target.value)}
+          className={CLASE_INPUT}
+        />
+        <select value={tipo} onChange={e => setTipo(e.target.value)} aria-label="Tipo de inversión" className={CLASE_INPUT}>
+          {TIPOS_INVERSION.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </select>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex gap-2">
           <input
-            placeholder={editando ? 'Nombre' : 'Nombre (ej: Fondo HAPI)'}
-            value={nombre} onChange={e => setNombre(e.target.value)}
-            className={CLASE_INPUT}
+            placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
+            value={capital} onChange={e => setCapital(e.target.value)}
+            inputMode="decimal"
+            className={`flex-1 ${CLASE_INPUT}`}
           />
-          <input
-            placeholder={editando ? 'Plataforma (opcional)' : 'Plataforma (opcional, ej: HAPI, SAT, Binance)'}
-            value={plataforma} onChange={e => setPlataforma(e.target.value)}
-            className={CLASE_INPUT}
-          />
-          <select value={tipo} onChange={e => setTipo(e.target.value)} aria-label="Tipo de inversión" className={CLASE_INPUT}>
-            {TIPOS_INVERSION.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-
-          <div className="flex gap-2">
-            <input
-              placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
-              value={capital} onChange={e => setCapital(e.target.value)}
-              inputMode="decimal"
-              className={`flex-1 ${CLASE_INPUT}`}
-            />
-            {editando ? (
-              <div className="flex items-center px-4 py-3 bg-surface2 border border-canto rounded-control text-textDim text-sm font-medium">
-                {moneda}
-              </div>
-            ) : (
-              <div className="flex bg-bg border border-canto rounded-control overflow-hidden">
-                {(['GTQ', 'USD'] as const).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setMoneda(m)}
-                    className={`presionable px-3 py-3 text-sm font-medium ${
-                      moneda === m ? 'bg-accent text-bg font-semibold' : 'text-textDim hover:text-text'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {editando && (
-            <p className="text-textDim text-xs -mt-1">
-              La moneda no se puede cambiar: el capital y el historial están guardados en {moneda}.
-            </p>
+          {editando ? (
+            <div className="flex items-center px-4 py-3 bg-surface2 border border-canto rounded-control text-textDim text-sm font-medium">
+              {moneda}
+            </div>
+          ) : (
+            <div className="flex bg-bg border border-canto rounded-control overflow-hidden">
+              {(['GTQ', 'USD'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMoneda(m)}
+                  className={`presionable px-3 py-3 text-sm font-medium ${
+                    moneda === m ? 'bg-accent text-bg font-semibold' : 'text-textDim hover:text-text'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
           )}
-
-          <div>
-            <label htmlFor="inv-fecha" className="text-textDim text-xs mb-1 block tracking-micro">
-              Fecha de inicio
-            </label>
-            <input
-              id="inv-fecha" type="date" max={fechas.hoy()}
-              value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-              className={`w-full ${CLASE_INPUT}`}
-            />
-          </div>
-
-          <textarea
-            placeholder="Notas (opcional)"
-            value={notas} onChange={e => setNotas(e.target.value)}
-            rows={2}
-            className={`resize-none ${CLASE_INPUT}`}
-          />
-
-          {err && <p className="text-danger text-sm">{err}</p>}
-          <button
-            onClick={guardar}
-            disabled={guardando}
-            className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-1"
-          >
-            {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar inversión'}
-          </button>
         </div>
+        {editando && (
+          <p className="text-textDim text-xs -mt-1">
+            La moneda no se puede cambiar: el capital y el historial están guardados en {moneda}.
+          </p>
+        )}
+
+        <div>
+          <label htmlFor="inv-fecha" className="text-textDim text-xs mb-1 block tracking-micro">
+            Fecha de inicio
+          </label>
+          <input
+            id="inv-fecha" type="date" max={fechas.hoy()}
+            value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
+            className={`w-full ${CLASE_INPUT}`}
+          />
+        </div>
+
+        <textarea
+          placeholder="Notas (opcional)"
+          value={notas} onChange={e => setNotas(e.target.value)}
+          rows={2}
+          className={`resize-none ${CLASE_INPUT}`}
+        />
+
+        {err && <p className="text-danger text-sm">{err}</p>}
+        <button
+          onClick={guardar}
+          disabled={guardando}
+          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-1"
+        >
+          {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar inversión'}
+        </button>
       </div>
-    </div>
+    </Hoja>
   )
 }
