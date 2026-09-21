@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
@@ -98,7 +99,7 @@ export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
           {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </Campo>
 
-        {err && <p role="alert" className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
 
         <button
           type="submit" disabled={guardando}

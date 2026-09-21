@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import Campo from '../components/Campo'
 import { toCentavos } from '../lib/finanzas'
 import { useSesion } from '../context/sesion'
@@ -49,16 +51,15 @@ export default function MetasPage() {
         />
       </div>
 
-      {error && <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2 mb-4">{error}</p>}
+      {error && <Aviso clase="mb-4">{error}</Aviso>}
 
       {cargando && <p className="text-textDim text-center py-8">Cargando metas...</p>}
 
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {!cargando && !error && metas.length === 0 && (
-        <div className="bg-surface rounded-tarjeta p-8 text-center space-y-4">
-          <p className="text-textDim">No tienes metas de ahorro activas.</p>
+        <EstadoVacio titulo="No tienes metas de ahorro activas">
           {botonNueva('px-6 py-3 rounded-control')}
-        </div>
+        </EstadoVacio>
       )}
 
       <div className="space-y-3">

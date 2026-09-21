@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TarjetaCredito } from '../../lib/finanzas'
+import Aviso from '../../components/Aviso'
 import Dialogo from '../../components/Dialogo'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -58,12 +59,12 @@ export default function ModalCerrarCiclo({ tc, onCerrar }: Props) {
         </span>
       </p>
       {faltanCierre > 0 && (
-        <p className="text-warning text-xs bg-warning/10 rounded-control p-3 mb-3">
+        <Aviso tono="atencion" clase="mb-3">
           Faltan {faltanCierre} {faltanCierre === 1 ? 'día' : 'días'} para el cierre real de esta
           tarjeta. Si cierras ahora, los cargos que registres después abrirán un ciclo aparte.
-        </p>
+        </Aviso>
       )}
-      {err && <p role="alert" className="text-danger text-sm mb-3">{err}</p>}
+      {err && <Aviso clase="mb-3">{err}</Aviso>}
       <div className="flex gap-3">
         <button
           onClick={onCerrar}

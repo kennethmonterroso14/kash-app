@@ -1,4 +1,6 @@
 import { useState, useRef, useMemo } from 'react'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
 import { MESES } from '../lib/constants'
 import { useSesion } from '../context/sesion'
@@ -112,34 +114,22 @@ export default function TransaccionesPage() {
       <FiltrosTxn filtros={filtros} onCambiar={setFiltros} cuentas={cuentas} />
 
       {errorLista && (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2 mb-4 flex justify-between items-start gap-3">
-          <span>{errorLista}</span>
-          <button
-            type="button"
-            onClick={() => setErrorLista('')}
-            aria-label="Cerrar aviso"
-            className="presionable text-danger/70 hover:text-danger leading-none"
-          >
-            ×
-          </button>
-        </div>
+        <Aviso clase="mb-4" onCerrar={() => setErrorLista('')}>{errorLista}</Aviso>
       )}
 
       {/* Un fetch fallido NO se pinta como "sin movimientos": son afirmaciones
           distintas, y presentar la lista vacía como un hecho era la clase de
           bug que se corrigió en el resto de la app. */}
       {error && (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-3 mb-4">
+        <Aviso clase="mb-4">
           No se pudieron cargar los movimientos de {etiquetaMes}. {error}
-        </div>
+        </Aviso>
       )}
 
       {loading && <p className="text-textDim text-center py-8">Cargando...</p>}
 
       {!loading && !error && filtrados.length === 0 && (
-        <div className="bg-surface rounded-panel p-8 text-center">
-          <p className="text-textDim">Sin movimientos en {etiquetaMes}</p>
-        </div>
+        <EstadoVacio titulo={`Sin movimientos en ${etiquetaMes}`} />
       )}
 
       <div className="space-y-2">

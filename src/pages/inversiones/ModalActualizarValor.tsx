@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import BotonConfirmar from '../../components/BotonConfirmar'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type Inversion } from '../../lib/finanzas'
@@ -77,7 +78,7 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
           pista="Una fecha anterior agrega un punto al historial sin reemplazar el valor vigente."
         />
 
-        {err && <p className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
         <button
           onClick={guardar}
           disabled={guardando}

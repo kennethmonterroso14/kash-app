@@ -1,6 +1,7 @@
 // src/pages/TarjetasPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Aviso from '../components/Aviso'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
 import TarjetaTile from './tarjetas/TarjetaTile'
@@ -62,7 +63,7 @@ export default function TarjetasPage() {
       </div>
 
       {errores.tarjetas && (
-        <p className="text-danger text-sm bg-danger/10 rounded-control p-3 mb-4">{errores.tarjetas}</p>
+        <Aviso clase="mb-4">{errores.tarjetas}</Aviso>
       )}
 
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}

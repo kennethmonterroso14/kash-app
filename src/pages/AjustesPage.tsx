@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Aviso from '../components/Aviso'
 import { useSesion } from '../context/sesion'
 
 interface Props {
@@ -38,7 +39,7 @@ export default function AjustesPage({ onSignOut }: Props) {
         <div className="text-center">
           <p className="text-text font-semibold text-lg tracking-titulo">{nombreVisible}</p>
           {nombre && email && <p className="text-textDim text-sm mt-0.5">{email}</p>}
-          {errorPerfil && <p role="alert" className="text-danger text-xs mt-1">{errorPerfil}</p>}
+          {errorPerfil && <Aviso clase="mt-1">{errorPerfil}</Aviso>}
         </div>
       </div>
 

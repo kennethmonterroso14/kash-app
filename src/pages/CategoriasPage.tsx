@@ -1,6 +1,8 @@
 // src/pages/CategoriasPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import Campo from '../components/Campo'
 import { type CategoriaUsuario } from '../hooks/useCategorias'
 import { useSesion } from '../context/sesion'
@@ -98,7 +100,7 @@ export default function CategoriasPage() {
       </div>
 
       {error && (
-        <p className="text-danger text-sm bg-danger/10 rounded-xl p-3 mb-4">{error}</p>
+        <Aviso clase="mb-4">{error}</Aviso>
       )}
 
       {/* Custom categories */}
@@ -130,7 +132,7 @@ export default function CategoriasPage() {
                 <option value="ambos">Ambos — aparece en gastos e ingresos</option>
               </Campo>
               {saveError && (
-                <p className="text-danger text-xs">{saveError}</p>
+                <Aviso>{saveError}</Aviso>
               )}
               <button
                 onClick={handleAgregar}
@@ -144,17 +146,17 @@ export default function CategoriasPage() {
         )}
 
         {delError && (
-          <p className="text-danger text-xs bg-danger/10 rounded-xl p-3 mb-3">{delError}</p>
+          <Aviso clase="mb-3">{delError}</Aviso>
         )}
 
         {loading ? (
           <p className="text-textDim text-sm text-center py-4">Cargando...</p>
         ) : custom.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-3xl mb-2">🏷️</p>
-            <p className="text-textDim text-sm">Sin categorías personalizadas</p>
-            <p className="text-textDim text-xs mt-1">Agrega categorías que aparecerán en tus gastos y presupuesto</p>
-          </div>
+          <EstadoVacio
+            icono="🏷️"
+            titulo="Sin categorías personalizadas"
+            pista="Agrega categorías que aparecerán en tus gastos y presupuesto"
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {custom.map((cat: CategoriaUsuario) => (

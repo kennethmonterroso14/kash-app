@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../components/Aviso'
 import { supabase } from '../lib/supabase'
 import Campo from '../components/Campo'
 
@@ -67,7 +68,7 @@ export default function LoginPage() {
             />
 
             {error && (
-              <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{error}</p>
+              <Aviso>{error}</Aviso>
             )}
             {info && (
               <p className="text-accent text-sm bg-accent/10 rounded-xl px-4 py-2">{info}</p>

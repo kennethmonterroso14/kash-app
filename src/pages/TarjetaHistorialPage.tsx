@@ -1,6 +1,7 @@
 // src/pages/TarjetaHistorialPage.tsx
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import Aviso from '../components/Aviso'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
@@ -89,7 +90,7 @@ export default function TarjetaHistorialPage() {
       </div>
 
       {error && (
-        <p className="text-danger text-sm bg-danger/10 rounded-xl p-3 mb-4">{error}</p>
+        <Aviso clase="mb-4">{error}</Aviso>
       )}
 
       {ciclos.length === 0 && !loading && !error && (
@@ -179,7 +180,7 @@ export default function TarjetaHistorialPage() {
             )}
 
             {errTxns && (
-              <p className="text-danger text-sm bg-danger/10 rounded-xl p-3">{errTxns}</p>
+              <Aviso>{errTxns}</Aviso>
             )}
 
             {!loadingTxns && txns.length === 0 && !errTxns && (

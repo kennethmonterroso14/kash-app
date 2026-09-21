@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { usePresupuestos, type Presupuesto } from '../hooks/usePresupuestos'
 import { MESES } from '../lib/constants'
@@ -97,34 +99,23 @@ export default function BudgetPage() {
       )}
 
       {errorEscritura && (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2 flex justify-between items-start gap-3">
-          <span>{errorEscritura}</span>
-          <button
-            type="button"
-            onClick={limpiarErrorEscritura}
-            aria-label="Cerrar aviso"
-            className="presionable text-danger/70 hover:text-danger leading-none"
-          >
-            ×
-          </button>
-        </div>
+        <Aviso onCerrar={limpiarErrorEscritura}>{errorEscritura}</Aviso>
       )}
 
       {/* Los movimientos fallidos se avisan: sin ellos las barras dirían Q0.00
           gastado, que es afirmar que no se gastó nada en lugar de que no se pudo
           saber. */}
       {errorTxns && (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-3">
+        <Aviso>
           No se pudieron cargar los movimientos de {etiquetaMes}, así que lo gastado
           puede estar incompleto. {errorTxns}
-        </div>
+        </Aviso>
       )}
 
       {presupuestos.length === 0 && (
-        <div className="bg-surface rounded-tarjeta p-8 text-center space-y-4">
-          <p className="text-textDim text-sm">Sin presupuestos para {etiquetaMes}</p>
+        <EstadoVacio titulo={`Sin presupuestos para ${etiquetaMes}`}>
           {botonAgregar('px-6 py-2.5 rounded-control')}
-        </div>
+        </EstadoVacio>
       )}
 
       {presupuestos.map(p => (

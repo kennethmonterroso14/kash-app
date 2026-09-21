@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
@@ -57,7 +58,7 @@ export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
           value={monto} onChange={e => setMonto(e.target.value)}
           clase="text-xl font-mono"
         />
-        {err && <p role="alert" className="text-danger text-xs">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
         <button
           type="submit" disabled={guardando}
           className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control disabled:opacity-50"

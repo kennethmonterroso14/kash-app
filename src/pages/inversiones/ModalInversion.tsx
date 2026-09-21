@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type Inversion } from '../../lib/finanzas'
@@ -128,7 +129,7 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
           value={notas} onChange={e => setNotas(e.target.value)}
         />
 
-        {err && <p className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
         <button
           onClick={guardar}
           disabled={guardando}

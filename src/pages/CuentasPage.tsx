@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
 import ModalNuevaCuenta from './cuentas/ModalNuevaCuenta'
@@ -35,24 +37,23 @@ export default function CuentasPage() {
       {cargandoCuentas && <p className="text-textDim text-center py-8">Cargando...</p>}
 
       {error && (
-        <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-3">
+        <Aviso>
           No se pudieron cargar tus cuentas: {error}
-        </p>
+        </Aviso>
       )}
 
       {!cargandoCuentas && !error && cuentas.length === 0 && (
-        <div className="bg-surface rounded-tarjeta p-8 text-center">
-          <p className="text-text font-medium mb-1">Sin cuentas aún</p>
-          <p className="text-textDim text-sm mb-4">
-            Agrega tu primera cuenta para empezar a registrar movimientos.
-          </p>
+        <EstadoVacio
+          titulo="Sin cuentas aún"
+          pista="Agrega tu primera cuenta para empezar a registrar movimientos."
+        >
           <button
             onClick={() => setMostrarAlta(true)}
             className="presionable bg-accent text-bg font-semibold px-6 py-2 rounded-control"
           >
             Agregar cuenta
           </button>
-        </div>
+        </EstadoVacio>
       )}
 
       <div className="grid grid-cols-2 gap-3">

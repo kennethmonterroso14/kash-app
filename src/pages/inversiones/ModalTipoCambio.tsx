@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
@@ -72,7 +73,7 @@ export default function ModalTipoCambio({
           value={valor} onChange={e => setValor(e.target.value)}
           clase="font-mono"
         />
-        {err && <p className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
         <button
           onClick={desdeAPI}
           disabled={consultando || guardando}

@@ -1,5 +1,7 @@
 // src/pages/InversionesPage.tsx
 import { useState } from 'react'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { useInversiones, type Inversion } from '../hooks/useInversiones'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
@@ -84,7 +86,7 @@ export default function InversionesPage() {
       </div>
 
       {error && (
-        <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control p-3 mb-4">{error}</p>
+        <Aviso clase="mb-4">{error}</Aviso>
       )}
 
       {resumen.capital_total > 0 && (
@@ -93,11 +95,11 @@ export default function InversionesPage() {
 
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {inversiones.length === 0 && !error && (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">📈</p>
-          <p className="text-textDim text-sm">No tienes inversiones registradas</p>
-          <p className="text-textDim text-xs mt-1">Agrega tu primera inversión para empezar</p>
-        </div>
+        <EstadoVacio
+          icono="📈"
+          titulo="No tienes inversiones registradas"
+          pista="Agrega tu primera inversión para empezar"
+        />
       )}
 
       <div className="flex flex-col gap-3">

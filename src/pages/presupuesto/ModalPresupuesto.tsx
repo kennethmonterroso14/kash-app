@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
@@ -59,7 +60,7 @@ export default function ModalPresupuesto({
           clase="text-xl font-mono"
         />
 
-        {err && <p role="alert" className="text-danger text-xs">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
 
         <button
           type="submit" disabled={guardando}

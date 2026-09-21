@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
@@ -102,7 +103,7 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
           etiqueta="Fecha" tipo="date"
           value={fecha} onChange={e => setFecha(e.target.value)}
         />
-        {err && <p className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
         <button
           onClick={registrar}
           disabled={guardando}

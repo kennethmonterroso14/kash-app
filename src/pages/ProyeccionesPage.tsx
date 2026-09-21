@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import Aviso from '../components/Aviso'
 import { proyectarPatrimonio, toCentavos } from '../lib/finanzas'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
@@ -161,9 +162,9 @@ export default function ProyeccionesPage() {
             }
           </p>
           {cuentasError && (
-            <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-3 mt-3">
+            <Aviso clase="mt-3">
               No se pudieron cargar tus cuentas: {cuentasError}. La proyección parte de Q0.00.
-            </p>
+            </Aviso>
           )}
         </div>
 

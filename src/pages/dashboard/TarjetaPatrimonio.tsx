@@ -1,3 +1,4 @@
+import Aviso from '../../components/Aviso'
 import type { Cuenta } from '../../hooks/useCuentas'
 import { useMoneda } from '../../hooks/useMoneda'
 
@@ -53,9 +54,9 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
       </button>
 
       {error && (
-        <p role="alert" className="text-danger text-xs bg-danger/10 rounded-chip p-2 mt-2">
+        <Aviso clase="mt-2">
           No se pudieron cargar tus cuentas: {error}
-        </p>
+        </Aviso>
       )}
 
       {!oculto && (

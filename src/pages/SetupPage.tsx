@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import Aviso from '../components/Aviso'
 import { supabase } from '../lib/supabase'
 import Campo from '../components/Campo'
 
@@ -72,7 +73,7 @@ export default function SetupPage({ user, onComplete }: Props) {
             />
 
             {error && (
-              <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{error}</p>
+              <Aviso>{error}</Aviso>
             )}
 
             <button

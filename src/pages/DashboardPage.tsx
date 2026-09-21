@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import Aviso from '../components/Aviso'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { useResumen6Meses } from '../hooks/useResumen6Meses'
 import { useInversiones } from '../hooks/useInversiones'
@@ -81,10 +82,10 @@ export default function DashboardPage() {
           mes quedarían en Q0.00, que afirma que no hubo movimiento en lugar de
           que no se pudo saber. */}
       {errorTxns ? (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-3">
+        <Aviso>
           No se pudieron cargar los movimientos de {etiquetaMes}, así que las cifras del mes no se
           pueden mostrar. {errorTxns}
-        </div>
+        </Aviso>
       ) : (
         <>
           <StatsMes stats={stats} />

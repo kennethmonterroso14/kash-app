@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { usePagosRecurrentes, type PagoRecurrente } from '../hooks/usePagosRecurrentes'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
@@ -86,18 +88,17 @@ export default function PagosRecurrentesPage() {
       </div>
 
       {error && (
-        <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2">{error}</p>
+        <Aviso>{error}</Aviso>
       )}
 
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {!error && pagos.length === 0 && (
-        <div className="bg-surface rounded-tarjeta p-8 text-center space-y-4">
-          <p className="text-text font-medium">Sin pagos fijos aún</p>
-          <p className="text-textDim text-sm">
-            Configura tus pagos recurrentes (renta, gym, suscripciones…) y se aplicarán solos cada mes.
-          </p>
+        <EstadoVacio
+          titulo="Sin pagos fijos aún"
+          pista="Configura tus pagos recurrentes (renta, gym, suscripciones…) y se aplicarán solos cada mes."
+        >
           {botonAgregar('+ Agregar pago fijo', 'px-6 py-2.5 rounded-control')}
-        </div>
+        </EstadoVacio>
       )}
 
       {pagos.map(p => (

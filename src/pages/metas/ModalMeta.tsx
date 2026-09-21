@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
@@ -57,7 +58,7 @@ export default function ModalMeta({ guardar, onCerrar }: Props) {
           clase="font-mono"
         />
 
-        {err && <p role="alert" className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
 
         <button
           type="submit" disabled={guardando}

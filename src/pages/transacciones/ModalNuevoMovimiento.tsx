@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
@@ -206,7 +207,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
           </>
         )}
 
-        {err && <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
 
         <button
           type="submit"

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import BotonConfirmar from '../../components/BotonConfirmar'
+import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
@@ -141,7 +142,7 @@ export default function ModalTC({ tc, onCerrar }: Props) {
           </div>
         </div>
 
-        {err && <p className="text-danger text-sm">{err}</p>}
+        {err && <Aviso>{err}</Aviso>}
         <button
           onClick={guardar}
           disabled={guardando}
