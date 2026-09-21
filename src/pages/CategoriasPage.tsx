@@ -1,6 +1,7 @@
 // src/pages/CategoriasPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Campo from '../components/Campo'
 import { type CategoriaUsuario } from '../hooks/useCategorias'
 import { useSesion } from '../context/sesion'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from '../lib/constants'
@@ -116,28 +117,18 @@ export default function CategoriasPage() {
         {showAdd && (
           <div className="bg-surface rounded-2xl p-4 mb-3">
             <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-textDim text-xs mb-1 block">Nombre</label>
-                <input
-                  value={nombre}
-                  onChange={e => setNombre(e.target.value)}
-                  placeholder="Ej: Médico, Educación..."
-                  maxLength={50}
-                  className="w-full bg-bg text-text text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
-                />
-              </div>
-              <div>
-                <label className="text-textDim text-xs mb-1 block">Tipo</label>
-                <select
-                  value={tipo}
-                  onChange={e => setTipo(e.target.value as Tipo)}
-                  className="w-full bg-bg text-text text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="gasto">Gasto — aparece en gastos y presupuesto</option>
-                  <option value="ingreso">Ingreso — aparece en ingresos</option>
-                  <option value="ambos">Ambos — aparece en gastos e ingresos</option>
-                </select>
-              </div>
+              <Campo
+                etiqueta="Nombre" placeholder="ej. Médico, Educación…" maxLength={50}
+                value={nombre} onChange={e => setNombre(e.target.value)}
+              />
+              <Campo
+                etiqueta="Tipo" tipo="select"
+                value={tipo} onChange={e => setTipo(e.target.value as Tipo)}
+              >
+                <option value="gasto">Gasto — aparece en gastos y presupuesto</option>
+                <option value="ingreso">Ingreso — aparece en ingresos</option>
+                <option value="ambos">Ambos — aparece en gastos e ingresos</option>
+              </Campo>
               {saveError && (
                 <p className="text-danger text-xs">{saveError}</p>
               )}

@@ -10,6 +10,7 @@ import {
 import { proyectarPatrimonio, toCentavos } from '../lib/finanzas'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
+import Campo from '../components/Campo'
 import { colores } from '../lib/tokens'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -169,42 +170,22 @@ export default function ProyeccionesPage() {
         {/* Inputs */}
         <div className="bg-surface rounded-2xl p-4 space-y-4">
 
-          {/* Ahorro mensual */}
-          <div>
-            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
-              Ahorro mensual (Q)
-            </label>
-            <input
-              type="number"
-              min={0}
-              step={100}
-              value={ahorroMensualQ}
-              onChange={e => setAhorroMensualQ(Number(e.target.value))}
-              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
-            />
-          </div>
+          <Campo
+            etiqueta="Ahorro mensual (Q)" tipo="number" min={0} step={100}
+            value={ahorroMensualQ} onChange={e => setAhorroMensualQ(Number(e.target.value))}
+            clase="font-mono"
+          />
 
-          {/* Rendimiento anual */}
-          <div>
-            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
-              Rendimiento anual (%)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={0.5}
-              value={rendimientoPct}
-              onChange={e => setRendimientoPct(Number(e.target.value))}
-              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
-            />
-          </div>
+          <Campo
+            etiqueta="Rendimiento anual (%)" tipo="number" min={0} max={100} step={0.5}
+            value={rendimientoPct} onChange={e => setRendimientoPct(Number(e.target.value))}
+            clase="font-mono"
+          />
 
-          {/* Horizonte segmented control */}
+          {/* El horizonte es un riel de botones, no un control de formulario:
+              el <p> no es un <label> porque no hay a qué apuntar. */}
           <div>
-            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
-              Horizonte
-            </label>
+            <p className="text-textDim text-xs mb-1 tracking-micro">Horizonte</p>
             <div className="flex bg-bg rounded-xl p-1 gap-1">
               {HORIZONTE_OPTIONS.map((opt, i) => (
                 <button
