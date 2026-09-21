@@ -134,6 +134,32 @@ así que hay que borrarlos o convertirlos en plantilla genérica antes de que al
 
 ## 3. Deuda estructural del cliente
 
+### 3.8 Una escritura en `transacciones` no invalidaba el saldo de las cuentas  · ✅ RESUELTO (fase 4)
+
+`cuentas.saldo` lo mueve el trigger `trigger_saldo_transaccion`, del lado del servidor, en cada
+escritura sobre `transacciones`. Pero el slice de cuentas vive en el `SesionProvider`, que está
+montado **por encima del router**: navegar no lo vuelve a montar, así que quedaba viejo hasta un
+reload completo.
+
+Síntoma reportado: "agrego un registro y no aparece en el dashboard". Y era exactamente eso —
+Patrimonio, Disponible real y Patrimonio neto seguían con el saldo anterior. Las cifras del mes sí
+se actualizaban, porque `DashboardPage` remonta y vuelve a pedir las transacciones, y esa mezcla
+—unas cosas al día y otras no— es lo que hacía parecer que el movimiento no se había guardado.
+
+Tres puntos de inserción, ninguno invalidaba:
+
+- `useTransacciones` (`addTxn`, `addTransferencia`, `deleteTxn`, `restoreTxn`, `updateTxn`)
+- `useTarjetas.registrarPago` — recargaba las tarjetas pero no las cuentas, y un `pago_tc` debita
+  una cuenta bancaria
+- `useAutoApplyPagos` — los pagos fijos del mes se aplicaban al abrir la app
+
+La invalidación quedó **dentro** de cada punto de inserción y no en el sitio de llamada, que es
+donde se olvidaba. `registrarPago` es el caso especial: `useTarjetas` no puede leer el contexto
+—el provider lo monta— así que el wrapper que compone los dos slices vive en el provider, que es
+lo único que conoce ambos.
+
+
+
 ### 3.1 Dos formas de recibir el usuario  · ✅ RESUELTO (fase 1, tarea 1.2)
 
 Ninguna página recibe el objeto `User`: todas leen `useSesion()`. La única excepción es `SetupPage`,

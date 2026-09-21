@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useSesion } from '../context/sesion'
 import { useFechas } from './useFechas'
 
 const COLS = 'id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id, ciclo_id, created_at'
@@ -21,7 +22,27 @@ export interface Transaccion {
 export function useTransacciones(userId: string | undefined, mes: string) {
   // Las fechas salen de la zona del usuario. Este hook se monta desde una
   // página, o sea dentro del SesionProvider, así que puede leer el perfil.
+  // (La restricción de CLAUDE.md es para los hooks que el provider MONTA —
+  // `useTarjetas` —; esos consumirían el contexto que ellos mismos proveen.)
   const fechas = useFechas()
+
+  /**
+   * TODA escritura en `transacciones` mueve `cuentas.saldo`: lo hace el trigger
+   * `trigger_saldo_transaccion`, del lado del servidor. Y el slice de cuentas
+   * vive en el `SesionProvider`, que está montado POR ENCIMA del router, así
+   * que no se vuelve a montar al navegar: queda viejo hasta un reload completo.
+   *
+   * Eso era un bug visible: agregabas un movimiento, ibas al dashboard, y las
+   * tarjetas de Patrimonio, Disponible real y Patrimonio neto seguían con el
+   * saldo anterior. Las cifras del mes sí se actualizaban —`DashboardPage`
+   * remonta y las vuelve a pedir— y por eso parecía que el registro "no se
+   * había guardado".
+   *
+   * Va acá y no en cada sitio de llamada a propósito: en el sitio de llamada se
+   * olvida, y es justo lo que pasó.
+   */
+  const { refrescar } = useSesion()
+  const invalidarSaldos = refrescar.cuentas
   // Guardamos el mes al que pertenecen las filas para poder descartar una
   // respuesta lenta de un mes que el usuario ya dejó atrás.
   const [state, setState] = useState<{ mes: string | null; rows: Transaccion[] }>({ mes: null, rows: [] })
@@ -86,6 +107,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .single()
     if (!error && data) {
       setRows(prev => [data, ...prev])
+      await invalidarSaldos()
     }
     return { data, error }
   }
@@ -94,6 +116,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     const { error } = await supabase.from('transacciones').delete().eq('id', id)
     if (!error) {
       setRows(prev => prev.filter(t => t.id !== id))
+      await invalidarSaldos()
     }
     return { error }
   }
@@ -107,6 +130,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .single()
     if (!error && data) {
       setRows(prev => [data, ...prev].sort((a, b) => b.fecha.localeCompare(a.fecha)))
+      await invalidarSaldos()
     }
     return { data, error }
   }
@@ -125,6 +149,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .single()
     if (!error && data) {
       setRows(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
+      await invalidarSaldos()
     }
     return { data, error }
   }
@@ -148,6 +173,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .select(COLS)
     if (!error && data) {
       setRows(prev => [...data, ...prev])
+      await invalidarSaldos()
     }
     return { data, error }
   }

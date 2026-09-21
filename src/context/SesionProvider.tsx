@@ -60,6 +60,27 @@ export function SesionProvider(
   // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount; ver useCuentas
   useEffect(() => { refrescarPerfil() }, [refrescarPerfil])
 
+  /**
+   * Un `pago_tc` baja la deuda de la tarjeta Y debita la cuenta bancaria, así
+   * que toca dos slices. `useTarjetas` recarga el suyo, pero NO puede tocar el
+   * de cuentas: este provider lo monta, así que no puede leer su propio
+   * contexto. Componer los dos es trabajo del provider, que es lo único que
+   * conoce ambos.
+   *
+   * Sin esto, después de registrar un pago de tarjeta la deuda bajaba en
+   * pantalla pero el saldo de la cuenta seguía como antes hasta un reload
+   * completo — el provider está montado por encima del router, así que navegar
+   * no lo vuelve a montar.
+   */
+  const registrarPagoTC = useCallback(
+    async (...args: Parameters<typeof tarjetas.registrarPago>) => {
+      const r = await tarjetas.registrarPago(...args)
+      await cuentas.recargar()
+      return r
+    },
+    [tarjetas, cuentas],
+  )
+
   const valor = useMemo<Sesion>(() => ({
     userId,
     email,
@@ -103,8 +124,8 @@ export function SesionProvider(
     archivarTC: tarjetas.archivarTC,
     cerrarCiclo: tarjetas.cerrarCiclo,
     registrarCargo: tarjetas.registrarCargo,
-    registrarPago: tarjetas.registrarPago,
-  }), [userId, email, perfil, perfilCargando, perfilError, refrescarPerfil, cuentas, categorias, tarjetas])
+    registrarPago: registrarPagoTC,
+  }), [userId, email, perfil, perfilCargando, perfilError, refrescarPerfil, cuentas, categorias, tarjetas, registrarPagoTC])
 
   return <SesionCtx.Provider value={valor}>{children}</SesionCtx.Provider>
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { useSesion } from '../context/sesion'
 import { useFechas } from './useFechas'
 
 /**
@@ -31,6 +32,12 @@ export function useAutoApplyPagos(userId: string | undefined) {
   // `<AutoAplicarPagos>`, dentro del SesionProvider, y no desde App.tsx:
   // afuera el perfil todavía no existe y habría que asumir Guatemala.
   const fechas = useFechas()
+  // Los gastos que este hook aplica mueven `cuentas.saldo` por el trigger, y el
+  // slice de cuentas no se vuelve a montar al navegar. Sin esto, los pagos
+  // fijos del mes se aplicaban al abrir la app y el saldo del dashboard
+  // mostraba el de antes hasta un reload.
+  const { refrescar } = useSesion()
+  const invalidarSaldos = refrescar.cuentas
   // Se llavea al usuario: App queda montado entre sign-out y sign-in, así que
   // un useRef(false) dejaría al siguiente usuario sin aplicar sus pagos.
   const appliedFor = useRef<string | null>(null)
@@ -60,6 +67,7 @@ export function useAutoApplyPagos(userId: string | undefined) {
     }
 
     ;(async () => {
+      let aplicados = 0
       const { data: pagos, error: pagosError } = await supabase
         .from('pagos_recurrentes')
         .select('id, nombre, monto, dia_del_mes, cuenta_id, categoria, ultima_aplicacion, created_at')
@@ -119,6 +127,8 @@ export function useAutoApplyPagos(userId: string | undefined) {
             tipo:        'gasto',
           })
 
+        if (!txnError) aplicados += 1
+
         if (txnError) {
           // Revertir el avance para que se reintente en la próxima carga. Si
           // esta reversión también falla, el pago queda marcado sin gasto: se
@@ -136,6 +146,10 @@ export function useAutoApplyPagos(userId: string | undefined) {
           )
         }
       }
+
+      // Una sola vez al final y solo si algo se aplicó: el saldo se pide una
+      // vez, no una por pago.
+      if (aplicados > 0) await invalidarSaldos()
     })().catch(e => {
       console.error('[AutoApply] Error inesperado:', e)
       appliedFor.current = null   // permitir reintento
@@ -143,5 +157,5 @@ export function useAutoApplyPagos(userId: string | undefined) {
     // `fechas` entra en las dependencias porque el efecto lo lee. No cambia el
     // comportamiento: es estable (useMemo por zona) y, si la zona cambiara, el
     // latch `appliedFor` ya impide una segunda corrida para el mismo usuario.
-  }, [userId, fechas])
+  }, [userId, fechas, invalidarSaldos])
 }
