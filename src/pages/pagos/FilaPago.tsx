@@ -1,3 +1,4 @@
+import BotonConfirmar from '../../components/BotonConfirmar'
 import type { PagoRecurrente } from '../../hooks/usePagosRecurrentes'
 import { useMoneda } from '../../hooks/useMoneda'
 
@@ -7,13 +8,12 @@ interface Props {
   pago: PagoRecurrente
   estado: EstadoPago
   nombreCuenta: string
-  porConfirmarBorrado: boolean
   onEditar: () => void
   onBorrar: () => void
 }
 
 export default function FilaPago({
-  pago: p, estado, nombreCuenta, porConfirmarBorrado, onEditar, onBorrar,
+  pago: p, estado, nombreCuenta, onEditar, onBorrar,
 }: Props) {
   const fmt = useMoneda()
 
@@ -43,15 +43,11 @@ export default function FilaPago({
           >
             ✎
           </button>
-          <button
-            onClick={onBorrar}
-            aria-label={porConfirmarBorrado ? 'Confirmar eliminación' : `Eliminar ${p.nombre}`}
-            className={`presionable text-xs px-2 py-1 rounded-chip ${
-              porConfirmarBorrado ? 'bg-danger text-text' : 'text-textDim hover:text-danger'
-            }`}
-          >
-            {porConfirmarBorrado ? 'Confirmar' : '×'}
-          </button>
+          <BotonConfirmar
+            accion={`Eliminar ${p.nombre}`}
+            etiqueta="×"
+            onConfirmar={onBorrar}
+          />
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BotonConfirmar from '../../components/BotonConfirmar'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type Inversion } from '../../lib/finanzas'
@@ -22,7 +23,6 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
   const [guardando, setGuardando] = useState(false)
   // Archivar es destructivo, así que va en 2 taps y NO con window.confirm, que
   // es la convención del repo (y lo que este modal hacía mal).
-  const [porConfirmar, setPorConfirmar] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   const guardar = async () => {
@@ -43,11 +43,6 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
   }
 
   const confirmarArchivado = async () => {
-    if (!porConfirmar) {
-      setPorConfirmar(true)
-      setTimeout(() => setPorConfirmar(false), 3000)
-      return
-    }
     try {
       setGuardando(true)
       await archivar(inv.id)
@@ -90,17 +85,15 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
         >
           {guardando ? 'Guardando...' : 'Guardar nuevo valor'}
         </button>
-        <button
-          onClick={confirmarArchivado}
+        <BotonConfirmar
+          variante="bloque"
+          accion="Archivar inversión"
+          confirmacion="Confirmar archivado de la inversión"
+          etiqueta="Archivar inversión"
+          etiquetaArmada="¿Confirmar archivado? El historial se conserva"
           disabled={guardando}
-          className={`presionable w-full py-2 rounded-control text-xs ${
-            porConfirmar ? 'bg-danger/10 text-danger font-semibold' : 'text-danger/70 hover:text-danger'
-          }`}
-        >
-          {porConfirmar
-            ? '¿Confirmar archivado? El historial se conserva'
-            : 'Archivar inversión'}
-        </button>
+          onConfirmar={() => void confirmarArchivado()}
+        />
       </div>
     </Hoja>
   )

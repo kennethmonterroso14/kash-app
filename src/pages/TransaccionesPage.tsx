@@ -15,7 +15,6 @@ import { construirCSV, descargarCSV } from './transacciones/exportarCSV'
 const FILTROS_VACIOS: Filtros = { busqueda: '', tipo: '', cuenta: '' }
 
 const SEGUNDOS_DESHACER = 6000
-const SEGUNDOS_CONFIRMAR = 3000
 
 /**
  * Un movimiento de TC lo administra el trigger de deuda, cuya rama UPDATE solo
@@ -36,7 +35,6 @@ export default function TransaccionesPage() {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
 
   // Borrado en 2 taps más un toast de deshacer, no un window.confirm.
-  const [porConfirmar, setPorConfirmar] = useState<string | null>(null)
   const [ultimoBorrado, setUltimoBorrado] = useState<Transaccion | null>(null)
   const timerDeshacer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Errores de operaciones sobre la LISTA (un borrado rechazado). Los de los
@@ -58,18 +56,13 @@ export default function TransaccionesPage() {
     `vorta_${mes}.csv`,
   )
 
+  // Los dos taps los maneja `BotonConfirmar`; esto es ya el segundo. Se ESPERA
+  // el resultado: el trigger de deuda puede rechazar el borrado de un
+  // movimiento de TC sin reparto registrado, y antes se ofrecía "Deshacer" de
+  // un borrado que nunca ocurrió.
   const borrar = async (id: string) => {
-    if (porConfirmar !== id) {
-      setPorConfirmar(id)
-      setTimeout(() => setPorConfirmar(p => (p === id ? null : p)), SEGUNDOS_CONFIRMAR)
-      return
-    }
-    // Segundo tap. Se ESPERA el resultado: el trigger de deuda puede rechazar
-    // el borrado de un movimiento de TC sin reparto registrado, y antes se
-    // ofrecía "Deshacer" de un borrado que nunca ocurrió.
     const txn = txns.find(t => t.id === id)
     if (!txn) return
-    setPorConfirmar(null)
     const { error } = await deleteTxn(id)
     if (error) {
       setErrorLista(typeof error === 'string' ? error : error.message)
@@ -156,7 +149,6 @@ export default function TransaccionesPage() {
             txn={t}
             color={coloresCategorias[t.categoria]}
             editable={esEditable(t)}
-            pendienteBorrar={porConfirmar}
             onEditar={() => setEditando(t)}
             onBorrar={() => borrar(t.id)}
           />

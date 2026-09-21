@@ -8,7 +8,6 @@ import SelectorMes from '../components/SelectorMes'
 import TarjetaPresupuesto from './presupuesto/TarjetaPresupuesto'
 import ModalPresupuesto from './presupuesto/ModalPresupuesto'
 
-const MS_CONFIRMAR_BORRADO = 3000
 
 export default function BudgetPage() {
   const { userId, categoriasGasto } = useSesion()
@@ -25,7 +24,6 @@ export default function BudgetPage() {
   const [mostrarAlta, setMostrarAlta] = useState(false)
   const [editando, setEditando] = useState<Presupuesto | null>(null)
   const [expandido, setExpandido] = useState<string | null>(null)
-  const [porConfirmar, setPorConfirmar] = useState<string | null>(null)
 
   const [anio, mesNum] = mes.split('-').map(Number)
   const etiquetaMes = `${MESES[mesNum - 1]} ${anio}`
@@ -35,16 +33,6 @@ export default function BudgetPage() {
     const yaTienen = new Set(presupuestos.map(p => p.categoria))
     return categoriasGasto.filter(c => !yaTienen.has(c))
   }, [presupuestos, categoriasGasto])
-
-  const borrar = (id: string) => {
-    if (porConfirmar !== id) {
-      setPorConfirmar(id)
-      setTimeout(() => setPorConfirmar(p => (p === id ? null : p)), MS_CONFIRMAR_BORRADO)
-      return
-    }
-    setPorConfirmar(null)
-    void eliminar(id)
-  }
 
   if (errorLectura) {
     return (
@@ -145,10 +133,9 @@ export default function BudgetPage() {
           presupuesto={p}
           txns={txns}
           expandido={expandido === p.id}
-          porConfirmarBorrado={porConfirmar === p.id}
           onExpandir={() => setExpandido(prev => (prev === p.id ? null : p.id))}
           onEditar={() => setEditando(p)}
-          onBorrar={() => borrar(p.id)}
+          onBorrar={() => void eliminar(p.id)}
         />
       ))}
 

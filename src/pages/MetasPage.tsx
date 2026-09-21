@@ -8,30 +8,18 @@ import ModalMeta from './metas/ModalMeta'
 
 /** Punto de partida del estimador; el usuario lo ajusta. */
 const AHORRO_MENSUAL_SUGERIDO_Q = 2000
-const MS_CONFIRMAR_BORRADO = 3000
 
 export default function MetasPage() {
   const { userId } = useSesion()
   const { metas, cargando, error, operando, agregar, completar, eliminar } = useMetas(userId)
 
   const [mostrarAlta, setMostrarAlta] = useState(false)
-  const [porConfirmar, setPorConfirmar] = useState<string | null>(null)
   const [ahorroQ, setAhorroQ] = useState(String(AHORRO_MENSUAL_SUGERIDO_Q))
 
   // Se valida antes de convertir: toCentavos lanza con NaN o negativos, y una
   // excepción acá corre en pleno render.
   const ahorro = parseFloat(ahorroQ)
   const ahorroMensual = Number.isFinite(ahorro) && ahorro > 0 ? toCentavos(ahorro) : 0
-
-  const borrar = (id: string) => {
-    if (porConfirmar !== id) {
-      setPorConfirmar(id)
-      setTimeout(() => setPorConfirmar(p => (p === id ? null : p)), MS_CONFIRMAR_BORRADO)
-      return
-    }
-    setPorConfirmar(null)
-    void eliminar(id)
-  }
 
   const botonNueva = (clases: string) => (
     <button
@@ -80,9 +68,8 @@ export default function MetasPage() {
             meta={meta}
             ahorroMensual={ahorroMensual}
             operando={operando}
-            porConfirmarBorrado={porConfirmar === meta.id}
             onCompletar={() => void completar(meta.id)}
-            onBorrar={() => borrar(meta.id)}
+            onBorrar={() => void eliminar(meta.id)}
           />
         ))}
       </div>

@@ -1,3 +1,4 @@
+import BotonConfirmar from '../../components/BotonConfirmar'
 import { calcEstadoPresupuesto, esGastoComputable } from '../../lib/finanzas'
 import { colores } from '../../lib/tokens'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -9,14 +10,13 @@ interface Props {
   /** Movimientos del mes, sin filtrar: la tarjeta se queda con los suyos. */
   txns: Transaccion[]
   expandido: boolean
-  porConfirmarBorrado: boolean
   onExpandir: () => void
   onEditar: () => void
   onBorrar: () => void
 }
 
 export default function TarjetaPresupuesto({
-  presupuesto: p, txns, expandido, porConfirmarBorrado, onExpandir, onEditar, onBorrar,
+  presupuesto: p, txns, expandido, onExpandir, onEditar, onBorrar,
 }: Props) {
   const fmt = useMoneda()
 
@@ -70,16 +70,11 @@ export default function TarjetaPresupuesto({
           >
             ✎
           </button>
-          <button
-            type="button"
-            onClick={onBorrar}
-            aria-label={porConfirmarBorrado ? 'Confirmar eliminación' : `Eliminar presupuesto de ${p.categoria}`}
-            className={`presionable text-xs px-2 py-1 rounded-chip ${
-              porConfirmarBorrado ? 'bg-danger text-text' : 'text-textDim hover:text-danger'
-            }`}
-          >
-            {porConfirmarBorrado ? 'Confirmar' : '×'}
-          </button>
+          <BotonConfirmar
+            accion={`Eliminar presupuesto de ${p.categoria}`}
+            etiqueta="×"
+            onConfirmar={onBorrar}
+          />
         </div>
       </div>
 

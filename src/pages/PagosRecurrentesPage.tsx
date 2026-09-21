@@ -6,7 +6,6 @@ import { useFechas } from '../hooks/useFechas'
 import FilaPago, { type EstadoPago } from './pagos/FilaPago'
 import ModalPagoFijo, { type CamposPago } from './pagos/ModalPagoFijo'
 
-const MS_CONFIRMAR_BORRADO = 3000
 
 export default function PagosRecurrentesPage() {
   const navigate = useNavigate()
@@ -16,7 +15,6 @@ export default function PagosRecurrentesPage() {
 
   const [mostrarAlta, setMostrarAlta] = useState(false)
   const [editando, setEditando] = useState<PagoRecurrente | null>(null)
-  const [porConfirmar, setPorConfirmar] = useState<string | null>(null)
 
   const nombreCuenta = useMemo(() => {
     const map: Record<string, string> = {}
@@ -36,16 +34,6 @@ export default function PagosRecurrentesPage() {
     // aplicado este mes en otro día.
     if (p.ultima_aplicacion?.startsWith(mesHoy)) return 'aplicado'
     return p.dia_del_mes <= diaHoy ? 'pendiente' : 'proximo'
-  }
-
-  const borrar = (id: string) => {
-    if (porConfirmar !== id) {
-      setPorConfirmar(id)
-      setTimeout(() => setPorConfirmar(p => (p === id ? null : p)), MS_CONFIRMAR_BORRADO)
-      return
-    }
-    setPorConfirmar(null)
-    void deletePago(id)
   }
 
   const guardarAlta = async (campos: CamposPago) => {
@@ -118,9 +106,8 @@ export default function PagosRecurrentesPage() {
           pago={p}
           estado={estadoDe(p)}
           nombreCuenta={nombreCuenta[p.cuenta_id] ?? '—'}
-          porConfirmarBorrado={porConfirmar === p.id}
           onEditar={() => setEditando(p)}
-          onBorrar={() => borrar(p.id)}
+          onBorrar={() => void deletePago(p.id)}
         />
       ))}
 

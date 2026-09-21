@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BotonConfirmar from '../../components/BotonConfirmar'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
@@ -149,13 +150,15 @@ export default function ModalTC({ tc, onCerrar }: Props) {
           {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar tarjeta'}
         </button>
         {editando && (
-          <button
-            onClick={archivar}
+          <BotonConfirmar
+            variante="bloque"
+            accion="Archivar tarjeta"
+            confirmacion="Confirmar archivado de la tarjeta"
+            etiqueta="Archivar tarjeta"
+            etiquetaArmada="¿Confirmar archivado? Los movimientos se conservan"
             disabled={guardando}
-            className="presionable w-full py-2 rounded-control bg-transparent text-danger/70 text-xs hover:text-danger"
-          >
-            Archivar tarjeta
-          </button>
+            onConfirmar={() => void archivar()}
+          />
         )}
       </div>
     </Hoja>

@@ -1,3 +1,4 @@
+import BotonConfirmar from '../../components/BotonConfirmar'
 import { calcTiempoParaMeta } from '../../lib/finanzas'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useSesion } from '../../context/sesion'
@@ -8,13 +9,12 @@ interface Props {
   /** Ahorro mensual estimado, en centavos. 0 = sin dato. */
   ahorroMensual: number
   operando: boolean
-  porConfirmarBorrado: boolean
   onCompletar: () => void
   onBorrar: () => void
 }
 
 export default function TarjetaMeta({
-  meta, ahorroMensual, operando, porConfirmarBorrado, onCompletar, onBorrar,
+  meta, ahorroMensual, operando, onCompletar, onBorrar,
 }: Props) {
   const fmt = useMoneda()
   const { perfil } = useSesion()
@@ -48,16 +48,12 @@ export default function TarjetaMeta({
           >
             Completar
           </button>
-          <button
-            onClick={onBorrar}
+          <BotonConfirmar
+            accion={`Eliminar meta ${meta.nombre}`}
+            etiqueta="×"
             disabled={operando}
-            aria-label={porConfirmarBorrado ? 'Confirmar eliminación' : `Eliminar meta ${meta.nombre}`}
-            className={`presionable text-xs px-2 py-1 rounded-chip disabled:opacity-50 ${
-              porConfirmarBorrado ? 'bg-danger text-text' : 'text-textDim hover:text-danger'
-            }`}
-          >
-            {porConfirmarBorrado ? 'Confirmar' : '×'}
-          </button>
+            onConfirmar={onBorrar}
+          />
         </div>
       </div>
 
