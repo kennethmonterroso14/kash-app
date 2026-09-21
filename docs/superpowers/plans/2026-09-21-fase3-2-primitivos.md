@@ -54,7 +54,30 @@ de 3s, y ninguno lo limpia al desmontar — un `setState` sobre un componente de
       `Hoja.test.tsx` y `Aviso.test.tsx`. Verificados por mutación, uno por primitivo:
       quitar el `clearTimeout` del desmonte, el `htmlFor` del label y el `role="alert"` del aviso
       rompe 1, 5 y 2 casos respectivamente.
-- [ ] **3.2.6** Verificar con capturas que ninguna hoja cambió de forma.
+- [x] **3.2.6** Verificar con capturas que ninguna hoja cambió de forma. Ver abajo.
+
+## 3.2.6 — la verificación
+
+Las 14 hojas montadas aisladas contra una sesión de mentira, en Chromium a 390×844 y DPR 2,
+19 estados en total (alta y edición donde el modal hace las dos). No se midió a ojo: el arnés
+mide el DOM y falla si algo se desborda.
+
+| Qué se comprobó | Resultado |
+|---|---|
+| Desborde horizontal de la página | ninguno, en los 19 |
+| El ✕ dentro de la hoja | dentro, en los 18 que lo tienen (el `Dialogo` no lleva) |
+| La hoja pegada al borde inferior | `bottom = 844` en los 18 |
+| Contenido recortado por el `max-h` | `scrollHeight == clientHeight` en los 19: nada se corta |
+| Título largo | con "Mastercard Platinum Banrural Empresarial" el título se elide y el ✕ **no** se sale; antes lo empujaba fuera |
+
+Alturas: de 228px (`presupuesto-edit`) a 677px (`inversion-edit`), todas por debajo del 92dvh
+(776px), así que el scroll de la hoja no se activa con este contenido — pero sigue ahí para
+cuando el teclado reduzca el viewport.
+
+**Lo que esto NO verifica**, y sigue necesitando hardware: `env(safe-area-inset-bottom)` vale 0
+en Chromium de escritorio, así que el `pb-[calc(1.5rem+env(...))]` no se puede ver funcionar;
+tampoco el costo por frame del `backdrop-filter` en el WebView de Capacitor ni el zoom del input
+en iOS. El arnés era temporal y no quedó en el repo.
 
 ## Lo que la migración encontró
 
