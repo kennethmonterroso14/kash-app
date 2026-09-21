@@ -129,7 +129,14 @@ del roadmap.
       `error` de `useTransacciones`, así que un fetch fallido pintaba todas las cifras del mes en
       Q0.00. Los dos tooltips se movieron a nivel de módulo (un componente recreado en cada render
       rompe la reconciliación — `react-hooks/static-components`) con el formateador por prop.
-- [ ] **1.4.6** `MetasPage` (368) y `PagosRecurrentesPage` (367)
+- [x] **1.4.6** `MetasPage`: 368 → **92** (`metas_ahorro` era otra tabla sin hook → `useMetas`,
+      más `./metas/{TarjetaMeta,ModalMeta}`). `PagosRecurrentesPage`: 363 → **120**
+      (`./pagos/{FilaPago,ModalPagoFijo}`, con alta y edición unificadas). Defectos: ninguna de las
+      dos leía el `error` de su consulta, la fecha del estimador de metas usaba `es-GT` cableado en
+      lugar del locale del perfil, el estado de un pago fijo se calculaba con el calendario del
+      navegador y no con la zona del usuario, y la categoría por default de un pago fijo era el
+      string `'Suscripciones'` — quien la hubiera borrado quedaba con un select sin opción válida.
+- [ ] **1.4.6b** `CuentasPage` (310) — quedó como la única sobre 300.
 - [ ] **1.4.7** Barrido final: grep de `formatQ(` y `hoyGT(` sin llamadas fuera de los alias, y
       retirar los alias.
 
