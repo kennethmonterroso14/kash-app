@@ -70,12 +70,14 @@ que entró**.
 
 ## Tareas
 
-- [ ] **4.1** `cerrado_at` en `ciclos_tc`, escrito por `cerrar_ciclo_tc`. Migración + `schema.sql` +
+- [x] **4.1** `cerrado_at` en `ciclos_tc`, escrito por `cerrar_ciclo_tc`. Migración + `schema.sql` +
       tests de SQL. **Urgente**: cada cierre sin esto es historia que se pierde.
-- [ ] **4.2a** `deuda_tc_derivada(p_tarjeta_id)`: la reproducción en orden de `created_at`. Y
-      `reconciliar_deuda_tc()`, que compara derivado contra guardado para todas las tarjetas del
-      usuario. Los dos al lado del trigger, sin retirar nada.
-- [ ] **4.2a-bis** Correr la reconciliación contra producción y reportar.
+- [x] **4.2a** `deuda_tc_derivada(p_tarjeta_id)`: la reproducción en orden de `created_at`. Y
+      `reconciliar_deuda_tc()`, que compara derivado contra guardado. Los dos al lado del trigger,
+      sin retirar nada. Salió una tercera, `verificar_reparto_tc()`, que no estaba en el plan — ver
+      abajo.
+- [x] **4.2a-bis** Correr la reconciliación contra producción. **Las cuatro tarjetas cuadran**, y el
+      Q6.50 de "Ysi Visa" resultó no existir: era la comparación, no el dato.
 - [ ] **4.2b** *(después, con evidencia)* Retirar el total corriente: `trg_deuda_tc`, su escape
       hatch, las columnas `aplicado_*` y las columnas `deuda_*`. Condición para arrancarlo: la
       reconciliación en verde **después de al menos un cierre real** de ciclo, para que lo que se
@@ -84,6 +86,36 @@ que entró**.
       la nota de `RESTRUCTURE.md` cuando 4.2b retire el estampado.
 - [ ] **4.4** `ciclos_tc.total_cargos` / `total_pagos`: o se llenan desde la derivación o se borran.
       Va después de 4.2b, porque la respuesta depende de qué quede siendo la fuente.
+
+## Lo que la reconciliación encontró
+
+Corrida contra la base real el 2026-09-21, reproduciendo el ledger en orden (sin crear nada allá:
+la misma lógica como CTE recursiva):
+
+| Tarjeta | Guardado | Derivado | Cuadra |
+|---|---|---|---|
+| BAC extension | Q0 | Q0 | ✅ |
+| Bac student | Q0 | Q0 | ✅ |
+| Mastercard BAC Estudiante | Q254.33 | Q254.33 | ✅ |
+| Ysi Visa | **Q865.75** | **Q865.75** | ✅ |
+
+**El Q6.50 no existía.** Venía de comparar el total guardado contra `sum(cargos) − sum(pagos)`, que
+no modela el recorte de un sobrepago. Lo que pasó: el primer pago de "Ysi Visa" (2026-08-26,
+Q4,760.58) fue Q6.50 mayor que la deuda del momento (Q4,754.08, sin pagos antes), y esos Q6.50 no
+bajaron ningún bucket. Las dos correcciones que el roadmap proponía habrían **metido** el error.
+
+### La tercera función, que no estaba en el plan
+
+Comparar totales tiene un punto ciego: **dos errores de la misma magnitud en sentidos opuestos se
+cancelan y la tarjeta parece cuadrar**. Es literalmente este caso, y por eso salió
+`verificar_reparto_tc()`: comprueba que el reparto GUARDADO de cada pago no exceda la deuda que
+había en el instante en que se insertó.
+
+Encontró una fila real: `aplicado_actual` de ese pago quedó en −476058 (el monto completo) cuando
+solo se aplicaron 475408. El backfill de septiembre rellenó el reparto sin modelar el recorte. El
+trigger revierte un DELETE con esa columna, así que borrar ese pago devolvía **Q6.50 de deuda
+fantasma**. Lo corrige el PASO 4 de la migración, y el test corre el archivo de migración de verdad
+—no una copia— y verifica que el saldo de la tarjeta no se mueva.
 
 ## Fuera de alcance
 

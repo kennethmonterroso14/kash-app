@@ -82,13 +82,30 @@ función, y que el total corriente desaparezca.
 momento un monto pasó de un bucket al otro y **la historia no se puede reproducir**. Para derivar
 hay que primero registrar `cerrado_at` y aceptar que lo viejo queda con el reparto que tiene.
 
-Consecuencia hoy: hay **Q6.50 de diferencia en "Ysi Visa"** entre el saldo de la tarjeta (Q718.10)
-y lo que dice el ledger (Q711.60). Verificado el 2026-09-17: las otras tres tarjetas cuadran, no
-existe ninguna transacción de Q6.50, y la diferencia es un offset constante que sobrevivió sin
-cambio al pago de Q2,221.80 de ese día — o sea un delta que entró una vez, no un cálculo que se
-repite. **De dónde salió no se puede saber** porque no hay `updated_at` ni bitácora, que es
-exactamente lo que esta sección describe. Las dos formas de corregirlo están en el roadmap, en
-"Cosas pendientes del mundo real".
+**CORREGIDO el 2026-09-21 — la diferencia de Q6.50 no existía.** Esta sección venía reportando
+"Q6.50 de diferencia en Ysi Visa, de dónde salió no se puede saber". Con la derivación de la tarea
+4.2a se pudo por fin reproducir el ledger en orden, y la tarjeta **cuadra exacto**: Q865.75
+guardado = Q865.75 derivado.
+
+La diferencia salía de la comparación, no del dato. Se estaba comparando el total guardado contra
+`sum(cargos) − sum(pagos)`, y esa resta **no modela el recorte de un sobrepago**. Lo que pasó de
+verdad: el primer pago de esa tarjeta (2026-08-26, Q4,760.58) fue Q6.50 mayor que la deuda que
+había en ese momento (Q4,754.08 de cargos, cero pagos antes). El trigger aplicó solo lo que había
+—correcto, no se puede pagar deuda que no existe— y esos Q6.50 nunca bajaron ningún bucket. La
+suma simple los cuenta como pago; el saldo real, no.
+
+Queda una consecuencia real, y esa sí era un defecto: `aplicado_actual` de esa fila quedó en
+−476058, el monto completo, porque el backfill de septiembre rellenó el reparto de los pagos
+existentes sin modelar el recorte. El trigger revierte un DELETE con esa columna, así que borrar
+ese pago le habría devuelto a la tarjeta Q4,760.58 cuando solo le quitó Q4,754.08 — **Q6.50 de
+deuda fantasma**. Lo corrige el PASO 4 de
+`supabase/migrations/20260921010000_deuda_tc_derivada.sql`, y `verificar_reparto_tc()` es la
+función que lo detecta: existe porque comparar TOTALES tiene un punto ciego, y este caso es
+exactamente ese punto ciego (dos errores de la misma magnitud en sentidos opuestos, y la tarjeta
+parece cuadrar).
+
+La moraleja se queda igual y es la de esta sección: un total corriente no se puede auditar. Lo que
+cambió es que ahora hay con qué.
 
 ### 2.2 `ciclos_tc.total_cargos` y `total_pagos` no tienen quien los escriba
 Están siempre en 0. El historial los deriva de las transacciones del ciclo en el cliente. O se
