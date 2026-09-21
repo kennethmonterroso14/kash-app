@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
-import { formatQ } from '../lib/finanzas'
+import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
 
 const MESES_LOCAL = [
@@ -23,6 +23,7 @@ function formatPeriodo(inicio: string, cierre: string): string {
 }
 
 export default function TarjetaHistorialPage() {
+  const fmt = useMoneda()
   const { id: tarjetaId = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { userId, tarjetas } = useSesion()
@@ -125,19 +126,19 @@ export default function TarjetaHistorialPage() {
                 <div className="bg-bg rounded-xl p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Cargos</p>
                   <p className="text-danger font-mono font-semibold text-xs">
-                    {formatQ(ciclo.total_cargos)}
+                    {fmt(ciclo.total_cargos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Pagos</p>
                   <p className="text-success font-mono font-semibold text-xs">
-                    {formatQ(ciclo.total_pagos)}
+                    {fmt(ciclo.total_pagos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Saldo</p>
                   <p className={`font-mono font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
-                    {formatQ(ciclo.saldo_final)}
+                    {fmt(ciclo.saldo_final)}
                   </p>
                 </div>
               </div>
@@ -193,7 +194,7 @@ export default function TarjetaHistorialPage() {
                     <p className="text-textDim text-xs">{tx.categoria} · {tx.fecha}</p>
                   </div>
                   <p className={`font-mono text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
-                    {tx.cantidad < 0 ? '−' : '+'}{formatQ(Math.abs(tx.cantidad))}
+                    {tx.cantidad < 0 ? '−' : '+'}{fmt(Math.abs(tx.cantidad))}
                   </p>
                 </div>
               ))}
@@ -208,14 +209,14 @@ export default function TarjetaHistorialPage() {
                 <div className="flex justify-between">
                   <span className="text-textDim text-xs">Cargos</span>
                   <span className="font-mono text-sm text-danger font-semibold">
-                    {formatQ(cargosModal)}
+                    {fmt(cargosModal)}
                   </span>
                 </div>
                 {pagosModal > 0 && (
                   <div className="flex justify-between">
                     <span className="text-textDim text-xs">Pagos</span>
                     <span className="font-mono text-sm text-success font-semibold">
-                      {formatQ(pagosModal)}
+                      {fmt(pagosModal)}
                     </span>
                   </div>
                 )}

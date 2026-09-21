@@ -7,7 +7,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
+import { proyectarPatrimonio, toCentavos } from '../lib/finanzas'
+import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
 import { colores } from '../lib/tokens'
 
@@ -58,15 +59,17 @@ function growthPct(current: number, projected: number): number {
 interface TooltipProps {
   active?: boolean
   payload?: { value: number; payload: ChartPoint }[]
+  /** Recharts clona el elemento y conserva las props propias. */
+  fmt?: (centavos: number) => string
 }
 
-function CustomTooltip({ active, payload }: TooltipProps) {
-  if (!active || !payload || payload.length === 0) return null
+function CustomTooltip({ active, payload, fmt }: TooltipProps) {
+  if (!active || !payload || payload.length === 0 || !fmt) return null
   const point = payload[0].payload
   return (
-    <div className="bg-surface border border-canto rounded-xl px-3 py-2 text-sm shadow-lg">
+    <div className="vidrio-panel rounded-control px-3 py-2 text-sm">
       <p className="text-textDim text-xs mb-0.5">{point.fechaDisplay}</p>
-      <p className="text-success font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
+      <p className="text-success font-semibold">{fmt(Math.round(point.patrimonio))}</p>
     </div>
   )
 }
@@ -76,6 +79,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 export default function ProyeccionesPage() {
   const gradientId = useId()
   const { totalPatrimonio, cargando, error: errores } = useSesion()
+  const fmt = useMoneda()
   const loading = cargando.cuentas
   const cuentasError = errores.cuentas
 
@@ -90,7 +94,7 @@ export default function ProyeccionesPage() {
   const puntos = useMemo(() => {
     if (loading) return []
     // Number(e.target.value) puede devolver Infinity ("1e999"): toCentavos lo
-    // deja pasar y formatQ lanza despues durante el render, dejando la app en
+    // deja pasar y el formateador lanza despues durante el render, dejando la app en
     // blanco (no hay ErrorBoundary). Sanear antes de convertir.
     const ahorroQ = Number.isFinite(ahorroMensualQ) ? Math.max(0, ahorroMensualQ) : 0
     const pctSeguro = Number.isFinite(rendimientoPct) ? rendimientoPct : 0
@@ -153,7 +157,7 @@ export default function ProyeccionesPage() {
               ? <span className="animate-pulse">cargando…</span>
               : cuentasError
                 ? <span className="text-danger">no disponible</span>
-                : <span className="text-text font-semibold">{formatQ(totalPatrimonio)}</span>
+                : <span className="text-text font-semibold">{fmt(totalPatrimonio)}</span>
             }
           </p>
           {cuentasError && (
@@ -247,7 +251,7 @@ export default function ProyeccionesPage() {
                   tickLine={false}
                   width={54}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip fmt={fmt} />} />
                 <Area
                   type="monotone"
                   dataKey="patrimonio"
@@ -277,7 +281,7 @@ export default function ProyeccionesPage() {
                 <div key={m.label} className="bg-surface rounded-2xl p-4 flex flex-col gap-1">
                   <span className="text-xs text-textDim">{m.label}</span>
                   <span className="text-sm font-bold text-text leading-tight">
-                    {formatQ(m.patrimonio)}
+                    {fmt(m.patrimonio)}
                   </span>
                   <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                     {m.growth >= 0 ? '+' : ''}{m.growth}%

@@ -9,16 +9,20 @@ import { SesionCtx, PERFIL_DEFAULT, type Perfil, type Sesion } from './sesion'
 export function SesionProvider(
   { userId, email, children }: { userId: string; email: string | null; children: ReactNode },
 ) {
-  // Paso 1 de la migración: el provider usa los hooks existentes por dentro,
-  // así que el comportamiento es idéntico — solo cambia que se montan UNA vez.
-  const cuentas = useCuentas(userId)
-  const categorias = useCategorias(userId)
-  const tarjetas = useTarjetas(userId)
-
+  // El perfil va PRIMERO porque useTarjetas necesita su zona horaria.
   const [perfil, setPerfil] = useState<Perfil>(PERFIL_DEFAULT)
   const [perfilCargando, setPerfilCargando] = useState(true)
   const [perfilError, setPerfilError] = useState<string | null>(null)
   const genRef = useRef(0)
+
+  // El provider usa los hooks existentes por dentro, así que el comportamiento
+  // es idéntico — solo cambia que se montan UNA vez.
+  const cuentas = useCuentas(userId)
+  const categorias = useCategorias(userId)
+  // useTarjetas no puede usar useFechas(): consumiría el contexto que este
+  // mismo componente provee. La zona viaja por parámetro; antes de que el
+  // perfil cargue es la default, y eso solo afecta a un ciclo recién abierto.
+  const tarjetas = useTarjetas(userId, perfil.zona_horaria)
 
   const refrescarPerfil = useCallback(async () => {
     const gen = ++genRef.current

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { hoyGT } from '../lib/constants'
+import { useFechas } from './useFechas'
 
 const COLS = 'id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas, tarjeta_id, ciclo_id, created_at'
 
@@ -19,6 +19,9 @@ export interface Transaccion {
 }
 
 export function useTransacciones(userId: string | undefined, mes: string) {
+  // Las fechas salen de la zona del usuario. Este hook se monta desde una
+  // página, o sea dentro del SesionProvider, así que puede leer el perfil.
+  const fechas = useFechas()
   // Guardamos el mes al que pertenecen las filas para poder descartar una
   // respuesta lenta de un mes que el usuario ya dejó atrás.
   const [state, setState] = useState<{ mes: string | null; rows: Transaccion[] }>({ mes: null, rows: [] })
@@ -78,7 +81,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     if (!userId) return { error: 'Sin usuario' }
     const { data, error } = await supabase
       .from('transacciones')
-      .insert({ ...txn, user_id: userId, fecha: txn.fecha ?? hoyGT() })
+      .insert({ ...txn, user_id: userId, fecha: txn.fecha ?? fechas.hoy() })
       .select()
       .single()
     if (!error && data) {

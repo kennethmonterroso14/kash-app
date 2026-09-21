@@ -17,12 +17,11 @@ import CategoriasPage from './pages/CategoriasPage'
 import TarjetasPage from './pages/TarjetasPage'
 import TarjetaHistorialPage from './pages/TarjetaHistorialPage'
 import InversionesPage from './pages/InversionesPage'
-import { useAutoApplyPagos } from './hooks/useAutoApplyPagos'
+import AutoAplicarPagos from './components/AutoAplicarPagos'
 import { SesionProvider } from './context/SesionProvider'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
-  useAutoApplyPagos(user?.id)
   // Etiquetado con el userId al que corresponde, para derivar el estado del gate
   // en lugar de reiniciarlo desde el efecto al cambiar de usuario.
   const [setup, setSetup] = useState<{ userId: string; value: boolean | 'error' } | null>(null)
@@ -88,6 +87,8 @@ export default function App() {
   // tarjetas se cargan una vez acá en lugar de una vez por página.
   return (
     <SesionProvider userId={user.id} email={user.email ?? null}>
+      {/* Dentro del provider: necesita la zona horaria del perfil. */}
+      <AutoAplicarPagos userId={user.id} />
       <Layout onSignOut={signOut} userId={user.id}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

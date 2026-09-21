@@ -2,7 +2,8 @@
 import { useCallback, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { calcAlertasTC, formatQ, type AlertaTC, type TarjetaCredito } from '../lib/finanzas'
+import { calcAlertasTC, type AlertaTC, type TarjetaCredito } from '../lib/finanzas'
+import { useMoneda } from '../hooks/useMoneda'
 
 interface Props { userId: string }
 
@@ -18,6 +19,7 @@ const claveAlerta = (a: AlertaTC): string =>
   `${a.tipo}-${a.tc.id}-${a.monto ?? a.diasRestantes ?? 0}`
 
 export default function AlertasBanner({ userId }: Props) {
+  const fmt = useMoneda()
   const [alertas, setAlertas]         = useState<AlertaTC[]>([])
   const [descartadas, setDescartadas] = useState<Set<string>>(new Set())
   const { pathname } = useLocation()
@@ -79,7 +81,7 @@ export default function AlertasBanner({ userId }: Props) {
           return (
             <div key={key} className="bg-danger flex justify-between items-center px-4 py-2">
               <span className="text-text text-xs font-semibold">
-                ⚠ Pago vencido en {alerta.tc.nombre}: {formatQ(alerta.monto!)}
+                ⚠ Pago vencido en {alerta.tc.nombre}: {fmt(alerta.monto!)}
               </span>
               <button
                 onClick={() => descartar(key)}

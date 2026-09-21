@@ -137,8 +137,18 @@ del roadmap.
       navegador y no con la zona del usuario, y la categoría por default de un pago fijo era el
       string `'Suscripciones'` — quien la hubiera borrado quedaba con un select sin opción válida.
 - [ ] **1.4.6b** `CuentasPage` (310) — quedó como la única sobre 300.
-- [ ] **1.4.7** Barrido final: grep de `formatQ(` y `hoyGT(` sin llamadas fuera de los alias, y
-      retirar los alias.
+- [x] **1.4.7** Barrido final hecho: **los cuatro alias retirados** (`formatQ`, `hoyGT`, `ahoraGT`,
+      `mesActual`) y cero sitios que asuman Guatemala o quetzales. Tres cosas que salieron en el
+      camino y no eran mecánicas:
+      - `useAutoApplyPagos` corría **fuera del provider** (desde `App.tsx`), así que no tenía cómo
+        leer la zona del perfil — y de la zona depende qué mes es el actual, o sea qué vencimiento
+        cuenta como vencido. Se movió adentro con `<AutoAplicarPagos>`, que además lo corre después
+        del gate de onboarding (un usuario sin fila en `profiles` tampoco tiene pagos fijos).
+      - `useTarjetas` **no puede** usar `useFechas()`: lo monta el provider, así que consumiría el
+        contexto que él mismo provee. La zona le entra por parámetro.
+      - `calcDisponibleReal` armaba una de sus tres advertencias con `formatQ`, o sea con la moneda
+        cableada dentro de una función pura. Ahora recibe las opciones de moneda; sigue siendo pura
+        porque son datos, no contexto.
 
 ## Task 1.5 — Tests de hooks
 

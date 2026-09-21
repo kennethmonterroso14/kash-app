@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { hoyEn, ahoraEn, mesActualEn, zonaValida, hoyGT, ahoraGT, mesActual, ZONA_GT } from './constants'
+import { hoyEn, ahoraEn, mesActualEn, zonaValida, ZONA_GT } from './constants'
 
 /**
  * Lo que importa acá no es el formato: es que la fecha que se GUARDA salga de
@@ -83,16 +83,5 @@ describe('zonaValida', () => {
     expect(zonaValida('Nada/Inventado')).toBe(false)
     expect(zonaValida('')).toBe(false)
     expect(zonaValida('GMT-6')).toBe(false)
-  })
-})
-
-describe('alias de Guatemala', () => {
-  it('hoyGT, mesActual y ahoraGT son exactamente las versiones en ZONA_GT', () => {
-    vi.setSystemTime(INSTANTE_QUE_CRUZA)
-    expect(hoyGT()).toBe(hoyEn(ZONA_GT))
-    expect(mesActual()).toBe(mesActualEn(ZONA_GT))
-    expect(ahoraGT().toISOString()).toBe(ahoraEn(ZONA_GT).toISOString())
-    // Y siguen dando lo de antes: el 4, no el 5.
-    expect(hoyGT()).toBe('2026-04-04')
   })
 })

@@ -5,7 +5,7 @@ interface State { error: Error | null }
 
 /**
  * Última red de seguridad: sin esto, cualquier excepción durante el render
- * (por ejemplo toCentavos/formatQ, que lanzan a propósito ante datos inválidos)
+ * (por ejemplo toCentavos/formatMoneda, que lanzan a propósito ante datos inválidos)
  * desmonta todo el árbol y deja la pantalla en blanco sin explicación.
  */
 export default class ErrorBoundary extends Component<Props, State> {

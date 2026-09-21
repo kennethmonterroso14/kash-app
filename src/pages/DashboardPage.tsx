@@ -18,7 +18,7 @@ import Grafica6Meses from './dashboard/Grafica6Meses'
 export default function DashboardPage() {
   const {
     userId, coloresCategorias, cuentas, totalPatrimonio, resumenTCs, tarjetas,
-    error: errores,
+    perfil, error: errores,
   } = useSesion()
   const fechas = useFechas()
   const [mes, setMes] = useState(fechas.mesActual())
@@ -31,8 +31,9 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => calcEstadisticasMes(txns), [txns])
   const disponibleReal = useMemo(
-    () => calcDisponibleReal(totalPatrimonio, tarjetas),
-    [totalPatrimonio, tarjetas],
+    // La moneda va a la advertencia, que cita un monto.
+    () => calcDisponibleReal(totalPatrimonio, tarjetas, { moneda: perfil.moneda, locale: perfil.locale }),
+    [totalPatrimonio, tarjetas, perfil.moneda, perfil.locale],
   )
   const patrimonioNeto = useMemo(
     () => calcPatrimonioNeto(totalPatrimonio, resumenInv.valor_total, tarjetas),
