@@ -5,6 +5,7 @@ import Aviso from '../components/Aviso'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
+import { diaEn } from '../lib/constants'
 
 const MESES_LOCAL = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -17,6 +18,12 @@ const ESTADO_BADGE: Record<string, { label: string; cls: string }> = {
   pagado:   { label: 'Pagado',   cls: 'bg-success/15 text-success' },
 }
 
+/** '2026-09-21' → '21 sep'. Recibe el día ya resuelto en la zona del perfil. */
+function formatDia(dia: string): string {
+  const [, m, d] = dia.split('-').map(Number)
+  return `${d} ${MESES_LOCAL[m - 1].slice(0, 3).toLowerCase()}`
+}
+
 function formatPeriodo(inicio: string, cierre: string): string {
   const [, im, id] = inicio.split('-').map(Number)
   const [, cm, cd] = cierre.split('-').map(Number)
@@ -27,7 +34,7 @@ export default function TarjetaHistorialPage() {
   const fmt = useMoneda()
   const { id: tarjetaId = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { userId, tarjetas } = useSesion()
+  const { userId, tarjetas, perfil } = useSesion()
   const { ciclos, loading, error, fetchTransaccionesCiclo } = useCiclosTC(userId, tarjetaId)
 
   const tc = tarjetas.find(t => t.id === tarjetaId)
@@ -116,6 +123,15 @@ export default function TarjetaHistorialPage() {
                   <p className="text-textDim text-xs mt-0.5">
                     Pago: {ciclo.fecha_pago}
                   </p>
+                  {/* El período de arriba es el TEÓRICO; esto es cuándo se
+                      cerró de verdad. Se muestran los dos porque casi nunca
+                      coinciden: el usuario cierra cuando quiere. Un ciclo
+                      cerrado sin instante es de antes de la tarea 4.1. */}
+                  {ciclo.cerrado_at && (
+                    <p className="text-textDim text-xs mt-0.5">
+                      Cerrado el {formatDia(diaEn(ciclo.cerrado_at, perfil.zona_horaria))}
+                    </p>
+                  )}
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
                   {badge.label}

@@ -313,37 +313,42 @@ Dos cosas que conviene adelantar aunque su fase venga después:
 
 ## Cosas pendientes del mundo real
 
-### Q6.50 de diferencia en "Ysi Visa"
+### ~~Q6.50 de diferencia en "Ysi Visa"~~ — RESUELTO el 2026-09-21, y no era esto
 
-Verificado en producción el 2026-09-17, después del pago de ese día:
+**La diferencia no existía.** La tarea 4.2a trajo la derivación del ledger, y con ella se pudo
+reproducir la historia en orden por primera vez. La tarjeta **cuadra exacto**:
 
 | | |
 |---|---|
-| `deuda_actual` guardada | Q718.10 |
-| Derivado del ledger (49 cargos − 2 pagos) | Q711.60 |
-| Diferencia | **Q6.50** |
+| Guardado (`deuda_actual + deuda_ciclo_anterior`) | Q865.75 |
+| Derivado reproduciendo el ledger en orden | **Q865.75** |
+| Diferencia | **0** |
 
-Las otras tres tarjetas cuadran exactamente. Comprobado además: **no existe ninguna transacción de
-Q6.50** en esa tarjeta, y la diferencia es un offset constante — sobrevivió sin cambio al pago de
-Q2,221.80 del 17/09. O sea que no es un cálculo que se repita, es un delta que entró una vez.
+Lo que esta sección venía reportando salía de la **comparación**, no del dato: se comparaba el total
+guardado contra `sum(cargos) − sum(pagos)`, y esa resta **no modela el recorte de un sobrepago**.
 
-**De dónde salió no se puede saber, y eso es el punto de la Fase 4.** `transacciones` no tiene
-`updated_at` ni bitácora, y `ciclos_tc` no tiene `cerrado_at`, así que la historia del total
-corriente no se puede reproducir. Un delta mal aplicado una sola vez queda permanente y sin rastro.
+Lo que pasó de verdad, medido: el primer pago de esa tarjeta (2026-08-26, Q4,760.58) fue Q6.50
+**mayor que la deuda que había en ese momento** (Q4,754.08 de cargos, cero pagos antes). El trigger
+aplicó solo lo que había —correcto, no se puede pagar deuda que no existe— y esos Q6.50 nunca
+bajaron ningún bucket. La suma simple los cuenta como pago; el saldo real, no. De ahí el offset
+constante que parecía un delta fantasma.
 
-No es dinero real que se movió: `deuda_actual` es una columna **derivada**, ningún saldo de cuenta
-bancaria la toca. El lado confiable es el ledger.
+**Las dos correcciones que estaban escritas acá habrían metido el error que se creía arreglar:**
+parchar `deuda_actual` a Q711.60 le habría quitado Q6.50 que la tarjeta sí debía, y agregar un
+`gasto_tc` de Q6.50 habría inventado un cargo que nunca existió. No hay nada que preguntarle al
+banco.
 
-Dos formas de corregirlo, según lo que diga el estado de cuenta del banco:
+Lo único real era **una fila**: `aplicado_actual` de ese pago quedó en el monto completo (−476058)
+porque el backfill de septiembre rellenó el reparto de los pagos existentes sin modelar el recorte.
+El trigger revierte un DELETE con esa columna, así que borrar ese pago le habría devuelto a la
+tarjeta Q4,760.58 cuando solo le quitó Q4,754.08 — **Q6.50 de deuda fantasma**. Lo corrige el PASO 4
+de `supabase/migrations/20260921010000_deuda_tc_derivada.sql`, probado corriendo el archivo de
+migración de verdad y verificando que el saldo **no** se mueva.
 
-- **Banco dice Q711.60** → el ledger tiene razón y el total corriente está inflado. Se corrige con
-  un `update tarjetas_credito set deuda_actual = 71160 where …`, a mano en el SQL Editor (el
-  cliente nunca escribe esa columna).
-- **Banco dice Q718.10** → falta un cargo de Q6.50 en el ledger (típicamente una comisión o un
-  interés que nunca se ingresó). Se agrega como `gasto_tc` desde TarjetasPage y el trigger cuadra
-  solo. **Esta es la preferible**: deja el ledger como fuente de verdad en lugar de parchar el total.
-
-Conviene resolverlo antes de la Fase 4, para que 4.2 arranque de un estado limpio.
+Lo que queda de esto para adelante: `reconciliar_deuda_tc()` y `verificar_reparto_tc()`, que son la
+red que no existía. La primera compara totales; la segunda existe porque comparar totales tiene un
+punto ciego, y este caso ERA ese punto ciego — dos errores de la misma magnitud en sentidos
+opuestos, y la tarjeta parece cuadrar. Conviene mirar las dos después de cada cierre de ciclo.
 
 ### Protección de contraseñas filtradas desactivada
 

@@ -555,6 +555,13 @@ export interface CicloTC {
   total_pagos: number    // centavos
   saldo_final: number    // centavos
   estado: 'abierto' | 'cerrado' | 'pagado'
+  /**
+   * Instante REAL del cierre, o null si el ciclo está abierto — o si se cerró
+   * antes de que la columna existiera (tarea 4.1), y entonces ese tramo de la
+   * historia no es derivable. `fecha_cierre` es la fecha teórica del corte y no
+   * dice cuándo pasó nada: el usuario cierra cuando quiere.
+   */
+  cerrado_at: string | null
 }
 
 export interface AlertaTC {

@@ -56,7 +56,7 @@ export function useCiclosTC(userId: string, tarjetaId: string) {
       setError(null)
       const { data, error } = await supabase
         .from('ciclos_tc')
-        .select('id, tarjeta_id, user_id, fecha_inicio, fecha_cierre, fecha_pago, saldo_final, estado')
+        .select('id, tarjeta_id, user_id, fecha_inicio, fecha_cierre, fecha_pago, saldo_final, estado, cerrado_at')
         .eq('tarjeta_id', tarjetaId)
         .eq('user_id', userId)
         .order('fecha_inicio', { ascending: false })

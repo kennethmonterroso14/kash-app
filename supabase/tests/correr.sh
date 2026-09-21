@@ -45,7 +45,12 @@ echo "→ corriendo los tests"
 for f in "$RAIZ"/supabase/tests/*.sql; do
   case "$(basename "$f")" in 00_*) continue ;; esac
   echo "   $(basename "$f")"
-  psql -p "$PGPORT" -h 127.0.0.1 -U vorta -d postgres -v ON_ERROR_STOP=1 -q -f "$f"
+  # `-v raiz=...` para que un test pueda hacer `\i :raiz/supabase/migrations/...`
+  # y correr el archivo de migración DE VERDAD en vez de una copia de su SQL.
+  # Una corrección de dato que se prueba con una copia no está probada: la
+  # copia y el original se separan en la primera edición.
+  psql -p "$PGPORT" -h 127.0.0.1 -U vorta -d postgres -v ON_ERROR_STOP=1 -q \
+    -v raiz="$RAIZ" -f "$f"
 done
 
 echo "✓ todos los tests de SQL pasaron"

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { hoyEn, ahoraEn, mesActualEn, zonaValida, ZONA_GT } from './constants'
+import { hoyEn, ahoraEn, mesActualEn, diaEn, zonaValida, ZONA_GT } from './constants'
 
 /**
  * Lo que importa acá no es el formato: es que la fecha que se GUARDA salga de
@@ -83,5 +83,31 @@ describe('zonaValida', () => {
     expect(zonaValida('Nada/Inventado')).toBe(false)
     expect(zonaValida('')).toBe(false)
     expect(zonaValida('GMT-6')).toBe(false)
+  })
+})
+
+describe('diaEn', () => {
+  /**
+   * Es la función que resuelve un `timestamptz` — hoy `ciclos_tc.cerrado_at` —
+   * al día de calendario del usuario. El bug que tapa es mostrar el día
+   * equivocado por resolver el instante en la zona del navegador.
+   */
+  it('resuelve el mismo instante a días distintos según la zona', () => {
+    // 03:00 UTC: en Guatemala (UTC−6) todavía es el día anterior.
+    const instante = '2026-09-21T03:00:00Z'
+    expect(diaEn(instante, 'America/Guatemala')).toBe('2026-09-20')
+    expect(diaEn(instante, 'UTC')).toBe('2026-09-21')
+    expect(diaEn(instante, 'Asia/Tokyo')).toBe('2026-09-21')
+  })
+
+  it('no depende de la zona del proceso', () => {
+    // El instante trae su offset: lo que decide el día es la zona pedida, no
+    // la del sistema donde corre el test.
+    expect(diaEn('2026-01-01T05:30:00+00:00', 'America/Guatemala')).toBe('2025-12-31')
+  })
+
+  it('lanza con una zona inválida en lugar de caer a una por defecto', () => {
+    // Igual que `hoyEn`: un fallback silencioso mostraría un día que no es.
+    expect(() => diaEn('2026-09-21T03:00:00Z', 'Nada/Inventado')).toThrow()
   })
 })
