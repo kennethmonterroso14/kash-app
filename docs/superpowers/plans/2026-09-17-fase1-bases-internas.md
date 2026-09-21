@@ -160,9 +160,21 @@ del roadmap.
       mutación**: quitar el guard de mes futuro rompe un test, y volver a decidir la copia con la
       lista viva rompe otro. (La primera mutación que probé no rompía nada porque no era fiel al
       bug — le faltaba la dependencia del efecto; con la fiel sí rompe.)
-- [ ] **1.5.3** `useAutoApplyPagos`: idempotencia por mes al editar `dia_del_mes`, el
-      compare-and-swap, y que un insert fallido no deje avanzado `ultima_aplicacion`.
-- [ ] **1.5.4** Reparto de deuda de TC en insert / update / delete.
+- [x] **1.5.3** `useAutoApplyPagos`: **11 tests**. Un periodo como máximo por corrida (un pago con
+      ocho meses de atraso aplica uno), idempotencia por mes al editar `dia_del_mes`, el
+      compare-and-swap con el valor leído, que otra pestaña que ya avanzó el pago impida el insert,
+      que un insert fallido revierta `ultima_aplicacion`, que el gasto se feche en el vencimiento y
+      no hoy, y que en `StrictMode` (que invoca el efecto dos veces) inserte una sola vez.
+      **Verificados por mutación**: comparar por fecha en lugar de por mes rompe uno, y quitar la
+      reversión rompe otro.
+- [x] **1.5.4** Reparto de deuda de TC: **10 bloques de aserciones en SQL, contra un PostgreSQL
+      de verdad** (`supabase/tests/`, `npm run test:sql`). Un mock del cliente no sirve acá: lo que
+      hay que verificar es lo que hace el trigger. Cubren el cargo al ciclo abierto, el cierre
+      moviendo la deuda de bucket (con un solo ciclo abierto por tarjeta), el pago liquidando
+      primero el vencido, el sobrepago recortado sin dejar negativos, el DELETE revirtiendo el
+      reparto **guardado** y no un recálculo desde `cantidad`, el rechazo de una fila sin reparto
+      registrado, y que el escape hatch sea local a la transacción. **Verificado por mutación**:
+      revertir desde `cantidad` rompe el bloque del delete de un pago.
 - [ ] **1.5.5** Carreras de cambio de mes en `useTransacciones` y `BudgetPage`.
 - [x] **1.5.6** `SesionProvider`: una sola carga por slice, y que el error de un slice no tumbe los
       otros.
