@@ -44,13 +44,35 @@ de 3s, y ninguno lo limpia al desmontar — un `setState` sobre un componente de
 
 ## Tareas
 
-- [ ] **3.2.1** `Hoja` y `Dialogo`; migrar los 14 modales.
-- [ ] **3.2.2** `Campo`; migrar los formularios.
-- [ ] **3.2.3** `BotonConfirmar`; migrar los 9 sitios.
-- [ ] **3.2.4** `EstadoVacio` y `Aviso`; migrar los ~16 sitios.
-- [ ] **3.2.5** Tests de los primitivos: que `Campo` asocie label e input, que `BotonConfirmar`
-      necesite dos taps y se rinda solo, y que `Hoja` cierre con el scrim y con Escape.
+- [x] **3.2.1** `Hoja` y `Dialogo`; migrar los 14 modales.
+- [x] **3.2.2** `Campo`; migrar los formularios. Salieron 22 sitios, no 14: cuatro páginas
+      (`Categorias`, `Login`, `Setup`, `Proyecciones`) nunca habían pasado por `CLASE_INPUT` y
+      tenían sus propias ocho etiquetas sin `htmlFor`.
+- [x] **3.2.3** `BotonConfirmar`; migrar los 9 sitios.
+- [x] **3.2.4** `EstadoVacio` y `Aviso`; 8 estados vacíos y 31 avisos.
+- [x] **3.2.5** Tests de los primitivos: 27 casos en `Campo.test.tsx`, `BotonConfirmar.test.tsx`,
+      `Hoja.test.tsx` y `Aviso.test.tsx`. Verificados por mutación, uno por primitivo:
+      quitar el `clearTimeout` del desmonte, el `htmlFor` del label y el `role="alert"` del aviso
+      rompe 1, 5 y 2 casos respectivamente.
 - [ ] **3.2.6** Verificar con capturas que ninguna hoja cambió de forma.
+
+## Lo que la migración encontró
+
+No se buscaba nada de esto; salió al mover el código:
+
+| Defecto | Dónde |
+|---|---|
+| "Archivar tarjeta" sin confirmación: **un toque archivaba la TC** | `ModalTC` |
+| 14 controles con `placeholder` y sin etiqueta | las hojas de tarjetas e inversiones |
+| 8 `<label>` sin `htmlFor`, sin asociar a nada | `Categorias`, `Login`, `Setup`, `Proyecciones` |
+| 12 avisos de error sin `role="alert"` | 8 archivos |
+| `id` fijos (`inv-fecha`, `inv-fecha-update`): duplicados con dos instancias | `ModalInversion`, `ModalActualizarValor` |
+| Ninguna de las 14 hojas cerraba con Escape, ni tenía `role="dialog"` | todas |
+| Sin `autoComplete` en correo y contraseña | `LoginPage`, `SetupPage` |
+| `stopPropagation` no frena a los demás listeners del mismo nodo, así que dos capas se cerraban con un Escape | `useCerrarConEscape`, mientras se escribía |
+
+El último lo encontró el test, no la lectura del código: el comentario del hook afirmaba lo
+contrario de lo que hacía. Hace falta `stopImmediatePropagation`.
 
 ## Fuera de alcance
 
