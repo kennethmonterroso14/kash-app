@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { MESES, ahoraGT } from '../lib/constants'
+import { MESES } from '../lib/constants'
+import { useFechas } from './useFechas'
 import { esGastoComputable } from '../lib/finanzas'
 
 export interface ResumenMes {
@@ -11,6 +12,9 @@ export interface ResumenMes {
 }
 
 export function useResumen6Meses(userId: string | undefined) {
+  // Las fechas salen de la zona del usuario. Este hook se monta desde una
+  // página, o sea dentro del SesionProvider, así que puede leer el perfil.
+  const fechas = useFechas()
   const [data, setData] = useState<ResumenMes[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -19,8 +23,8 @@ export function useResumen6Meses(userId: string | undefined) {
     if (!userId) return
     let ignorar = false
 
-    // Ventana de los últimos 6 meses, anclada al calendario de Guatemala
-    const now = ahoraGT()
+    // Ventana de los últimos 6 meses, anclada al calendario del usuario.
+    const now = fechas.ahora()
     const keys: string[] = []
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -76,7 +80,9 @@ export function useResumen6Meses(userId: string | undefined) {
       })
 
     return () => { ignorar = true }
-  }, [userId])
+    // `fechas` es estable (useMemo por zona), así que esto se re-consulta
+    // solo si el usuario o su zona horaria cambian.
+  }, [userId, fechas])
 
   return { data, loading, error }
 }

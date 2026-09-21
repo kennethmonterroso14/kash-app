@@ -7,8 +7,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { proyectarPatrimonio, formatQ, toCentavos } from '../lib/finanzas'
+import Aviso from '../components/Aviso'
+import { proyectarPatrimonio, toCentavos } from '../lib/finanzas'
+import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
+import Campo from '../components/Campo'
 import { colores } from '../lib/tokens'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -58,15 +61,17 @@ function growthPct(current: number, projected: number): number {
 interface TooltipProps {
   active?: boolean
   payload?: { value: number; payload: ChartPoint }[]
+  /** Recharts clona el elemento y conserva las props propias. */
+  fmt?: (centavos: number) => string
 }
 
-function CustomTooltip({ active, payload }: TooltipProps) {
-  if (!active || !payload || payload.length === 0) return null
+function CustomTooltip({ active, payload, fmt }: TooltipProps) {
+  if (!active || !payload || payload.length === 0 || !fmt) return null
   const point = payload[0].payload
   return (
-    <div className="bg-surface border border-canto rounded-xl px-3 py-2 text-sm shadow-lg">
+    <div className="vidrio-panel rounded-control px-3 py-2 text-sm">
       <p className="text-textDim text-xs mb-0.5">{point.fechaDisplay}</p>
-      <p className="text-success font-semibold">{formatQ(Math.round(point.patrimonio))}</p>
+      <p className="text-success font-semibold">{fmt(Math.round(point.patrimonio))}</p>
     </div>
   )
 }
@@ -76,6 +81,7 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 export default function ProyeccionesPage() {
   const gradientId = useId()
   const { totalPatrimonio, cargando, error: errores } = useSesion()
+  const fmt = useMoneda()
   const loading = cargando.cuentas
   const cuentasError = errores.cuentas
 
@@ -90,7 +96,7 @@ export default function ProyeccionesPage() {
   const puntos = useMemo(() => {
     if (loading) return []
     // Number(e.target.value) puede devolver Infinity ("1e999"): toCentavos lo
-    // deja pasar y formatQ lanza despues durante el render, dejando la app en
+    // deja pasar y el formateador lanza despues durante el render, dejando la app en
     // blanco (no hay ErrorBoundary). Sanear antes de convertir.
     const ahorroQ = Number.isFinite(ahorroMensualQ) ? Math.max(0, ahorroMensualQ) : 0
     const pctSeguro = Number.isFinite(rendimientoPct) ? rendimientoPct : 0
@@ -146,62 +152,41 @@ export default function ProyeccionesPage() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Proyecciones</h1>
           <p className="text-textDim text-sm mt-1">
             Patrimonio actual:{' '}
             {loading
               ? <span className="animate-pulse">cargando…</span>
               : cuentasError
                 ? <span className="text-danger">no disponible</span>
-                : <span className="text-text font-semibold">{formatQ(totalPatrimonio)}</span>
+                : <span className="text-text font-semibold">{fmt(totalPatrimonio)}</span>
             }
           </p>
           {cuentasError && (
-            <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-3 mt-3">
+            <Aviso clase="mt-3">
               No se pudieron cargar tus cuentas: {cuentasError}. La proyección parte de Q0.00.
-            </p>
+            </Aviso>
           )}
         </div>
 
         {/* Inputs */}
         <div className="bg-surface rounded-2xl p-4 space-y-4">
 
-          {/* Ahorro mensual */}
-          <div>
-            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
-              Ahorro mensual (Q)
-            </label>
-            <input
-              type="number"
-              min={0}
-              step={100}
-              value={ahorroMensualQ}
-              onChange={e => setAhorroMensualQ(Number(e.target.value))}
-              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
-            />
-          </div>
+          <Campo
+            etiqueta="Ahorro mensual (Q)" tipo="number" min={0} step={100}
+            value={ahorroMensualQ} onChange={e => setAhorroMensualQ(Number(e.target.value))}
+            clase="font-mono"
+          />
 
-          {/* Rendimiento anual */}
-          <div>
-            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
-              Rendimiento anual (%)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={0.5}
-              value={rendimientoPct}
-              onChange={e => setRendimientoPct(Number(e.target.value))}
-              className="w-full bg-bg border border-canto rounded-xl px-3 py-2.5 text-text text-sm focus:outline-none focus:border-accent/60 transition-colors"
-            />
-          </div>
+          <Campo
+            etiqueta="Rendimiento anual (%)" tipo="number" min={0} max={100} step={0.5}
+            value={rendimientoPct} onChange={e => setRendimientoPct(Number(e.target.value))}
+            clase="font-mono"
+          />
 
-          {/* Horizonte segmented control */}
+          {/* El horizonte es un riel de botones, no un control de formulario:
+              el <p> no es un <label> porque no hay a qué apuntar. */}
           <div>
-            <label className="text-xs text-textDim uppercase tracking-wider mb-1.5 block">
-              Horizonte
-            </label>
+            <p className="text-textDim text-xs mb-1 tracking-micro">Horizonte</p>
             <div className="flex bg-bg rounded-xl p-1 gap-1">
               {HORIZONTE_OPTIONS.map((opt, i) => (
                 <button
@@ -247,7 +232,7 @@ export default function ProyeccionesPage() {
                   tickLine={false}
                   width={54}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip fmt={fmt} />} />
                 <Area
                   type="monotone"
                   dataKey="patrimonio"
@@ -277,7 +262,7 @@ export default function ProyeccionesPage() {
                 <div key={m.label} className="bg-surface rounded-2xl p-4 flex flex-col gap-1">
                   <span className="text-xs text-textDim">{m.label}</span>
                   <span className="text-sm font-bold text-text leading-tight">
-                    {formatQ(m.patrimonio)}
+                    {fmt(m.patrimonio)}
                   </span>
                   <span className={`text-xs font-semibold ${m.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                     {m.growth >= 0 ? '+' : ''}{m.growth}%

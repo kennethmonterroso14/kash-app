@@ -1,3 +1,4 @@
+import BotonConfirmar from '../../components/BotonConfirmar'
 import type { Transaccion } from '../../hooks/useTransacciones'
 import { COLOR_CATEGORIA_FALLBACK, MESES } from '../../lib/constants'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -7,8 +8,6 @@ interface Props {
   color?: string
   /** Un movimiento de TC no se puede editar; se corrige borrando y re-registrando. */
   editable: boolean
-  /** El id con borrado pendiente de confirmar, para el patrón de 2 taps. */
-  pendienteBorrar: string | null
   onEditar: () => void
   onBorrar: () => void
 }
@@ -26,9 +25,8 @@ const fechaCorta = (fecha: string): string => {
   return `${Number(dia)} ${MESES[Number(mes) - 1].slice(0, 3).toLowerCase()}`
 }
 
-export default function FilaTxn({ txn, color, editable, pendienteBorrar, onEditar, onBorrar }: Props) {
+export default function FilaTxn({ txn, color, editable, onEditar, onBorrar }: Props) {
   const fmt = useMoneda()
-  const porConfirmar = pendienteBorrar === txn.id
 
   return (
     <div className="bg-surface rounded-panel px-4 py-3 flex items-center gap-3">
@@ -53,16 +51,11 @@ export default function FilaTxn({ txn, color, editable, pendienteBorrar, onEdita
           ✎
         </button>
       )}
-      <button
-        type="button"
-        onClick={onBorrar}
-        aria-label={porConfirmar ? 'Confirmar eliminación' : `Eliminar ${txn.descripcion}`}
-        className={`presionable text-xs px-2 py-1 rounded-chip flex-shrink-0 ${
-          porConfirmar ? 'bg-danger text-text' : 'text-textDim hover:text-danger'
-        }`}
-      >
-        {porConfirmar ? 'Confirmar' : '×'}
-      </button>
+      <BotonConfirmar
+        accion={`Eliminar ${txn.descripcion}`}
+        etiqueta="×"
+        onConfirmar={onBorrar}
+      />
     </div>
   )
 }

@@ -104,27 +104,110 @@ del roadmap.
       `!showForm && !editingTxn`) queda separado: cada modal tiene el suyo y la página guarda el de
       la lista. Cinco defectos encontrados de paso, ver el commit — entre ellos que **la columna de
       montos del CSV salía como texto** y que la lista no leía el `error` del hook.
-- [ ] **1.4.3** `InversionesPage` (686)
-- [ ] **1.4.4** `BudgetPage` (612)
-- [ ] **1.4.5** `DashboardPage` (436)
-- [ ] **1.4.6** `MetasPage` (368) y `PagosRecurrentesPage` (367)
-- [ ] **1.4.7** Barrido final: grep de `formatQ(` y `hoyGT(` sin llamadas fuera de los alias, y
-      retirar los alias.
+- [x] **1.4.3** `InversionesPage`: 687 → **139**, en seis piezas más `tipoCambio.ts` con 5 tests.
+      `./inversiones/{ResumenPortafolio,InversionTile,ModalInversion,ModalActualizarValor,ModalTipoCambio}`.
+      "Nueva" y "Editar" eran otra vez el mismo formulario copiado; la única diferencia real es que
+      la moneda se elige al crear y es de solo lectura al editar. Tres defectos: los montos USD se
+      armaban a mano y **perdían el separador de miles** (`$3187.50` en lugar de `$3,187.50`),
+      archivar usaba `window.confirm` contra la convención del repo, y el color de la gráfica era
+      un hex suelto. El chequeo de "tipo de cambio viejo" sale a una función pura con tests, y el
+      reloj se lee una sola vez en el inicializador del estado (leerlo en render es impuro).
+- [x] **1.4.4** `BudgetPage`: 611 → **170**. Acá el problema de fondo no era el largo: `presupuestos`
+      era **la única tabla sin hook**, así que ~250 líneas de acceso a datos vivían mezcladas con el
+      JSX. Sale `src/hooks/usePresupuestos.ts` con todo el estado delicado (etiquetado por mes, el
+      latch de la copia, el banner) y la página lo recibe ya filtrado por el mes visible: de cinco
+      estados etiquetados a cero. Más `./presupuesto/{TarjetaPresupuesto,ModalPresupuesto}` y
+      `SelectorMes` movido a `components/` porque ya lo usan dos páginas. Tres defectos: el % usaba
+      `text-yellow-400` (color crudo) mientras la barra usaba `colores.warning` — dos amarillos
+      distintos; un fallo al cargar los movimientos dejaba las barras en Q0.00 gastado sin avisar; y
+      "Reintentar" recargaba la app entera en lugar de repetir la consulta.
+- [x] **1.4.5** `DashboardPage`: 436 → **104**, en ocho piezas (la mayor, 85).
+      `./dashboard/{Monto,TarjetaPatrimonio,TarjetaDisponibleReal,TarjetasTC,TarjetaPatrimonioNeto,StatsMes,GraficaCategorias,Grafica6Meses}`.
+      Tres defectos: las barras de los 6 meses tenían el verde y el rojo **viejos** como hex sueltos
+      (`#4ade80`/`#f87171`), así que eran los dos únicos colores de la app que no cambiaron con la
+      paleta; el tooltip de barras armaba la moneda a mano con `Q` cableada; y la página no leía el
+      `error` de `useTransacciones`, así que un fetch fallido pintaba todas las cifras del mes en
+      Q0.00. Los dos tooltips se movieron a nivel de módulo (un componente recreado en cada render
+      rompe la reconciliación — `react-hooks/static-components`) con el formateador por prop.
+- [x] **1.4.6** `MetasPage`: 368 → **92** (`metas_ahorro` era otra tabla sin hook → `useMetas`,
+      más `./metas/{TarjetaMeta,ModalMeta}`). `PagosRecurrentesPage`: 363 → **120**
+      (`./pagos/{FilaPago,ModalPagoFijo}`, con alta y edición unificadas). Defectos: ninguna de las
+      dos leía el `error` de su consulta, la fecha del estimador de metas usaba `es-GT` cableado en
+      lugar del locale del perfil, el estado de un pago fijo se calculaba con el calendario del
+      navegador y no con la zona del usuario, y la categoría por default de un pago fijo era el
+      string `'Suscripciones'` — quien la hubiera borrado quedaba con un select sin opción válida.
+- [ ] **1.4.6b** `CuentasPage` (310) — quedó como la única sobre 300.
+- [x] **1.4.7** Barrido final hecho: **los cuatro alias retirados** (`formatQ`, `hoyGT`, `ahoraGT`,
+      `mesActual`) y cero sitios que asuman Guatemala o quetzales. Tres cosas que salieron en el
+      camino y no eran mecánicas:
+      - `useAutoApplyPagos` corría **fuera del provider** (desde `App.tsx`), así que no tenía cómo
+        leer la zona del perfil — y de la zona depende qué mes es el actual, o sea qué vencimiento
+        cuenta como vencido. Se movió adentro con `<AutoAplicarPagos>`, que además lo corre después
+        del gate de onboarding (un usuario sin fila en `profiles` tampoco tiene pagos fijos).
+      - `useTarjetas` **no puede** usar `useFechas()`: lo monta el provider, así que consumiría el
+        contexto que él mismo provee. La zona le entra por parámetro.
+      - `calcDisponibleReal` armaba una de sus tres advertencias con `formatQ`, o sea con la moneda
+        cableada dentro de una función pura. Ahora recibe las opciones de moneda; sigue siendo pura
+        porque son datos, no contexto.
 
 ## Task 1.5 — Tests de hooks
 
 - [x] **1.5.1** Agregar `@testing-library/react` y un `setup` de Vitest para React.
-- [ ] **1.5.2** Carry-over de presupuestos: no resucita lo borrado, no escribe meses futuros, el
-      banner y "Deshacer" son alcanzables.
-- [ ] **1.5.3** `useAutoApplyPagos`: idempotencia por mes al editar `dia_del_mes`, el
-      compare-and-swap, y que un insert fallido no deje avanzado `ultima_aplicacion`.
-- [ ] **1.5.4** Reparto de deuda de TC en insert / update / delete.
+- [x] **1.5.2** Carry-over de presupuestos: **10 tests** sobre `usePresupuestos`. Cubren que no
+      resucite lo borrado, que no materialice meses futuros, que el banner y "Deshacer" sean
+      alcanzables, que deshacer no re-dispare la copia, que un fetch fallido no cuente como mes
+      vacío, y que las tres escrituras vayan acotadas por `user_id` y `mes`. **Verificados por
+      mutación**: quitar el guard de mes futuro rompe un test, y volver a decidir la copia con la
+      lista viva rompe otro. (La primera mutación que probé no rompía nada porque no era fiel al
+      bug — le faltaba la dependencia del efecto; con la fiel sí rompe.)
+- [x] **1.5.3** `useAutoApplyPagos`: **11 tests**. Un periodo como máximo por corrida (un pago con
+      ocho meses de atraso aplica uno), idempotencia por mes al editar `dia_del_mes`, el
+      compare-and-swap con el valor leído, que otra pestaña que ya avanzó el pago impida el insert,
+      que un insert fallido revierta `ultima_aplicacion`, que el gasto se feche en el vencimiento y
+      no hoy, y que en `StrictMode` (que invoca el efecto dos veces) inserte una sola vez.
+      **Verificados por mutación**: comparar por fecha en lugar de por mes rompe uno, y quitar la
+      reversión rompe otro.
+- [x] **1.5.4** Reparto de deuda de TC: **10 bloques de aserciones en SQL, contra un PostgreSQL
+      de verdad** (`supabase/tests/`, `npm run test:sql`). Un mock del cliente no sirve acá: lo que
+      hay que verificar es lo que hace el trigger. Cubren el cargo al ciclo abierto, el cierre
+      moviendo la deuda de bucket (con un solo ciclo abierto por tarjeta), el pago liquidando
+      primero el vencido, el sobrepago recortado sin dejar negativos, el DELETE revirtiendo el
+      reparto **guardado** y no un recálculo desde `cantidad`, el rechazo de una fila sin reparto
+      registrado, y que el escape hatch sea local a la transacción. **Verificado por mutación**:
+      revertir desde `cantidad` rompe el bloque del delete de un pago.
 - [ ] **1.5.5** Carreras de cambio de mes en `useTransacciones` y `BudgetPage`.
 - [x] **1.5.6** `SesionProvider`: una sola carga por slice, y que el error de un slice no tumbe los
       otros.
 
-## Cierre de fase
+## Cierre de fase · ✅ FASE 1 TERMINADA
 
-- [ ] Verificar los criterios de terminado del spec.
-- [ ] Actualizar `CLAUDE.md` (la arquitectura cambia: ya no es "un hook por tabla instanciado por
-      página") y marcar en `RESTRUCTURE.md` lo que sale del inventario.
+- [x] **Criterios de terminado del spec, verificados uno por uno:**
+
+  | Criterio | Estado |
+  |---|---|
+  | Una consulta de perfil, cuentas, categorías y tarjetas — no seis | ✅ con un test que cuenta las consultas por tabla |
+  | Ninguna página recibe el objeto `User` | ✅ salvo `SetupPage`, que corre antes del provider |
+  | Ningún `window.location.reload()` como refetch | ✅ quedan los dos de pantallas de error, que el spec deja |
+  | Ninguna página sobre 300 líneas | ✅ la mayor es `ProyeccionesPage` con 294 |
+  | `formatMoneda` con tests de al menos tres monedas | ✅ cinco, y `formatQ` ya no existe |
+  | Tests de hooks para los cuatro escenarios | ✅ los cuatro, y verificados por mutación |
+  | `npm test` / `lint` / `tsc` en verde | ✅ 122 tests, 0 problemas de lint, `tsc` limpio |
+
+- [x] `CLAUDE.md` actualizado: la arquitectura ya no es "un hook por tabla instanciado por página",
+      así que la capa 3 se reescribió con el provider, qué tablas quedaron fuera del contexto y por
+      qué, la restricción de que un hook que monta el provider no puede llamar `useSesion()`, el
+      conteo de tests y `npm run test:sql`.
+- [x] `RESTRUCTURE.md`: salen del inventario **3.1, 3.2, 3.3, 3.4 y 3.6**. Siguen abiertos 3.5
+      (el auto-apply no es atómico contra dos dispositivos: eso necesita un RPC transaccional) y
+      3.7 (`calcPagoDeuda` es un export muerto).
+
+### Lo que la fase NO resolvió, y conviene no perder de vista
+
+- **Nadie ha visto las páginas corriendo con datos reales.** Se verificaron tipos, lint, 122 tests,
+  el SQL contra Postgres y capturas en Chromium con datos de prueba. No puedo autenticarme contra
+  Supabase desde el entorno, así que la verificación con datos propios sigue pendiente.
+- **Tres cosas solo se comprueban en un teléfono**: el costo en frames de `backdrop-filter` dentro
+  del WebView de Capacitor, las safe areas, y que los inputs ya no hagan zoom en iOS.
+- **No hay test de render de una página completa.** Los hooks y la matemática sí están cubiertos.
+- Los pendientes del mundo real (el Q6.50 de "Ysi Visa" y la protección de contraseñas filtradas)
+  están en el roadmap, no acá.

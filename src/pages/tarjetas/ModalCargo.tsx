@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import Aviso from '../../components/Aviso'
+import Campo from '../../components/Campo'
+import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
@@ -56,70 +58,60 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 scrim flex items-end z-50">
-      <div className="vidrio-hoja w-full rounded-t-hoja p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] max-h-[92dvh] overflow-y-auto overscroll-contain">
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-text font-semibold tracking-titulo">Cargo — {tc.nombre}</h2>
-          <button onClick={onCerrar} className="presionable text-textDim hover:text-text text-lg">✕</button>
+    <Hoja titulo={`Cargo — ${tc.nombre}`} onCerrar={onCerrar}>
+      {disponibleTras !== null && (
+        <div className="bg-bg rounded-control p-3">
+          <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible tras este cargo</p>
+          <p className={`font-mono font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
+            {fmt(Math.max(0, disponibleTras))}
+          </p>
+          {disponibleTras < 0 && <p className="text-danger text-xs mt-1">⚠ Excede el disponible</p>}
+          {disponibleTras >= 0 &&
+            (tc.deuda_actual + toCentavos(montoNum)) / tc.limite_credito >= 0.9 && (
+            <p className="text-warning text-xs mt-1">⚠ Superarás el 90% de uso de la TC</p>
+          )}
         </div>
+      )}
 
-        {disponibleTras !== null && (
-          <div className="bg-bg rounded-control p-3 mb-4">
-            <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible tras este cargo</p>
-            <p className={`font-mono font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
-              {fmt(Math.max(0, disponibleTras))}
-            </p>
-            {disponibleTras < 0 && <p className="text-danger text-xs mt-1">⚠ Excede el disponible</p>}
-            {disponibleTras >= 0 &&
-              (tc.deuda_actual + toCentavos(montoNum)) / tc.limite_credito >= 0.9 && (
-              <p className="text-warning text-xs mt-1">⚠ Superarás el 90% de uso de la TC</p>
-            )}
+      <div className="flex flex-col gap-3">
+        <Campo
+          etiqueta="Monto (Q)" placeholder="0.00" inputMode="decimal"
+          value={monto} onChange={e => setMonto(e.target.value)}
+          clase="font-mono"
+        />
+        <Campo
+          etiqueta="Descripción" placeholder="¿En qué?"
+          value={desc} onChange={e => setDesc(e.target.value)}
+        />
+        <div>
+          <p className="text-textDim text-xs mb-2 tracking-micro">Categoría</p>
+          <div className="flex flex-wrap gap-1.5">
+            {categoriasGasto.map(c => (
+              <button
+                key={c}
+                onClick={() => setCat(c)}
+                className={`presionable px-3 py-1.5 rounded-chip text-xs ${
+                  cat === c ? 'bg-accent text-bg font-semibold' : 'bg-bg text-textDim hover:text-text'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
           </div>
-        )}
-
-        <div className="flex flex-col gap-3">
-          <input
-            placeholder="Monto (Q)"
-            value={monto} onChange={e => setMonto(e.target.value)}
-            inputMode="decimal"
-            className={CLASE_INPUT}
-          />
-          <input
-            placeholder="Descripción"
-            value={desc} onChange={e => setDesc(e.target.value)}
-            className={CLASE_INPUT}
-          />
-          <div>
-            <p className="text-textDim text-xs mb-2 tracking-micro">Categoría</p>
-            <div className="flex flex-wrap gap-1.5">
-              {categoriasGasto.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setCat(c)}
-                  className={`presionable px-3 py-1.5 rounded-chip text-xs ${
-                    cat === c ? 'bg-accent text-bg font-semibold' : 'bg-bg text-textDim hover:text-text'
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-          <input
-            type="date"
-            value={fecha} onChange={e => setFecha(e.target.value)}
-            className={CLASE_INPUT}
-          />
-          {err && <p className="text-danger text-sm">{err}</p>}
-          <button
-            onClick={registrar}
-            disabled={guardando}
-            className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50"
-          >
-            {guardando ? 'Registrando...' : 'Registrar cargo'}
-          </button>
         </div>
+        <Campo
+          etiqueta="Fecha" tipo="date"
+          value={fecha} onChange={e => setFecha(e.target.value)}
+        />
+        {err && <Aviso>{err}</Aviso>}
+        <button
+          onClick={registrar}
+          disabled={guardando}
+          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50"
+        >
+          {guardando ? 'Registrando...' : 'Registrar cargo'}
+        </button>
       </div>
-    </div>
+    </Hoja>
   )
 }

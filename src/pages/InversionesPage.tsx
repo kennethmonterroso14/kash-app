@@ -1,23 +1,22 @@
 // src/pages/InversionesPage.tsx
 import { useState } from 'react'
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip as RechartTooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { useInversiones, type Inversion } from '../hooks/useInversiones'
-import {
-  formatQ, toCentavos, usdToGTQ, calcRendimientoAnualizado,
-} from '../lib/finanzas'
-import { TIPOS_INVERSION, hoyGT } from '../lib/constants'
 import { useSesion } from '../context/sesion'
-import { colores } from '../lib/tokens'
+import { useMoneda } from '../hooks/useMoneda'
+import ResumenPortafolio from './inversiones/ResumenPortafolio'
+import InversionTile from './inversiones/InversionTile'
+import ModalInversion from './inversiones/ModalInversion'
+import ModalActualizarValor from './inversiones/ModalActualizarValor'
+import ModalTipoCambio from './inversiones/ModalTipoCambio'
+import { estaDesactualizado } from './inversiones/tipoCambio'
 
-type Pantalla = 'lista' | 'nueva' | 'actualizar_valor' | 'tipo_cambio' | 'editar'
-
-const INFLACION_GT = 4   // % anual de referencia para Guatemala
+type Pantalla = 'lista' | 'nueva' | 'editar' | 'actualizar_valor' | 'tipo_cambio'
 
 export default function InversionesPage() {
   const { userId } = useSesion()
+  const fmt = useMoneda()
   const {
     inversiones, resumen, evolucionPortafolio,
     tipoCambioUSD, tipoCambioFecha, tieneUSD,
@@ -26,176 +25,22 @@ export default function InversionesPage() {
     actualizarInversion, fetchTipoCambioDesdeAPI,
   } = useInversiones(userId)
 
-  // ── Navegación ──────────────────────────────────────────
   const [pantalla, setPantalla] = useState<Pantalla>('lista')
-  const [selId, setSelId]       = useState<string | null>(null)
-  const selInv = inversiones.find(i => i.id === selId) ?? null
+  const [selId, setSelId] = useState<string | null>(null)
+  const sel: Inversion | null = inversiones.find(i => i.id === selId) ?? null
 
-  // ── Form: nueva inversión ────────────────────────────────
-  const [nombre, setNombre]           = useState('')
-  const [plataforma, setPlataforma]   = useState('')
-  const [tipo, setTipo]               = useState<string>(TIPOS_INVERSION[0].value)
-  const [capital, setCapital]         = useState('')
-  const [moneda, setMoneda]           = useState<'GTQ' | 'USD'>('GTQ')
-  const [fechaInicio, setFechaInicio] = useState(hoyGT())
-  const [notas, setNotas]             = useState('')
-
-  // ── Form: actualizar valor ───────────────────────────────
-  const [nuevoValor, setNuevoValor]   = useState('')
-  const [fechaUpdate, setFechaUpdate] = useState(hoyGT())
-
-  // ── Form: tipo de cambio ─────────────────────────────────
-  const [nuevoCambio, setNuevoCambio] = useState('')
-
-  // ── Estado general ───────────────────────────────────────
-  const [saving, setSaving]   = useState(false)
-  const [errForm, setErrForm] = useState<string | null>(null)
-  const [fetchingRate, setFetchingRate] = useState(false)
-
-  // Tipo de cambio desactualizado si tiene 7+ días sin actualizar.
-  // Sin fecha registrada nunca se verificó (o no se pudo leer el perfil): se
-  // marca igual, para no presentar el default de Q7.75 como vigente.
-  const tipoCambioDesactualizado = (() => {
-    if (!tipoCambioFecha) return true
-    const dias = Math.floor((Date.now() - new Date(tipoCambioFecha).getTime()) / (1000 * 60 * 60 * 24))
-    return dias >= 7
-  })()
-
-  // ── Helpers de conversión ────────────────────────────────
-  const valorEnGTQ   = (inv: Inversion) =>
-    inv.moneda === 'USD' ? usdToGTQ(inv.valor_actual,    tipoCambioUSD) : inv.valor_actual
-  const capitalEnGTQ = (inv: Inversion) =>
-    inv.moneda === 'USD' ? usdToGTQ(inv.monto_invertido, tipoCambioUSD) : inv.monto_invertido
-
-  // ── Helpers de apertura de pantallas ────────────────────
-  const abrirActualizar = (id: string) => {
-    const inv = inversiones.find(i => i.id === id)
-    if (!inv) return
-    setNuevoValor(String((inv.valor_actual / 100).toFixed(2)))
-    setFechaUpdate(hoyGT())
-    setErrForm(null)
-    setSelId(id)
-    setPantalla('actualizar_valor')
+  const abrir = (p: Pantalla, id?: string) => {
+    if (id) setSelId(id)
+    setPantalla(p)
   }
+  const volver = () => setPantalla('lista')
 
-  const abrirNueva = () => {
-    setNombre(''); setPlataforma(''); setTipo(TIPOS_INVERSION[0].value)
-    setCapital(''); setMoneda('GTQ'); setFechaInicio(hoyGT()); setNotas('')
-    setErrForm(null)
-    setPantalla('nueva')
-  }
-
-  const abrirEditar = (inv: Inversion) => {
-    setNombre(inv.nombre)
-    setPlataforma(inv.plataforma ?? '')
-    setTipo(inv.tipo)
-    setCapital(String((inv.monto_invertido / 100).toFixed(2)))
-    // La moneda no se edita: el capital, el valor y el historial están
-    // guardados en la moneda original (ver modal "Editar inversión").
-    setFechaInicio(inv.fecha_inicio)
-    setNotas(inv.notas ?? '')
-    setErrForm(null)
-    setSelId(inv.id)
-    setPantalla('editar')
-  }
-
-  // ── Handlers ────────────────────────────────────────────
-  const handleNueva = async () => {
-    setErrForm(null)
-    const cap = parseFloat(capital)
-    if (!nombre.trim())         return setErrForm('El nombre es requerido')
-    if (isNaN(cap) || cap <= 0) return setErrForm('El capital debe ser mayor a 0')
-    try {
-      setSaving(true)
-      await agregarInversion({
-        nombre:          nombre.trim(),
-        plataforma:      plataforma.trim() || undefined,
-        tipo,
-        monto_invertido: toCentavos(cap),
-        moneda,
-        fecha_inicio:    fechaInicio,
-        notas:           notas.trim() || undefined,
-      })
-      setPantalla('lista')
-    } catch (e: unknown) {
-      setErrForm(e instanceof Error ? e.message : 'Error al guardar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleActualizar = async () => {
-    if (!selId) return
-    setErrForm(null)
-    const val = parseFloat(nuevoValor)
-    if (isNaN(val) || val < 0) return setErrForm('El valor debe ser 0 o mayor')
-    if (fechaUpdate > hoyGT())
-      return setErrForm('La fecha no puede ser futura')
-    if (selInv && fechaUpdate < selInv.fecha_inicio)
-      return setErrForm('La fecha no puede ser anterior al inicio de la inversión')
-    try {
-      setSaving(true)
-      await actualizarValor(selId, toCentavos(val), fechaUpdate)
-      setPantalla('lista')
-    } catch (e: unknown) {
-      setErrForm(e instanceof Error ? e.message : 'Error al actualizar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleArchivar = async () => {
-    if (!selId || !selInv) return
-    if (!confirm(`¿Archivar "${selInv.nombre}"? No se eliminará el historial.`)) return
-    try {
-      setSaving(true)
-      await archivarInversion(selId)
-      setPantalla('lista')
-    } catch (e: unknown) {
-      setErrForm(e instanceof Error ? e.message : 'Error al archivar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleTipoCambio = async () => {
-    setErrForm(null)
-    const cambio = parseFloat(nuevoCambio)
-    if (isNaN(cambio) || cambio <= 0) return setErrForm('Ingresa un tipo de cambio válido (ej: 7.75)')
-    try {
-      setSaving(true)
-      await actualizarTipoCambio(toCentavos(cambio))   // Q7.75 → 775 centavos
-      setPantalla('lista')
-    } catch (e: unknown) {
-      setErrForm(e instanceof Error ? e.message : 'Error al actualizar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleEditar = async () => {
-    if (!selId) return
-    setErrForm(null)
-    const cap = parseFloat(capital)
-    if (!nombre.trim())          return setErrForm('El nombre es requerido')
-    if (isNaN(cap) || cap <= 0)  return setErrForm('El capital debe ser mayor a 0')
-    try {
-      setSaving(true)
-      await actualizarInversion(selId, {
-        nombre:          nombre.trim(),
-        plataforma:      plataforma.trim() || undefined,
-        tipo,
-        monto_invertido: toCentavos(cap),
-        fecha_inicio:    fechaInicio,
-        notas:           notas.trim() || undefined,
-      })
-      setPantalla('lista')
-    } catch (e: unknown) {
-      setErrForm(e instanceof Error ? e.message : 'Error al guardar')
-    } finally {
-      setSaving(false)
-    }
-  }
+  // El reloj se lee UNA vez, en el inicializador del estado, y no en cada
+  // render: leerlo en el cuerpo del componente lo vuelve impuro (lo marca
+  // react-hooks/purity). Para un aviso de "hace 7+ días" alcanza con la marca
+  // del montaje.
+  const [montadoEn] = useState(() => Date.now())
+  const desactualizado = estaDesactualizado(tipoCambioFecha, montadoEn)
 
   if (loading) {
     return (
@@ -206,38 +51,34 @@ export default function InversionesPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-text font-display font-bold text-xl">Inversiones</h1>
-          {resumen.ganancia_total !== 0 && (
-            <p className={`text-xs mt-0.5 font-mono ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
-              {resumen.ganancia_total >= 0 ? '+' : ''}{formatQ(resumen.ganancia_total)} total
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-6">
+      {/* Sin <h1>: el riel de pestañas de la sección ya dice "Inversiones", y
+          repetirlo le hace anunciar dos veces lo mismo al lector de pantalla. */}
+      <div className="flex items-center justify-between mb-6 gap-2">
+        <div className="min-w-0">
+          {resumen.ganancia_total !== 0 ? (
+            <p className={`text-sm font-mono font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
+              {resumen.ganancia_total >= 0 ? '+' : ''}{fmt(resumen.ganancia_total)}
+              <span className="text-textDim font-sans text-xs font-normal"> de ganancia</span>
             </p>
-          )}
+          ) : <span />}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-shrink-0">
           {tieneUSD && (
             <button
-              onClick={() => {
-                setNuevoCambio(String((tipoCambioUSD / 100).toFixed(2)))
-                setErrForm(null)
-                setPantalla('tipo_cambio')
-              }}
-              className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                tipoCambioDesactualizado
+              onClick={() => abrir('tipo_cambio')}
+              className={`presionable text-xs px-3 py-1.5 rounded-chip whitespace-nowrap ${
+                desactualizado
                   ? 'bg-warning/10 text-warning border border-warning/30'
                   : 'bg-surface2 text-textDim hover:text-text'
               }`}
             >
-              {tipoCambioDesactualizado ? '⚠ ' : ''}Q{(tipoCambioUSD / 100).toFixed(2)}/USD
+              {desactualizado ? '⚠ ' : ''}Q{(tipoCambioUSD / 100).toFixed(2)}/USD
             </button>
           )}
           <button
-            onClick={abrirNueva}
-            className="bg-accent text-bg px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+            onClick={() => abrir('nueva')}
+            className="presionable bg-accent text-bg px-4 py-2 rounded-control text-sm font-semibold"
           >
             + Nueva
           </button>
@@ -245,443 +86,58 @@ export default function InversionesPage() {
       </div>
 
       {error && (
-        <p className="text-danger text-sm bg-danger/10 rounded-xl p-3 mb-4">{error}</p>
+        <Aviso clase="mb-4">{error}</Aviso>
       )}
 
-      {/* ── Resumen portafolio ──────────────────────────── */}
       {resumen.capital_total > 0 && (
-        <div className="bg-surface rounded-2xl p-4 mb-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-textDim text-xs mb-0.5">Capital invertido</p>
-              <p className="text-text font-mono">{formatQ(resumen.capital_total)}</p>
-            </div>
-            <div>
-              <p className="text-textDim text-xs mb-0.5">Valor actual</p>
-              <p className="text-text font-mono font-bold">{formatQ(resumen.valor_total)}</p>
-            </div>
-            <div>
-              <p className="text-textDim text-xs mb-0.5">Ganancia total</p>
-              <p className={`font-mono font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
-                {resumen.ganancia_total >= 0 ? '+' : ''}{formatQ(resumen.ganancia_total)}
-                <span className="text-xs ml-1">
-                  ({resumen.ganancia_pct >= 0 ? '+' : ''}{resumen.ganancia_pct.toFixed(1)}%)
-                </span>
-              </p>
-            </div>
-            <div>
-              <p className="text-textDim text-xs mb-0.5">Rendimiento anual</p>
-              <p className={`font-mono font-semibold ${resumen.rendimiento_anualizado >= INFLACION_GT ? 'text-success' : 'text-warning'}`}>
-                {resumen.rendimiento_anualizado >= 0 ? '+' : ''}
-                {resumen.rendimiento_anualizado.toFixed(1)}% / año
-              </p>
-            </div>
-          </div>
-
-          {/* Gráfica de evolución — solo si hay 2+ puntos */}
-          {evolucionPortafolio.length > 1 && (
-            <div className="-mx-1">
-              <p className="text-textDim text-xs mb-1.5 px-1">Evolución del portafolio</p>
-              <ResponsiveContainer width="100%" height={90}>
-                <LineChart data={evolucionPortafolio}>
-                  <XAxis dataKey="fecha" hide />
-                  <YAxis hide domain={['auto', 'auto']} />
-                  <RechartTooltip
-                    formatter={(v: unknown) => [formatQ(v as number), 'Valor']}
-                    labelFormatter={(l: unknown) => l as string}
-                    contentStyle={{
-                      background: colores.surface, border: 'none',
-                      borderRadius: 8, fontSize: 12,
-                    }}
-                    labelStyle={{ color: colores.textDim }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="valor_total"
-                    stroke="#7c6af7"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: colores.accent }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
+        <ResumenPortafolio resumen={resumen} evolucion={evolucionPortafolio} />
       )}
 
-      {/* ── Empty state (solo si la carga fue exitosa) ──── */}
+      {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {inversiones.length === 0 && !error && (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">📈</p>
-          <p className="text-textDim text-sm">No tienes inversiones registradas</p>
-          <p className="text-textDim text-xs mt-1">Agrega tu primera inversión para empezar</p>
-        </div>
+        <EstadoVacio
+          icono="📈"
+          titulo="No tienes inversiones registradas"
+          pista="Agrega tu primera inversión para empezar"
+        />
       )}
 
-      {/* ── Lista de inversiones ─────────────────────────── */}
       <div className="flex flex-col gap-3">
-        {inversiones.map(inv => {
-          const rend           = inv.monto_invertido > 0
-            ? calcRendimientoAnualizado(inv.monto_invertido, inv.valor_actual, inv.fecha_inicio)
-            : 0
-          const gananciaNativa = inv.valor_actual - inv.monto_invertido
-          const gananciaGTQ    = valorEnGTQ(inv) - capitalEnGTQ(inv)
-          const superaInflacion = rend > INFLACION_GT
-
-          return (
-            <div key={inv.id} className="bg-surface rounded-2xl p-4 space-y-2.5">
-              {/* Cabecera */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-text font-semibold text-sm">{inv.nombre}</p>
-                  {inv.plataforma && <p className="text-textDim text-xs">{inv.plataforma}</p>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-textDim bg-surface2 px-2 py-0.5 rounded-full">{inv.tipo}</span>
-                  {inv.moneda === 'USD' && (
-                    <span className="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">USD</span>
-                  )}
-                  <button
-                    onClick={() => abrirEditar(inv)}
-                    className="text-textDim hover:text-text transition-colors text-sm ml-0.5"
-                    title="Editar inversión"
-                  >
-                    ✎
-                  </button>
-                </div>
-              </div>
-
-              {/* Métricas */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-textDim">Capital</p>
-                  <p className="text-text font-mono">
-                    {inv.moneda === 'USD'
-                      ? `$${(inv.monto_invertido / 100).toFixed(2)}`
-                      : formatQ(inv.monto_invertido)}
-                  </p>
-                  {inv.moneda === 'USD' && (
-                    <p className="text-textDim">≈ {formatQ(capitalEnGTQ(inv))}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-textDim">Valor actual</p>
-                  <p className="text-text font-mono font-bold">
-                    {inv.moneda === 'USD'
-                      ? `$${(inv.valor_actual / 100).toFixed(2)}`
-                      : formatQ(inv.valor_actual)}
-                  </p>
-                  {inv.moneda === 'USD' && (
-                    <p className="text-textDim">≈ {formatQ(valorEnGTQ(inv))}</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-textDim">Ganancia</p>
-                  <p className={`font-mono font-semibold ${gananciaNativa >= 0 ? 'text-success' : 'text-danger'}`}>
-                    {gananciaNativa >= 0 ? '+' : ''}
-                    {inv.moneda === 'USD'
-                      ? `$${(gananciaNativa / 100).toFixed(2)}`
-                      : formatQ(gananciaNativa)}
-                  </p>
-                  {inv.moneda === 'USD' && (
-                    <p className={`text-xs ${gananciaGTQ >= 0 ? 'text-success/70' : 'text-danger/70'}`}>
-                      ≈ {gananciaGTQ >= 0 ? '+' : ''}{formatQ(gananciaGTQ)}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-textDim">Anualizado</p>
-                  <p className={`font-mono font-semibold ${rend >= INFLACION_GT ? 'text-success' : 'text-warning'}`}>
-                    {rend >= 0 ? '+' : ''}{rend.toFixed(1)}% / año
-                  </p>
-                </div>
-              </div>
-
-              {/* Indicador inflación + botón */}
-              <div className="flex items-center justify-between pt-0.5">
-                <p className={`text-xs ${superaInflacion ? 'text-success' : 'text-warning'}`}>
-                  {superaInflacion ? '✅ Supera inflación GT (~4%)' : '⚠️ Por debajo de inflación'}
-                </p>
-                <button
-                  onClick={() => abrirActualizar(inv.id)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
-                >
-                  Actualizar valor
-                </button>
-              </div>
-
-              {inv.fecha_ultimo_update && (
-                <p className="text-textDim text-xs">Actualizado: {inv.fecha_ultimo_update}</p>
-              )}
-            </div>
-          )
-        })}
+        {inversiones.map(inv => (
+          <InversionTile
+            key={inv.id}
+            inv={inv}
+            tipoCambioUSD={tipoCambioUSD}
+            onEditar={() => abrir('editar', inv.id)}
+            onActualizar={() => abrir('actualizar_valor', inv.id)}
+          />
+        ))}
       </div>
 
-      {/* ═══════════════ MODALES ═══════════════ */}
-
-      {/* Modal: Nueva inversión */}
       {pantalla === 'nueva' && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
-          <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-text font-semibold">Nueva inversión</h2>
-              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
-            </div>
-            <div className="flex flex-col gap-3">
-              <input
-                placeholder="Nombre (ej: Fondo HAPI)"
-                value={nombre} onChange={e => setNombre(e.target.value)}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-              />
-              <input
-                placeholder="Plataforma (opcional, ej: HAPI, SAT, Binance)"
-                value={plataforma} onChange={e => setPlataforma(e.target.value)}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-              />
-              <select
-                value={tipo} onChange={e => setTipo(e.target.value)}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
-              >
-                {TIPOS_INVERSION.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <div className="flex gap-2">
-                <input
-                  placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
-                  value={capital} onChange={e => setCapital(e.target.value)}
-                  inputMode="decimal"
-                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-                />
-                <div className="flex bg-bg border border-canto rounded-xl overflow-hidden">
-                  {(['GTQ', 'USD'] as const).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setMoneda(m)}
-                      className={`px-3 py-3 text-sm font-medium transition-colors ${
-                        moneda === m ? 'bg-accent text-bg font-semibold' : 'text-textDim hover:text-text'
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-textDim text-xs mb-1">Fecha de inicio</p>
-                <input
-                  type="date"
-                  max={hoyGT()}
-                  value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
-                />
-              </div>
-              <textarea
-                placeholder="Notas (opcional)"
-                value={notas} onChange={e => setNotas(e.target.value)}
-                rows={2}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent resize-none"
-              />
-              {errForm && <p className="text-danger text-sm">{errForm}</p>}
-              <button
-                onClick={handleNueva}
-                disabled={saving}
-                className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity mt-1"
-              >
-                {saving ? 'Guardando...' : 'Agregar inversión'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ModalInversion agregar={agregarInversion} actualizar={actualizarInversion} onCerrar={volver} />
       )}
-
-      {/* Modal: Actualizar valor */}
-      {pantalla === 'actualizar_valor' && selInv && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
-          <div className="bg-surface w-full rounded-t-2xl p-5">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-text font-semibold">Actualizar — {selInv.nombre}</h2>
-              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
-            </div>
-            <div className="bg-bg rounded-xl p-3 mb-4">
-              <p className="text-textDim text-xs">Valor anterior</p>
-              <p className="text-text font-mono">
-                {selInv.moneda === 'USD'
-                  ? `$${(selInv.valor_actual / 100).toFixed(2)}`
-                  : formatQ(selInv.valor_actual)}
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <input
-                placeholder={`Nuevo valor (${selInv.moneda === 'USD' ? '$' : 'Q'})`}
-                value={nuevoValor} onChange={e => setNuevoValor(e.target.value)}
-                inputMode="decimal"
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-              />
-              <div>
-                <p className="text-textDim text-xs mb-1">Fecha del update</p>
-                <input
-                  type="date"
-                  value={fechaUpdate} onChange={e => setFechaUpdate(e.target.value)}
-                  min={selInv.fecha_inicio}
-                  max={hoyGT()}
-                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
-                />
-                <p className="text-textDim text-xs mt-1">
-                  Una fecha anterior agrega un punto al historial sin reemplazar el valor vigente.
-                </p>
-              </div>
-              {errForm && <p className="text-danger text-sm">{errForm}</p>}
-              <button
-                onClick={handleActualizar}
-                disabled={saving}
-                className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                {saving ? 'Guardando...' : 'Guardar nuevo valor'}
-              </button>
-              <button
-                onClick={handleArchivar}
-                disabled={saving}
-                className="w-full py-2 rounded-xl text-danger/70 text-xs hover:text-danger transition-colors"
-              >
-                Archivar inversión
-              </button>
-            </div>
-          </div>
-        </div>
+      {pantalla === 'editar' && sel && (
+        <ModalInversion inv={sel} agregar={agregarInversion} actualizar={actualizarInversion} onCerrar={volver} />
       )}
-
-      {/* Modal: Editar inversión */}
-      {pantalla === 'editar' && selInv && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
-          <div className="bg-surface w-full rounded-t-2xl p-5 max-h-[92vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-text font-semibold">Editar inversión</h2>
-              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
-            </div>
-            <div className="flex flex-col gap-3">
-              <input
-                placeholder="Nombre"
-                value={nombre} onChange={e => setNombre(e.target.value)}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-              />
-              <input
-                placeholder="Plataforma (opcional)"
-                value={plataforma} onChange={e => setPlataforma(e.target.value)}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-              />
-              <select
-                value={tipo} onChange={e => setTipo(e.target.value)}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
-              >
-                {TIPOS_INVERSION.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <div className="flex gap-2">
-                <input
-                  placeholder={`Capital inicial (${selInv.moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
-                  value={capital} onChange={e => setCapital(e.target.value)}
-                  inputMode="decimal"
-                  className="flex-1 bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-                />
-                {/* La moneda es de solo lectura: cambiarla reinterpretaría el
-                    capital, el valor actual y todo el historial ya guardados. */}
-                <div className="flex items-center px-4 py-3 bg-surface2 border border-canto rounded-xl text-textDim text-sm font-medium">
-                  {selInv.moneda}
-                </div>
-              </div>
-              <p className="text-textDim text-xs -mt-1">
-                La moneda no se puede cambiar: el capital y el historial están guardados en {selInv.moneda}.
-              </p>
-              <div>
-                <p className="text-textDim text-xs mb-1">Fecha de inicio</p>
-                <input
-                  type="date"
-                  value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-                  max={hoyGT()}
-                  className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm focus:outline-none focus:border-accent"
-                />
-              </div>
-              <textarea
-                placeholder="Notas (opcional)"
-                value={notas} onChange={e => setNotas(e.target.value)}
-                rows={2}
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent resize-none"
-              />
-              {errForm && <p className="text-danger text-sm">{errForm}</p>}
-              <button
-                onClick={handleEditar}
-                disabled={saving}
-                className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity mt-1"
-              >
-                {saving ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {pantalla === 'actualizar_valor' && sel && (
+        <ModalActualizarValor
+          inv={sel}
+          actualizarValor={actualizarValor}
+          archivar={archivarInversion}
+          onCerrar={volver}
+        />
       )}
-
-      {/* Modal: Tipo de cambio USD */}
       {pantalla === 'tipo_cambio' && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
-          <div className="bg-surface w-full rounded-t-2xl p-5">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-text font-semibold">Tipo de cambio USD</h2>
-              <button onClick={() => setPantalla('lista')} className="text-textDim hover:text-text text-lg">✕</button>
-            </div>
-            <div className="bg-bg rounded-xl p-3 mb-4">
-              <p className="text-textDim text-xs">Tipo de cambio actual</p>
-              <p className="text-text font-mono">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
-              <p className={`text-xs mt-0.5 ${tipoCambioDesactualizado ? 'text-warning' : 'text-textDim'}`}>
-                {!tipoCambioFecha
-                  ? '⚠️ Sin verificar — confirma el tipo de cambio'
-                  : tipoCambioDesactualizado
-                  ? '⚠️ Sin actualizar hace más de 7 días'
-                  : `Actualizado: ${new Date(tipoCambioFecha).toLocaleDateString('es-GT')}`}
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <input
-                placeholder="Nuevo tipo de cambio (ej: 7.75)"
-                value={nuevoCambio} onChange={e => setNuevoCambio(e.target.value)}
-                inputMode="decimal"
-                className="bg-bg border border-canto rounded-xl px-4 py-3 text-text text-sm placeholder:text-textDim focus:outline-none focus:border-accent"
-              />
-              {errForm && <p className="text-danger text-sm">{errForm}</p>}
-              <button
-                onClick={async () => {
-                  setErrForm(null)
-                  setFetchingRate(true)
-                  try {
-                    const centavos = await fetchTipoCambioDesdeAPI()
-                    setNuevoCambio(String((centavos / 100).toFixed(2)))
-                    setPantalla('lista')
-                  } catch (e: unknown) {
-                    setErrForm(e instanceof Error ? e.message : 'Error al obtener tipo de cambio')
-                  } finally {
-                    setFetchingRate(false)
-                  }
-                }}
-                disabled={fetchingRate || saving}
-                className="w-full py-3 rounded-xl bg-surface2 text-text text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                {fetchingRate ? 'Consultando...' : '📡 Obtener tipo actual (API)'}
-              </button>
-              <button
-                onClick={handleTipoCambio}
-                disabled={saving}
-                className="w-full py-3 rounded-xl bg-accent text-bg font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
-              >
-                {saving ? 'Guardando...' : 'Actualizar tipo de cambio'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ModalTipoCambio
+          tipoCambioUSD={tipoCambioUSD}
+          tipoCambioFecha={tipoCambioFecha}
+          desactualizado={desactualizado}
+          guardar={actualizarTipoCambio}
+          consultarAPI={fetchTipoCambioDesdeAPI}
+          onCerrar={volver}
+        />
       )}
-
     </div>
   )
 }

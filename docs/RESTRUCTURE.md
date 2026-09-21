@@ -117,22 +117,39 @@ así que hay que borrarlos o convertirlos en plantilla genérica antes de que al
 
 ## 3. Deuda estructural del cliente
 
-### 3.1 Dos formas de recibir el usuario
+### 3.1 Dos formas de recibir el usuario  · ✅ RESUELTO (fase 1, tarea 1.2)
+
+Ninguna página recibe el objeto `User`: todas leen `useSesion()`. La única excepción es `SetupPage`,
+que lo recibe porque corre ANTES de que el provider exista — es lo que decide si montarlo.
+
+<details><summary>Descripción original</summary>
 Las páginas nuevas reciben `{ userId: string }`; `DashboardPage`, `TransaccionesPage`,
 `CuentasPage` y `PerfilPage` reciben el objeto `User` completo. Unificar a `userId` (o a un contexto
 de sesión) es mecánico.
 
-### 3.2 Cada página vuelve a pedir lo mismo
-No hay store ni caché: el Dashboard instancia seis hooks y varias páginas vuelven a pedir cuentas,
-categorías y transacciones del mismo mes. El perfil se consulta en tres lugares distintos. Un
-contexto de sesión (perfil + cuentas + categorías, cargados una vez) quita la mayoría.
+</details>
 
-### 3.3 `window.location.reload()` como refresco
-`CuentasPage` recarga la página entera en dos lugares porque los hooks no exponen un `refetch`.
+### 3.2 Cada página vuelve a pedir lo mismo  · ✅ RESUELTO (fase 1, tareas 1.1 y 1.2)
 
-### 3.4 Los hooks exponen `error` pero no todas las páginas lo consumen
-`useCuentas`, `useTransacciones`, `useResumen6Meses`, `usePagosRecurrentes` e `useInversiones` ya lo
-exponen. El Dashboard consume el de cuentas e inversiones; el resto de las páginas todavía no.
+`SesionProvider` carga perfil, cuentas, categorías y tarjetas UNA vez, con `cargando` y `error` por
+slice. `profiles` pasó de 6 lecturas a 1. Hay un test que cuenta las consultas por tabla para
+afirmarlo, no solo para describirlo.
+
+Lo que NO entró al contexto, a propósito: `transacciones` y `presupuestos` están acotados por mes,
+`inversiones` e `historial` son pesados y los usan 2 páginas, y `ciclos_tc` es por tarjeta.
+
+### 3.3 `window.location.reload()` como refresco  · ✅ RESUELTO (fase 1, tareas 1.2 y 1.4.4)
+
+Los dos de `CuentasPage` usan `refrescar.cuentas()`, y el "Reintentar" de presupuestos usa el
+`recargar()` del hook. Los dos que quedan son pantallas de error (el gate de perfil en `App.tsx` y
+el `ErrorBoundary`), donde una recarga completa ES la recuperación correcta.
+
+### 3.4 Los hooks exponen `error` pero no todas las páginas lo consumen  · ✅ RESUELTO (fase 1, tarea 1.4)
+
+Cada página que se partió se llevó su error sin leer. Eran seis: Tarjetas, Movimientos, Dashboard
+(el de transacciones), Presupuesto, Metas y Pagos Fijos. En todos los casos el síntoma era el mismo
+— un fetch fallido se pintaba como estado vacío o como Q0.00, que afirma algo distinto de "no se
+pudo saber".
 
 ### 3.5 El auto-apply no es atómico contra dos dispositivos
 El avance de `ultima_aplicacion` usa compare-and-swap, así que dos pestañas no duplican. Dos
@@ -140,10 +157,14 @@ El avance de `ultima_aplicacion` usa compare-and-swap, así que dos pestañas no
 lectura, el insert y el avance sean **un RPC transaccional**. No hay constraint que lo atrape del
 lado del servidor.
 
-### 3.6 Solo `finanzas.ts` tiene tests
-48 tests, todos ahí. Los hooks y las páginas no tienen ninguno — ni un test de que el carry-over de
-presupuestos no resucite lo borrado, que fue uno de los bugs críticos. Vitest y jsdom ya están
-configurados; falta `@testing-library/react`.
+### 3.6 Solo `finanzas.ts` tiene tests  · ✅ RESUELTO (fase 1, tarea 1.5)
+
+122 tests en 10 archivos, más 10 bloques de aserciones en SQL contra un PostgreSQL real
+(`npm run test:sql`) para el trigger de deuda de TC — eso no se puede probar con un mock del
+cliente. Los cuatro escenarios que el spec pedía están cubiertos y **verificados por mutación**:
+carry-over de presupuestos, `useAutoApplyPagos`, el reparto de deuda y las carreras de cambio de
+mes. Lo que sigue sin tests son las páginas como tal (no hay test de render de una página completa);
+los hooks y la matemática sí.
 
 ### 3.7 `calcPagoDeuda` es un export muerto
 Sin llamadas y sin tests.

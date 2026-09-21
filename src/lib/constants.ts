@@ -110,12 +110,21 @@ export const ahoraEn = (zona: string): Date => new Date(`${hoyEn(zona)}T12:00:00
 /** Mes actual ('YYYY-MM') en una zona horaria. */
 export const mesActualEn = (zona: string): string => hoyEn(zona).substring(0, 7)
 
-// Alias de Guatemala. Se quedan mientras haya sitios sin migrar a `useFechas()`
-// (viajan con la partición de páginas de la tarea 1.4) y se retiran cuando no
-// queden.
-export const hoyGT = (): string => hoyEn(ZONA_GT)
-export const ahoraGT = (): Date => ahoraEn(ZONA_GT)
-export const mesActual = (): string => mesActualEn(ZONA_GT)
+// Los alias hoyGT/ahoraGT/mesActual se retiraron en la tarea 1.4.7: ya no
+// quedaba ningún sitio que asumiera Guatemala. Todo pasa por `useFechas()`, que
+// currifica estas funciones con la zona del perfil. Las dos excepciones, ambas
+// documentadas en su archivo, reciben la zona por parámetro porque no pueden
+// consumir el contexto: `useTarjetas` (lo monta el provider) y el test helper.
+
+/**
+ * Inflación anual de referencia, en %. Es el umbral contra el que se dice si una
+ * inversión "supera la inflación".
+ *
+ * Está cableado a Guatemala. Con la app abierta a más países esto tendría que
+ * salir del perfil, como la moneda y la zona horaria — queda anotado en el
+ * roadmap; parametrizarlo ahora sin un dato por país solo movería el problema.
+ */
+export const INFLACION_ANUAL_REF = 4
 
 export const TIPOS_INVERSION = [
   { value: 'fondo',     label: 'Fondo de inversión' },

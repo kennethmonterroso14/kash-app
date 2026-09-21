@@ -1,6 +1,9 @@
 // src/pages/CategoriasPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
+import Campo from '../components/Campo'
 import { type CategoriaUsuario } from '../hooks/useCategorias'
 import { useSesion } from '../context/sesion'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from '../lib/constants'
@@ -84,19 +87,20 @@ export default function CategoriasPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => navigate('/perfil')}
-          className="text-accent text-xl hover:opacity-80 transition-opacity"
+          onClick={() => navigate('/ajustes')}
+          aria-label="Volver a Ajustes"
+          className="presionable text-accent text-xl px-1"
         >
           ←
         </button>
         <div>
-          <h1 className="text-text font-display font-bold text-xl">Categorías</h1>
+          <h1 className="text-text font-display font-bold text-xl tracking-titulo">Categorías</h1>
           <p className="text-textDim text-xs">Personaliza tus categorías de gastos</p>
         </div>
       </div>
 
       {error && (
-        <p className="text-danger text-sm bg-danger/10 rounded-xl p-3 mb-4">{error}</p>
+        <Aviso clase="mb-4">{error}</Aviso>
       )}
 
       {/* Custom categories */}
@@ -115,30 +119,20 @@ export default function CategoriasPage() {
         {showAdd && (
           <div className="bg-surface rounded-2xl p-4 mb-3">
             <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-textDim text-xs mb-1 block">Nombre</label>
-                <input
-                  value={nombre}
-                  onChange={e => setNombre(e.target.value)}
-                  placeholder="Ej: Médico, Educación..."
-                  maxLength={50}
-                  className="w-full bg-bg text-text text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
-                />
-              </div>
-              <div>
-                <label className="text-textDim text-xs mb-1 block">Tipo</label>
-                <select
-                  value={tipo}
-                  onChange={e => setTipo(e.target.value as Tipo)}
-                  className="w-full bg-bg text-text text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-1 focus:ring-accent"
-                >
-                  <option value="gasto">Gasto — aparece en gastos y presupuesto</option>
-                  <option value="ingreso">Ingreso — aparece en ingresos</option>
-                  <option value="ambos">Ambos — aparece en gastos e ingresos</option>
-                </select>
-              </div>
+              <Campo
+                etiqueta="Nombre" placeholder="ej. Médico, Educación…" maxLength={50}
+                value={nombre} onChange={e => setNombre(e.target.value)}
+              />
+              <Campo
+                etiqueta="Tipo" tipo="select"
+                value={tipo} onChange={e => setTipo(e.target.value as Tipo)}
+              >
+                <option value="gasto">Gasto — aparece en gastos y presupuesto</option>
+                <option value="ingreso">Ingreso — aparece en ingresos</option>
+                <option value="ambos">Ambos — aparece en gastos e ingresos</option>
+              </Campo>
               {saveError && (
-                <p className="text-danger text-xs">{saveError}</p>
+                <Aviso>{saveError}</Aviso>
               )}
               <button
                 onClick={handleAgregar}
@@ -152,17 +146,17 @@ export default function CategoriasPage() {
         )}
 
         {delError && (
-          <p className="text-danger text-xs bg-danger/10 rounded-xl p-3 mb-3">{delError}</p>
+          <Aviso clase="mb-3">{delError}</Aviso>
         )}
 
         {loading ? (
           <p className="text-textDim text-sm text-center py-4">Cargando...</p>
         ) : custom.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-3xl mb-2">🏷️</p>
-            <p className="text-textDim text-sm">Sin categorías personalizadas</p>
-            <p className="text-textDim text-xs mt-1">Agrega categorías que aparecerán en tus gastos y presupuesto</p>
-          </div>
+          <EstadoVacio
+            icono="🏷️"
+            titulo="Sin categorías personalizadas"
+            pista="Agrega categorías que aparecerán en tus gastos y presupuesto"
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {custom.map((cat: CategoriaUsuario) => (

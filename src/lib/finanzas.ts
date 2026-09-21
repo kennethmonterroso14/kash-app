@@ -7,7 +7,7 @@ export interface OpcionesMoneda {
   locale: string
 }
 
-/** Lo que usa `formatQ`. Es el default de `profiles`, no una constante global. */
+/** El default de `profiles`. NO es una constante global: la moneda sale del perfil. */
 export const MONEDA_GT: OpcionesMoneda = { moneda: 'GTQ', locale: 'es-GT' }
 
 // Construir un Intl.NumberFormat no es gratis y esto se llama por fila
@@ -84,16 +84,6 @@ export function formatMoneda(centavos: number, { moneda, locale }: OpcionesMoned
     .join('')
 }
 
-/**
- * Alias de `formatMoneda` en quetzales. Se queda mientras haya sitios sin
- * migrar a `useMoneda()` (viajan con la partición de páginas de la tarea 1.4)
- * y se retira cuando no queden.
- *
- * Ejemplo: formatQ(123456) → "Q1,234.56"
- */
-export function formatQ(centavos: number): string {
-  return formatMoneda(centavos, MONEDA_GT)
-}
 
 /**
  * Convierte input del usuario a centavos (entero)
@@ -374,9 +364,15 @@ export function calcResumenTC(tc: TarjetaCredito): ResumenTC {
   }
 }
 
+/**
+ * `moneda` entra por parámetro porque una de las tres advertencias cita un
+ * monto, y con la moneda cableada un usuario en dólares leería quetzales. La
+ * función sigue siendo pura: las opciones son datos, no contexto.
+ */
 export function calcDisponibleReal(
   saldoCuentas: number,
-  tarjetas: TarjetaCredito[]
+  tarjetas: TarjetaCredito[],
+  moneda: OpcionesMoneda,
 ): DisponibleReal {
   const deuda_tc_vencida    = tarjetas.reduce((s, tc) => s + tc.deuda_ciclo_anterior, 0)
   const deuda_tc_acumulando = tarjetas.reduce((s, tc) => s + tc.deuda_actual, 0)
@@ -385,7 +381,7 @@ export function calcDisponibleReal(
 
   const advertencia =
     disponible_real < 0
-      ? `Tu deuda total de TC (${formatQ(deuda_total_tc)}) supera tu saldo en cuentas`
+      ? `Tu deuda total de TC (${formatMoneda(deuda_total_tc, moneda)}) supera tu saldo en cuentas`
       : deuda_tc_vencida > 0 && deuda_tc_vencida > saldoCuentas * 0.5
       ? `Más del 50% de tu saldo está comprometido con pagos de TC pendientes`
       : deuda_total_tc > saldoCuentas * 0.8

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import Aviso from '../components/Aviso'
 import { supabase } from '../lib/supabase'
+import Campo from '../components/Campo'
 
 interface Props {
   user: User
@@ -65,20 +67,13 @@ export default function SetupPage({ user, onComplete }: Props) {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-textDim mb-1">Tu nombre</label>
-              <input
-                type="text"
-                value={nombre}
-                onChange={e => setNombre(e.target.value)}
-                required
-                placeholder="Kenneth"
-                className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent transition-colors"
-              />
-            </div>
+            <Campo
+              etiqueta="Tu nombre" required autoComplete="name" placeholder="Kenneth"
+              value={nombre} onChange={e => setNombre(e.target.value)}
+            />
 
             {error && (
-              <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{error}</p>
+              <Aviso>{error}</Aviso>
             )}
 
             <button

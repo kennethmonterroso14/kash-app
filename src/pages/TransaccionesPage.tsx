@@ -1,9 +1,11 @@
 import { useState, useRef, useMemo } from 'react'
+import Aviso from '../components/Aviso'
+import EstadoVacio from '../components/EstadoVacio'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
 import { MESES } from '../lib/constants'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
-import SelectorMes from './transacciones/SelectorMes'
+import SelectorMes from '../components/SelectorMes'
 import FiltrosTxn, { type Filtros } from './transacciones/FiltrosTxn'
 import FilaTxn from './transacciones/FilaTxn'
 import ModalNuevoMovimiento from './transacciones/ModalNuevoMovimiento'
@@ -15,7 +17,6 @@ import { construirCSV, descargarCSV } from './transacciones/exportarCSV'
 const FILTROS_VACIOS: Filtros = { busqueda: '', tipo: '', cuenta: '' }
 
 const SEGUNDOS_DESHACER = 6000
-const SEGUNDOS_CONFIRMAR = 3000
 
 /**
  * Un movimiento de TC lo administra el trigger de deuda, cuya rama UPDATE solo
@@ -36,7 +37,6 @@ export default function TransaccionesPage() {
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
 
   // Borrado en 2 taps más un toast de deshacer, no un window.confirm.
-  const [porConfirmar, setPorConfirmar] = useState<string | null>(null)
   const [ultimoBorrado, setUltimoBorrado] = useState<Transaccion | null>(null)
   const timerDeshacer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Errores de operaciones sobre la LISTA (un borrado rechazado). Los de los
@@ -58,18 +58,13 @@ export default function TransaccionesPage() {
     `vorta_${mes}.csv`,
   )
 
+  // Los dos taps los maneja `BotonConfirmar`; esto es ya el segundo. Se ESPERA
+  // el resultado: el trigger de deuda puede rechazar el borrado de un
+  // movimiento de TC sin reparto registrado, y antes se ofrecía "Deshacer" de
+  // un borrado que nunca ocurrió.
   const borrar = async (id: string) => {
-    if (porConfirmar !== id) {
-      setPorConfirmar(id)
-      setTimeout(() => setPorConfirmar(p => (p === id ? null : p)), SEGUNDOS_CONFIRMAR)
-      return
-    }
-    // Segundo tap. Se ESPERA el resultado: el trigger de deuda puede rechazar
-    // el borrado de un movimiento de TC sin reparto registrado, y antes se
-    // ofrecía "Deshacer" de un borrado que nunca ocurrió.
     const txn = txns.find(t => t.id === id)
     if (!txn) return
-    setPorConfirmar(null)
     const { error } = await deleteTxn(id)
     if (error) {
       setErrorLista(typeof error === 'string' ? error : error.message)
@@ -119,34 +114,22 @@ export default function TransaccionesPage() {
       <FiltrosTxn filtros={filtros} onCambiar={setFiltros} cuentas={cuentas} />
 
       {errorLista && (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2 mb-4 flex justify-between items-start gap-3">
-          <span>{errorLista}</span>
-          <button
-            type="button"
-            onClick={() => setErrorLista('')}
-            aria-label="Cerrar aviso"
-            className="presionable text-danger/70 hover:text-danger leading-none"
-          >
-            ×
-          </button>
-        </div>
+        <Aviso clase="mb-4" onCerrar={() => setErrorLista('')}>{errorLista}</Aviso>
       )}
 
       {/* Un fetch fallido NO se pinta como "sin movimientos": son afirmaciones
           distintas, y presentar la lista vacía como un hecho era la clase de
           bug que se corrigió en el resto de la app. */}
       {error && (
-        <div role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-3 mb-4">
+        <Aviso clase="mb-4">
           No se pudieron cargar los movimientos de {etiquetaMes}. {error}
-        </div>
+        </Aviso>
       )}
 
       {loading && <p className="text-textDim text-center py-8">Cargando...</p>}
 
       {!loading && !error && filtrados.length === 0 && (
-        <div className="bg-surface rounded-panel p-8 text-center">
-          <p className="text-textDim">Sin movimientos en {etiquetaMes}</p>
-        </div>
+        <EstadoVacio titulo={`Sin movimientos en ${etiquetaMes}`} />
       )}
 
       <div className="space-y-2">
@@ -156,7 +139,6 @@ export default function TransaccionesPage() {
             txn={t}
             color={coloresCategorias[t.categoria]}
             editable={esEditable(t)}
-            pendienteBorrar={porConfirmar}
             onEditar={() => setEditando(t)}
             onBorrar={() => borrar(t.id)}
           />

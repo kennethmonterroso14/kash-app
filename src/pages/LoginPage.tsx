@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import Aviso from '../components/Aviso'
 import { supabase } from '../lib/supabase'
+import Campo from '../components/Campo'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -53,32 +55,20 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-textDim mb-1">Correo</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent transition-colors"
-                placeholder="tu@correo.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-textDim mb-1">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full bg-bg border border-canto rounded-xl px-4 py-3 text-text focus:outline-none focus:border-accent transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
+            <Campo
+              etiqueta="Correo" tipo="email" required
+              autoComplete="email" placeholder="tu@correo.com"
+              value={email} onChange={e => setEmail(e.target.value)}
+            />
+            <Campo
+              etiqueta="Contraseña" tipo="password" required minLength={6}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              placeholder="••••••••"
+              value={password} onChange={e => setPassword(e.target.value)}
+            />
 
             {error && (
-              <p className="text-danger text-sm bg-danger/10 rounded-xl px-4 py-2">{error}</p>
+              <Aviso>{error}</Aviso>
             )}
             {info && (
               <p className="text-accent text-sm bg-accent/10 rounded-xl px-4 py-2">{info}</p>

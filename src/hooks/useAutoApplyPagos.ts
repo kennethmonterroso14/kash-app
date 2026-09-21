@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { hoyGT } from '../lib/constants'
+import { useFechas } from './useFechas'
 
 /**
  * Aplica los pagos fijos vencidos, una vez por sesión y por usuario.
@@ -26,6 +26,11 @@ import { hoyGT } from '../lib/constants'
  *    duplicarlo (que descuadra el saldo y hay que cazar fila por fila).
  */
 export function useAutoApplyPagos(userId: string | undefined) {
+  // La zona del usuario decide QUÉ MES es el actual, o sea qué vencimiento
+  // cuenta como vencido. Por eso este hook se monta desde
+  // `<AutoAplicarPagos>`, dentro del SesionProvider, y no desde App.tsx:
+  // afuera el perfil todavía no existe y habría que asumir Guatemala.
+  const fechas = useFechas()
   // Se llavea al usuario: App queda montado entre sign-out y sign-in, así que
   // un useRef(false) dejaría al siguiente usuario sin aplicar sus pagos.
   const appliedFor = useRef<string | null>(null)
@@ -36,7 +41,7 @@ export function useAutoApplyPagos(userId: string | undefined) {
     // y un guard tardío insertaría las transacciones duplicadas.
     appliedFor.current = userId
 
-    const hoy = hoyGT()                                   // YYYY-MM-DD (GT)
+    const hoy = fechas.hoy()                              // YYYY-MM-DD, zona del usuario
     const diaHoy = parseInt(hoy.split('-')[2], 10)
     const [anio, mesNum] = hoy.split('-').map(Number)     // mesNum es 1-based
 
@@ -135,5 +140,8 @@ export function useAutoApplyPagos(userId: string | undefined) {
       console.error('[AutoApply] Error inesperado:', e)
       appliedFor.current = null   // permitir reintento
     })
-  }, [userId])
+    // `fechas` entra en las dependencias porque el efecto lo lee. No cambia el
+    // comportamiento: es estable (useMemo por zona) y, si la zona cambiara, el
+    // latch `appliedFor` ya impide una segunda corrida para el mismo usuario.
+  }, [userId, fechas])
 }

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { calcResumenTC, calcFechasCiclo, type TarjetaCredito } from '../lib/finanzas'
-import { ahoraGT } from '../lib/constants'
+import { ahoraEn } from '../lib/constants'
 
 export type { TarjetaCredito }
 
@@ -23,7 +23,12 @@ function fechaCalendario(fecha: string): Date {
   return new Date(a, m - 1, d, 12, 0, 0)
 }
 
-export function useTarjetas(userId: string) {
+/**
+ * La zona horaria entra por PARÁMETRO y no con `useFechas()` a propósito: a
+ * este hook lo monta el SesionProvider, así que no puede consumir el contexto
+ * que él mismo provee. El provider le pasa `perfil.zona_horaria`.
+ */
+export function useTarjetas(userId: string, zonaHoraria: string) {
   const [tarjetas, setTarjetas] = useState<TarjetaCredito[]>([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
@@ -141,7 +146,7 @@ export function useTarjetas(userId: string) {
     if (buscarErr) throw new Error(`Error al buscar ciclo: ${buscarErr.message}`)
     if (abiertos && abiertos.length > 0) return abiertos[0].id
 
-    const vigente = calcFechasCiclo(tc.dia_cierre, tc.dia_pago, ahoraGT())
+    const vigente = calcFechasCiclo(tc.dia_cierre, tc.dia_pago, ahoraEn(zonaHoraria))
 
     const { data: ultimos, error: ultimoErr } = await supabase
       .from('ciclos_tc')

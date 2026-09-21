@@ -10,7 +10,6 @@ import {
   type Inversion,
   type InversionHistorial,
   formatMoneda,
-  formatQ,
   type TarjetaCredito,
 } from './finanzas'
 
@@ -84,15 +83,6 @@ describe('formatMoneda', () => {
     expect(formatMoneda(100, USD)).toBe('$1.00')
     expect(formatMoneda(100, GTQ)).toBe('Q1.00')
     expect(formatMoneda(100, { moneda: 'GTQ', locale: 'en-US' })).toBe('Q1.00')
-  })
-})
-
-// ── formatQ ─────────────────────────────────────────────
-describe('formatQ', () => {
-  it('es exactamente el alias de GTQ/es-GT', () => {
-    for (const c of [0, 1, 99, 100, -1, 123456, -123456, 100000000]) {
-      expect(formatQ(c)).toBe(formatMoneda(c, { moneda: 'GTQ', locale: 'es-GT' }))
-    }
   })
 })
 

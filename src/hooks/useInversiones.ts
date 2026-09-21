@@ -7,7 +7,7 @@ import {
   calcResumenPortafolio,
   computeEvolucionPortafolio,
 } from '../lib/finanzas'
-import { hoyGT } from '../lib/constants'
+import { useFechas } from './useFechas'
 import { useSesion } from '../context/sesion'
 
 export type { Inversion, InversionHistorial }
@@ -20,6 +20,9 @@ const conHintMigracion = (msg: string): string =>
     : msg
 
 export function useInversiones(userId: string) {
+  // Las fechas salen de la zona del usuario. Este hook se monta desde una
+  // página, o sea dentro del SesionProvider, así que puede leer el perfil.
+  const fechas = useFechas()
   // El tipo de cambio vive en `profiles`, y de eso ya es dueño el contexto de
   // sesión. Antes este hook lo consultaba por su cuenta, que era una de las
   // seis consultas duplicadas a esa tabla.
@@ -87,7 +90,7 @@ export function useInversiones(userId: string) {
     // Sin esto, una inversión con fecha_inicio futura deja "Actualizar valor"
     // imposible de satisfacer: actualizarValor exige fecha <= hoy y
     // fecha >= fecha_inicio a la vez.
-    if (input.fecha_inicio > hoyGT()) throw new Error('La fecha de inicio no puede ser futura')
+    if (input.fecha_inicio > fechas.hoy()) throw new Error('La fecha de inicio no puede ser futura')
 
     const { data, error } = await supabase
       .from('inversiones')
@@ -124,7 +127,7 @@ export function useInversiones(userId: string) {
 
   const actualizarValor = async (id: string, nuevoValor: number, fecha: string) => {
     if (nuevoValor < 0) throw new Error('El valor no puede ser negativo')
-    if (fecha > hoyGT()) throw new Error('La fecha no puede ser futura')
+    if (fecha > fechas.hoy()) throw new Error('La fecha no puede ser futura')
     const inv = inversiones.find(i => i.id === id)
     if (inv && fecha < inv.fecha_inicio) {
       throw new Error('La fecha no puede ser anterior al inicio de la inversión')
@@ -166,7 +169,7 @@ export function useInversiones(userId: string) {
       .select('valor, fecha')
       .eq('inversion_id', id)
       .eq('user_id', userId)
-      .lte('fecha', hoyGT())
+      .lte('fecha', fechas.hoy())
       .order('fecha', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -205,7 +208,7 @@ export function useInversiones(userId: string) {
     if (updates.monto_invertido !== undefined && updates.monto_invertido <= 0) throw new Error('El capital debe ser mayor a 0')
     // El `max` del input es solo un atributo: el modal no es un <form>, así que
     // no bloquea nada por sí solo.
-    if (updates.fecha_inicio !== undefined && updates.fecha_inicio > hoyGT()) {
+    if (updates.fecha_inicio !== undefined && updates.fecha_inicio > fechas.hoy()) {
       throw new Error('La fecha de inicio no puede ser futura')
     }
 

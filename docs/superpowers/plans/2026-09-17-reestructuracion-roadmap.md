@@ -259,6 +259,13 @@ Con 4.2, o se llenan desde la vista o se borran. Tenerlos en 0 invita a que algu
 
 ---
 
+### 5.x La inflación de referencia está cableada a Guatemala  · XS
+
+`INFLACION_ANUAL_REF` en `constants.ts` vale 4 (%) y es el umbral contra el que Inversiones dice
+"supera la inflación". Con la app abierta a más países tendría que salir del perfil, como la moneda
+y la zona horaria. No se parametrizó en la tarea 1.3 porque sin un dato de inflación por país solo
+movería el problema de lugar: haría falta o que el usuario lo ponga a mano, o una fuente por país.
+
 ## Fase 5 — Funciones en cola
 
 Independientes entre sí. Se pueden intercalar donde haya espacio, con dos excepciones marcadas.

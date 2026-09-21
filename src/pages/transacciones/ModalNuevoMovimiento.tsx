@@ -1,9 +1,13 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import { motion } from 'motion/react'
+import Aviso from '../../components/Aviso'
+import Campo from '../../components/Campo'
+import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
+import { AL_INSTANTE, posicionIndicador, RESORTE_SEGMENTO, useMenosMovimiento } from '../../lib/movimiento'
 import type { useTransacciones } from '../../hooks/useTransacciones'
 
 type Tipo = 'gasto' | 'ingreso' | 'gasto_tc' | 'transferencia'
@@ -11,13 +15,23 @@ type Tipo = 'gasto' | 'ingreso' | 'gasto_tc' | 'transferencia'
 const ETIQUETAS: Record<Tipo, string> = {
   gasto: 'Gasto', ingreso: 'Ingreso', gasto_tc: 'Cargo TC', transferencia: 'Transferencia',
 }
+/** El orden del riel, que es también el que usa el indicador para ubicarse. */
+const TIPOS = Object.keys(ETIQUETAS) as Tipo[]
 
 // Clases literales por tipo: `bg-${tipo}` no lo ve el JIT de Tailwind.
-const CLASE_TAB: Record<Tipo, string> = {
-  ingreso:       'bg-accent text-bg',
-  gasto:         'bg-danger text-text',
-  gasto_tc:      'bg-warning/20 text-warning',
-  transferencia: 'bg-accentAlt text-bg',
+// El fondo y el texto van separados porque el fondo lo pinta el indicador que
+// se desliza y el texto lo pinta cada pestaña.
+const FONDO_TAB: Record<Tipo, string> = {
+  ingreso:       'bg-accent',
+  gasto:         'bg-danger',
+  gasto_tc:      'bg-warning/20',
+  transferencia: 'bg-accentAlt',
+}
+const TEXTO_TAB: Record<Tipo, string> = {
+  ingreso:       'text-bg',
+  gasto:         'text-text',
+  gasto_tc:      'text-warning',
+  transferencia: 'text-bg',
 }
 const CLASE_SUBMIT: Record<Tipo, string> = {
   ingreso:       'bg-accent text-bg',
@@ -42,9 +56,9 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
   const { cuentas, categoriasGasto, categoriasIngreso, resumenTCs, registrarCargo } = useSesion()
   // Un <label> sin `htmlFor` no lo anuncia el lector de pantalla y tocarlo no
   // enfoca el campo. useId() da prefijos únicos por instancia del modal.
-  const id = useId()
   const fmt = useMoneda()
   const fechas = useFechas()
+  const reducido = useMenosMovimiento()
 
   const [tipo, setTipo] = useState<Tipo>('gasto')
   const [cantidad, setCantidad] = useState('')
@@ -126,137 +140,110 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
   }
 
   const campoFecha = (
-    <div>
-      <label htmlFor={`${id}-fecha`} className="text-textDim text-xs mb-1 block tracking-micro">Fecha</label>
-      <input id={`${id}-fecha`} type="date" value={fecha} onChange={e => setFecha(e.target.value)} className={`w-full ${CLASE_INPUT}`} />
-    </div>
+    <Campo etiqueta="Fecha" tipo="date" value={fecha} onChange={e => setFecha(e.target.value)} />
   )
 
   return (
-    <div
-      className="fixed inset-0 scrim flex items-end justify-center z-50"
-      onClick={e => { if (e.target === e.currentTarget) onCerrar() }}
-    >
-      <div className="vidrio-hoja w-full max-w-lg rounded-t-hoja p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4 max-h-[92dvh] overflow-y-auto overscroll-contain">
-        <div className="flex justify-between items-center">
-          <h2 className="text-text font-semibold tracking-titulo">Nuevo movimiento</h2>
-          <button onClick={onCerrar} aria-label="Cerrar" className="presionable text-textDim text-xl">×</button>
-        </div>
-
-        <div className="flex gap-1 bg-bg rounded-control p-1">
-          {(Object.keys(ETIQUETAS) as Tipo[]).map(t => (
-            <button
-              key={t}
-              onClick={() => cambiarTipo(t)}
-              // 11px y px-1: con text-xs, "Transferencia" se salía del riel de
-              // pestañas a 390px.
-              className={`presionable flex-1 min-w-0 px-1 py-2 rounded-chip text-[11px] font-medium ${
-                tipo === t ? CLASE_TAB[t] : 'text-textDim'
-              }`}
-            >
-              {ETIQUETAS[t]}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={enviar} className="space-y-3">
-          <div>
-            <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">Monto (Q)</label>
-            <input id={`${id}-monto`}
-              type="number" step="0.01" min="0.01" required placeholder="0.00"
-              value={cantidad} onChange={e => setCantidad(e.target.value)}
-              className={`w-full text-xl font-mono ${CLASE_INPUT}`}
-            />
-          </div>
-
-          {tipo === 'transferencia' ? (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor={`${id}-de`} className="text-textDim text-xs mb-1 block tracking-micro">De cuenta</label>
-                  <select id={`${id}-de`} value={transferDe} onChange={e => setTransferDe(e.target.value)} required className={`w-full ${CLASE_INPUT}`}>
-                    <option value="">Seleccionar</option>
-                    {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor={`${id}-a`} className="text-textDim text-xs mb-1 block tracking-micro">A cuenta</label>
-                  <select id={`${id}-a`} value={transferA} onChange={e => setTransferA(e.target.value)} required className={`w-full ${CLASE_INPUT}`}>
-                    <option value="">Seleccionar</option>
-                    {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label htmlFor={`${id}-desc-transfer`} className="text-textDim text-xs mb-1 block tracking-micro">Descripción (opcional)</label>
-                <input id={`${id}-desc-transfer`}
-                  type="text" placeholder="ej. Ahorro mensual"
-                  value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                  className={`w-full ${CLASE_INPUT}`}
-                />
-              </div>
-              {campoFecha}
-            </>
-          ) : (
-            <>
-              <div>
-                <label htmlFor={`${id}-desc`} className="text-textDim text-xs mb-1 block tracking-micro">Descripción</label>
-                <input id={`${id}-desc`}
-                  type="text" required placeholder="¿En qué?"
-                  value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                  className={`w-full ${CLASE_INPUT}`}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor={`${id}-cat`} className="text-textDim text-xs mb-1 block tracking-micro">Categoría</label>
-                  <select id={`${id}-cat`} value={categoria} onChange={e => setCategoria(e.target.value)} className={`w-full ${CLASE_INPUT}`}>
-                    {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor={`${id}-origen`} className="text-textDim text-xs mb-1 block tracking-micro">
-                    {tipo === 'gasto_tc' ? 'Tarjeta' : 'Cuenta'}
-                  </label>
-                  {tipo === 'gasto_tc' ? (
-                    <select id={`${id}-origen`} value={tcId} onChange={e => setTcId(e.target.value)} className={`w-full ${CLASE_INPUT}`}>
-                      {resumenTCs.length === 0
-                        ? <option value="">Sin tarjetas</option>
-                        : resumenTCs.map(({ tc, resumen }) => (
-                          <option key={tc.id} value={tc.id}>{tc.nombre} — {fmt(resumen.disponible)}</option>
-                        ))}
-                    </select>
-                  ) : (
-                    <select id={`${id}-origen`} value={cuentaId} onChange={e => setCuentaId(e.target.value)} className={`w-full ${CLASE_INPUT}`}>
-                      {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                    </select>
-                  )}
-                </div>
-              </div>
-              {trasCargo !== null && (
-                <p className={`text-xs font-mono ${trasCargo >= 0 ? 'text-success' : 'text-danger'}`}>
-                  Disponible tras cargo: {fmt(Math.max(0, trasCargo))}
-                  {trasCargo < 0 ? ' ⚠ excede disponible' : ''}
-                </p>
-              )}
-              {campoFecha}
-            </>
-          )}
-
-          {err && <p role="alert" className="text-danger text-sm bg-danger/10 rounded-control px-4 py-2">{err}</p>}
-
+    <Hoja titulo="Nuevo movimiento" onCerrar={onCerrar}>
+      <div className="relative flex gap-1 bg-bg rounded-control p-1">
+        {/* El indicador se desliza entre pestañas (§7): dice de dónde vino la
+            selección. La posición sale de la aritmética y no del `layoutId` de
+            Motion, que habría costado +37 KB gzip por medir lo que acá ya se
+            sabe: las cuatro pestañas son `flex-1`, todas del mismo ancho. */}
+        <motion.span
+          aria-hidden="true"
+          className={`absolute top-1 bottom-1 left-1 rounded-chip ${FONDO_TAB[tipo]}`}
+          style={{ width: posicionIndicador(TIPOS.indexOf(tipo), TIPOS.length).width }}
+          animate={{ transform: posicionIndicador(TIPOS.indexOf(tipo), TIPOS.length).transform }}
+          transition={reducido ? AL_INSTANTE : RESORTE_SEGMENTO}
+        />
+        {TIPOS.map(t => (
           <button
-            type="submit"
-            disabled={guardando || (tipo === 'transferencia' && transferDe === transferA)}
-            className={`presionable w-full font-semibold py-3 rounded-control disabled:opacity-50 ${CLASE_SUBMIT[tipo]}`}
+            key={t}
+            onClick={() => cambiarTipo(t)}
+            // 11px y px-1: con text-xs, "Transferencia" se salía del riel de
+            // pestañas a 390px.
+            className={`presionable relative flex-1 min-w-0 px-1 py-2 rounded-chip text-[11px] font-medium ${
+              tipo === t ? TEXTO_TAB[t] : 'text-textDim'
+            }`}
           >
-            {guardando ? 'Guardando...'
-              : tipo === 'transferencia' ? 'Transferir'
-              : tipo === 'gasto_tc' ? 'Registrar cargo'
-              : 'Guardar'}
+            <span className="relative">{ETIQUETAS[t]}</span>
           </button>
-        </form>
+        ))}
       </div>
-    </div>
+
+      <form onSubmit={enviar} className="space-y-3">
+        <Campo
+          etiqueta="Monto (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
+          value={cantidad} onChange={e => setCantidad(e.target.value)}
+          clase="text-xl font-mono"
+        />
+
+        {tipo === 'transferencia' ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Campo etiqueta="De cuenta" tipo="select" required value={transferDe} onChange={e => setTransferDe(e.target.value)}>
+                <option value="">Seleccionar</option>
+                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </Campo>
+              <Campo etiqueta="A cuenta" tipo="select" required value={transferA} onChange={e => setTransferA(e.target.value)}>
+                <option value="">Seleccionar</option>
+                {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </Campo>
+            </div>
+            <Campo
+              etiqueta="Descripción (opcional)" placeholder="ej. Ahorro mensual"
+              value={descripcion} onChange={e => setDescripcion(e.target.value)}
+            />
+            {campoFecha}
+          </>
+        ) : (
+          <>
+            <Campo
+              etiqueta="Descripción" required placeholder="¿En qué?"
+              value={descripcion} onChange={e => setDescripcion(e.target.value)}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Campo etiqueta="Categoría" tipo="select" value={categoria} onChange={e => setCategoria(e.target.value)}>
+                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+              </Campo>
+              {tipo === 'gasto_tc' ? (
+                <Campo etiqueta="Tarjeta" tipo="select" value={tcId} onChange={e => setTcId(e.target.value)}>
+                  {resumenTCs.length === 0
+                    ? <option value="">Sin tarjetas</option>
+                    : resumenTCs.map(({ tc, resumen }) => (
+                      <option key={tc.id} value={tc.id}>{tc.nombre} — {fmt(resumen.disponible)}</option>
+                    ))}
+                </Campo>
+              ) : (
+                <Campo etiqueta="Cuenta" tipo="select" value={cuentaId} onChange={e => setCuentaId(e.target.value)}>
+                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </Campo>
+              )}
+            </div>
+            {trasCargo !== null && (
+              <p className={`text-xs font-mono ${trasCargo >= 0 ? 'text-success' : 'text-danger'}`}>
+                Disponible tras cargo: {fmt(Math.max(0, trasCargo))}
+                {trasCargo < 0 ? ' ⚠ excede disponible' : ''}
+              </p>
+            )}
+            {campoFecha}
+          </>
+        )}
+
+        {err && <Aviso>{err}</Aviso>}
+
+        <button
+          type="submit"
+          disabled={guardando || (tipo === 'transferencia' && transferDe === transferA)}
+          className={`presionable w-full font-semibold py-3 rounded-control disabled:opacity-50 ${CLASE_SUBMIT[tipo]}`}
+        >
+          {guardando ? 'Guardando...'
+            : tipo === 'transferencia' ? 'Transferir'
+            : tipo === 'gasto_tc' ? 'Registrar cargo'
+            : 'Guardar'}
+        </button>
+      </form>
+    </Hoja>
   )
 }
