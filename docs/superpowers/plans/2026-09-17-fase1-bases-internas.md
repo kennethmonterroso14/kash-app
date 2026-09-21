@@ -121,7 +121,14 @@ del roadmap.
       `text-yellow-400` (color crudo) mientras la barra usaba `colores.warning` — dos amarillos
       distintos; un fallo al cargar los movimientos dejaba las barras en Q0.00 gastado sin avisar; y
       "Reintentar" recargaba la app entera en lugar de repetir la consulta.
-- [ ] **1.4.5** `DashboardPage` (436)
+- [x] **1.4.5** `DashboardPage`: 436 → **104**, en ocho piezas (la mayor, 85).
+      `./dashboard/{Monto,TarjetaPatrimonio,TarjetaDisponibleReal,TarjetasTC,TarjetaPatrimonioNeto,StatsMes,GraficaCategorias,Grafica6Meses}`.
+      Tres defectos: las barras de los 6 meses tenían el verde y el rojo **viejos** como hex sueltos
+      (`#4ade80`/`#f87171`), así que eran los dos únicos colores de la app que no cambiaron con la
+      paleta; el tooltip de barras armaba la moneda a mano con `Q` cableada; y la página no leía el
+      `error` de `useTransacciones`, así que un fetch fallido pintaba todas las cifras del mes en
+      Q0.00. Los dos tooltips se movieron a nivel de módulo (un componente recreado en cada render
+      rompe la reconciliación — `react-hooks/static-components`) con el formateador por prop.
 - [ ] **1.4.6** `MetasPage` (368) y `PagosRecurrentesPage` (367)
 - [ ] **1.4.7** Barrido final: grep de `formatQ(` y `hoyGT(` sin llamadas fuera de los alias, y
       retirar los alias.
