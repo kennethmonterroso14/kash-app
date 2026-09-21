@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 
 interface Props {
   /** Centavos de la moneda del perfil por 1 USD (775 = Q7.75). */
@@ -67,11 +67,10 @@ export default function ModalTipoCambio({
       </div>
 
       <div className="flex flex-col gap-3">
-        <input
-          placeholder="Nuevo tipo de cambio (ej: 7.75)"
+        <Campo
+          etiqueta="Nuevo tipo de cambio" placeholder="7.75" inputMode="decimal"
           value={valor} onChange={e => setValor(e.target.value)}
-          inputMode="decimal"
-          className={CLASE_INPUT}
+          clase="font-mono"
         />
         {err && <p className="text-danger text-sm">{err}</p>}
         <button

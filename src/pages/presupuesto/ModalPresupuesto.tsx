@@ -1,7 +1,7 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import type { Presupuesto } from '../../hooks/usePresupuestos'
 
 interface Props {
@@ -21,7 +21,6 @@ interface Props {
 export default function ModalPresupuesto({
   presupuesto, categoriasDisponibles = [], guardar, onCerrar,
 }: Props) {
-  const id = useId()
   const editando = !!presupuesto
 
   const [categoria, setCategoria] = useState(presupuesto?.categoria ?? categoriasDisponibles[0] ?? '')
@@ -46,28 +45,19 @@ export default function ModalPresupuesto({
     <Hoja titulo={editando ? `Editar límite — ${presupuesto.categoria}` : 'Nuevo presupuesto'} onCerrar={onCerrar}>
       <form onSubmit={enviar} className="space-y-3">
         {!editando && (
-          <div>
-            <label htmlFor={`${id}-cat`} className="text-textDim text-xs mb-1 block tracking-micro">Categoría</label>
-            <select
-              id={`${id}-cat`} required
-              value={categoria} onChange={e => setCategoria(e.target.value)}
-              className={`w-full ${CLASE_INPUT}`}
-            >
-              {categoriasDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
+          <Campo
+            etiqueta="Categoría" tipo="select" required
+            value={categoria} onChange={e => setCategoria(e.target.value)}
+          >
+            {categoriasDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+          </Campo>
         )}
 
-        <div>
-          <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">
-            Monto límite (Q)
-          </label>
-          <input
-            id={`${id}-monto`} type="number" step="0.01" min="0.01" required placeholder="0.00"
-            value={monto} onChange={e => setMonto(e.target.value)}
-            className={`w-full text-xl font-mono ${CLASE_INPUT}`}
-          />
-        </div>
+        <Campo
+          etiqueta="Monto límite (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
+          value={monto} onChange={e => setMonto(e.target.value)}
+          clase="text-xl font-mono"
+        />
 
         {err && <p role="alert" className="text-danger text-xs">{err}</p>}
 

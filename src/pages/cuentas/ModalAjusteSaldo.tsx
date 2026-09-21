@@ -1,8 +1,8 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
 import { supabase } from '../../lib/supabase'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 import { useFechas } from '../../hooks/useFechas'
 
@@ -16,7 +16,6 @@ interface Props {
  * vía: `cuentas.saldo` lo mantiene el trigger y nunca se escribe desde acá.
  */
 export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
-  const id = useId()
   const { userId, refrescar } = useSesion()
   const fechas = useFechas()
 
@@ -53,14 +52,11 @@ export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
         Ingresa un valor positivo para sumar o negativo para restar del saldo.
       </p>
       <form onSubmit={enviar} className="space-y-3">
-        <div>
-          <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">Monto (Q)</label>
-          <input
-            id={`${id}-monto`} type="number" step="0.01" required placeholder="ej. -500.00 o 200.00"
-            value={monto} onChange={e => setMonto(e.target.value)}
-            className={`w-full text-xl font-mono ${CLASE_INPUT}`}
-          />
-        </div>
+        <Campo
+          etiqueta="Monto (Q)" tipo="number" step="0.01" required placeholder="ej. -500.00 o 200.00"
+          value={monto} onChange={e => setMonto(e.target.value)}
+          clase="text-xl font-mono"
+        />
         {err && <p role="alert" className="text-danger text-xs">{err}</p>}
         <button
           type="submit" disabled={guardando}

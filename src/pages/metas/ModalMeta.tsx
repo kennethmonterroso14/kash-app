@@ -1,7 +1,7 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 
 interface Props {
   /** Devuelve el mensaje de error, o null si salió bien. */
@@ -10,7 +10,6 @@ interface Props {
 }
 
 export default function ModalMeta({ guardar, onCerrar }: Props) {
-  const id = useId()
   const [nombre, setNombre] = useState('')
   const [objetivo, setObjetivo] = useState('')
   const [actual, setActual] = useState('')
@@ -43,30 +42,20 @@ export default function ModalMeta({ guardar, onCerrar }: Props) {
   return (
     <Hoja titulo="Nueva meta" onCerrar={onCerrar}>
       <form onSubmit={enviar} className="space-y-3">
-        <div>
-          <label htmlFor={`${id}-nombre`} className="text-textDim text-xs mb-1 block tracking-micro">Nombre</label>
-          <input
-            id={`${id}-nombre`} type="text" required placeholder="ej. Fondo de emergencia"
-            value={nombre} onChange={e => setNombre(e.target.value)}
-            className={`w-full ${CLASE_INPUT}`}
-          />
-        </div>
-        <div>
-          <label htmlFor={`${id}-objetivo`} className="text-textDim text-xs mb-1 block tracking-micro">Monto objetivo (Q)</label>
-          <input
-            id={`${id}-objetivo`} type="number" step="0.01" min="0.01" required placeholder="0.00"
-            value={objetivo} onChange={e => setObjetivo(e.target.value)}
-            className={`w-full text-xl font-mono ${CLASE_INPUT}`}
-          />
-        </div>
-        <div>
-          <label htmlFor={`${id}-actual`} className="text-textDim text-xs mb-1 block tracking-micro">Ya tengo (Q, opcional)</label>
-          <input
-            id={`${id}-actual`} type="number" step="0.01" min="0" placeholder="0.00"
-            value={actual} onChange={e => setActual(e.target.value)}
-            className={`w-full font-mono ${CLASE_INPUT}`}
-          />
-        </div>
+        <Campo
+          etiqueta="Nombre" required placeholder="ej. Fondo de emergencia"
+          value={nombre} onChange={e => setNombre(e.target.value)}
+        />
+        <Campo
+          etiqueta="Monto objetivo (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
+          value={objetivo} onChange={e => setObjetivo(e.target.value)}
+          clase="text-xl font-mono"
+        />
+        <Campo
+          etiqueta="Ya tengo (Q, opcional)" tipo="number" step="0.01" min="0" placeholder="0.00"
+          value={actual} onChange={e => setActual(e.target.value)}
+          clase="font-mono"
+        />
 
         {err && <p role="alert" className="text-danger text-sm">{err}</p>}
 

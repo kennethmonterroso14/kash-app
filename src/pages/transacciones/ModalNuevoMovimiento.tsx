@@ -1,7 +1,7 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
@@ -43,7 +43,6 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
   const { cuentas, categoriasGasto, categoriasIngreso, resumenTCs, registrarCargo } = useSesion()
   // Un <label> sin `htmlFor` no lo anuncia el lector de pantalla y tocarlo no
   // enfoca el campo. useId() da prefijos únicos por instancia del modal.
-  const id = useId()
   const fmt = useMoneda()
   const fechas = useFechas()
 
@@ -127,10 +126,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
   }
 
   const campoFecha = (
-    <div>
-      <label htmlFor={`${id}-fecha`} className="text-textDim text-xs mb-1 block tracking-micro">Fecha</label>
-      <input id={`${id}-fecha`} type="date" value={fecha} onChange={e => setFecha(e.target.value)} className={`w-full ${CLASE_INPUT}`} />
-    </div>
+    <Campo etiqueta="Fecha" tipo="date" value={fecha} onChange={e => setFecha(e.target.value)} />
   )
 
   return (
@@ -152,78 +148,53 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
       </div>
 
       <form onSubmit={enviar} className="space-y-3">
-        <div>
-          <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">Monto (Q)</label>
-          <input id={`${id}-monto`}
-            type="number" step="0.01" min="0.01" required placeholder="0.00"
-            value={cantidad} onChange={e => setCantidad(e.target.value)}
-            className={`w-full text-xl font-mono ${CLASE_INPUT}`}
-          />
-        </div>
+        <Campo
+          etiqueta="Monto (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
+          value={cantidad} onChange={e => setCantidad(e.target.value)}
+          clase="text-xl font-mono"
+        />
 
         {tipo === 'transferencia' ? (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor={`${id}-de`} className="text-textDim text-xs mb-1 block tracking-micro">De cuenta</label>
-                <select id={`${id}-de`} value={transferDe} onChange={e => setTransferDe(e.target.value)} required className={`w-full ${CLASE_INPUT}`}>
-                  <option value="">Seleccionar</option>
-                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor={`${id}-a`} className="text-textDim text-xs mb-1 block tracking-micro">A cuenta</label>
-                <select id={`${id}-a`} value={transferA} onChange={e => setTransferA(e.target.value)} required className={`w-full ${CLASE_INPUT}`}>
-                  <option value="">Seleccionar</option>
-                  {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-              </div>
+              <Campo etiqueta="De cuenta" tipo="select" required value={transferDe} onChange={e => setTransferDe(e.target.value)}>
+                <option value="">Seleccionar</option>
+                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </Campo>
+              <Campo etiqueta="A cuenta" tipo="select" required value={transferA} onChange={e => setTransferA(e.target.value)}>
+                <option value="">Seleccionar</option>
+                {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </Campo>
             </div>
-            <div>
-              <label htmlFor={`${id}-desc-transfer`} className="text-textDim text-xs mb-1 block tracking-micro">Descripción (opcional)</label>
-              <input id={`${id}-desc-transfer`}
-                type="text" placeholder="ej. Ahorro mensual"
-                value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                className={`w-full ${CLASE_INPUT}`}
-              />
-            </div>
+            <Campo
+              etiqueta="Descripción (opcional)" placeholder="ej. Ahorro mensual"
+              value={descripcion} onChange={e => setDescripcion(e.target.value)}
+            />
             {campoFecha}
           </>
         ) : (
           <>
-            <div>
-              <label htmlFor={`${id}-desc`} className="text-textDim text-xs mb-1 block tracking-micro">Descripción</label>
-              <input id={`${id}-desc`}
-                type="text" required placeholder="¿En qué?"
-                value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                className={`w-full ${CLASE_INPUT}`}
-              />
-            </div>
+            <Campo
+              etiqueta="Descripción" required placeholder="¿En qué?"
+              value={descripcion} onChange={e => setDescripcion(e.target.value)}
+            />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor={`${id}-cat`} className="text-textDim text-xs mb-1 block tracking-micro">Categoría</label>
-                <select id={`${id}-cat`} value={categoria} onChange={e => setCategoria(e.target.value)} className={`w-full ${CLASE_INPUT}`}>
-                  {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor={`${id}-origen`} className="text-textDim text-xs mb-1 block tracking-micro">
-                  {tipo === 'gasto_tc' ? 'Tarjeta' : 'Cuenta'}
-                </label>
-                {tipo === 'gasto_tc' ? (
-                  <select id={`${id}-origen`} value={tcId} onChange={e => setTcId(e.target.value)} className={`w-full ${CLASE_INPUT}`}>
-                    {resumenTCs.length === 0
-                      ? <option value="">Sin tarjetas</option>
-                      : resumenTCs.map(({ tc, resumen }) => (
-                        <option key={tc.id} value={tc.id}>{tc.nombre} — {fmt(resumen.disponible)}</option>
-                      ))}
-                  </select>
-                ) : (
-                  <select id={`${id}-origen`} value={cuentaId} onChange={e => setCuentaId(e.target.value)} className={`w-full ${CLASE_INPUT}`}>
-                    {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
-                )}
-              </div>
+              <Campo etiqueta="Categoría" tipo="select" value={categoria} onChange={e => setCategoria(e.target.value)}>
+                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+              </Campo>
+              {tipo === 'gasto_tc' ? (
+                <Campo etiqueta="Tarjeta" tipo="select" value={tcId} onChange={e => setTcId(e.target.value)}>
+                  {resumenTCs.length === 0
+                    ? <option value="">Sin tarjetas</option>
+                    : resumenTCs.map(({ tc, resumen }) => (
+                      <option key={tc.id} value={tc.id}>{tc.nombre} — {fmt(resumen.disponible)}</option>
+                    ))}
+                </Campo>
+              ) : (
+                <Campo etiqueta="Cuenta" tipo="select" value={cuentaId} onChange={e => setCuentaId(e.target.value)}>
+                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </Campo>
+              )}
             </div>
             {trasCargo !== null && (
               <p className={`text-xs font-mono ${trasCargo >= 0 ? 'text-success' : 'text-danger'}`}>

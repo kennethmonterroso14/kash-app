@@ -1,8 +1,8 @@
 import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type Inversion } from '../../lib/finanzas'
 import { TIPOS_INVERSION } from '../../lib/constants'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useFechas } from '../../hooks/useFechas'
 
 interface Props {
@@ -70,27 +70,28 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
   return (
     <Hoja titulo={editando ? 'Editar inversión' : 'Nueva inversión'} onCerrar={onCerrar}>
       <div className="flex flex-col gap-3">
-        <input
-          placeholder={editando ? 'Nombre' : 'Nombre (ej: Fondo HAPI)'}
+        <Campo
+          etiqueta="Nombre" placeholder={editando ? undefined : 'ej. Fondo HAPI'}
           value={nombre} onChange={e => setNombre(e.target.value)}
-          className={CLASE_INPUT}
         />
-        <input
-          placeholder={editando ? 'Plataforma (opcional)' : 'Plataforma (opcional, ej: HAPI, SAT, Binance)'}
+        <Campo
+          etiqueta="Plataforma (opcional)"
+          placeholder={editando ? undefined : 'ej. HAPI, SAT, Binance'}
           value={plataforma} onChange={e => setPlataforma(e.target.value)}
-          className={CLASE_INPUT}
         />
-        <select value={tipo} onChange={e => setTipo(e.target.value)} aria-label="Tipo de inversión" className={CLASE_INPUT}>
+        <Campo etiqueta="Tipo de inversión" tipo="select" value={tipo} onChange={e => setTipo(e.target.value)}>
           {TIPOS_INVERSION.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+        </Campo>
 
-        <div className="flex gap-2">
-          <input
-            placeholder={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
-            value={capital} onChange={e => setCapital(e.target.value)}
-            inputMode="decimal"
-            className={`flex-1 ${CLASE_INPUT}`}
-          />
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <Campo
+              etiqueta={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
+              placeholder="0.00" inputMode="decimal"
+              value={capital} onChange={e => setCapital(e.target.value)}
+              clase="font-mono"
+            />
+          </div>
           {editando ? (
             <div className="flex items-center px-4 py-3 bg-surface2 border border-canto rounded-control text-textDim text-sm font-medium">
               {moneda}
@@ -117,22 +118,14 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
           </p>
         )}
 
-        <div>
-          <label htmlFor="inv-fecha" className="text-textDim text-xs mb-1 block tracking-micro">
-            Fecha de inicio
-          </label>
-          <input
-            id="inv-fecha" type="date" max={fechas.hoy()}
-            value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
-            className={`w-full ${CLASE_INPUT}`}
-          />
-        </div>
+        <Campo
+          etiqueta="Fecha de inicio" tipo="date" max={fechas.hoy()}
+          value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
+        />
 
-        <textarea
-          placeholder="Notas (opcional)"
+        <Campo
+          etiqueta="Notas (opcional)" tipo="area" rows={2}
           value={notas} onChange={e => setNotas(e.target.value)}
-          rows={2}
-          className={`resize-none ${CLASE_INPUT}`}
         />
 
         {err && <p className="text-danger text-sm">{err}</p>}

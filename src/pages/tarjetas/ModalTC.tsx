@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 
 // Los colores que el usuario le puede poner a una tarjeta. Son data (se guardan
@@ -93,40 +93,35 @@ export default function ModalTC({ tc, onCerrar }: Props) {
   return (
     <Hoja titulo={editando ? 'Editar tarjeta' : 'Nueva tarjeta'} onCerrar={onCerrar}>
       <div className="flex flex-col gap-3">
-        <input
-          placeholder="Nombre (ej: Visa BAC Personal)"
+        <Campo
+          etiqueta="Nombre" placeholder="ej. Visa BAC Personal"
           value={nombre} onChange={e => setNombre(e.target.value)}
-          className={CLASE_INPUT}
         />
-        <input
-          placeholder="Banco (opcional)"
+        <Campo
+          etiqueta="Banco (opcional)"
           value={banco} onChange={e => setBanco(e.target.value)}
-          className={CLASE_INPUT}
         />
-        <input
-          placeholder="Últimos 4 dígitos (opcional)"
+        <Campo
+          etiqueta="Últimos 4 dígitos (opcional)"
           value={ult4} onChange={e => setUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
           inputMode="numeric" maxLength={4}
-          className={CLASE_INPUT}
+          clase="font-mono"
         />
-        <input
-          placeholder="Límite de crédito (Q)"
+        <Campo
+          etiqueta="Límite de crédito (Q)" placeholder="0.00" inputMode="decimal"
           value={limite} onChange={e => setLimite(e.target.value)}
-          inputMode="decimal"
-          className={CLASE_INPUT}
+          clase="font-mono"
         />
-        <div className="flex gap-2">
-          <input
-            placeholder="Día de cierre"
+        <div className="grid grid-cols-2 gap-3">
+          <Campo
+            etiqueta="Día de cierre" inputMode="numeric"
             value={cierre} onChange={e => setCierre(e.target.value)}
-            inputMode="numeric"
-            className={`flex-1 ${CLASE_INPUT}`}
+            clase="font-mono"
           />
-          <input
-            placeholder="Día de pago"
+          <Campo
+            etiqueta="Día de pago" inputMode="numeric"
             value={pago} onChange={e => setPago(e.target.value)}
-            inputMode="numeric"
-            className={`flex-1 ${CLASE_INPUT}`}
+            clase="font-mono"
           />
         </div>
 

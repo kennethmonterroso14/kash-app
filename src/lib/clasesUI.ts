@@ -1,11 +1,10 @@
 /**
- * Clases repetidas de Tailwind, en un solo lugar.
+ * Las clases del control de formulario, en un solo lugar.
  *
- * Es un paliativo, no la capa de componentes: los primitivos (`Field`, `Sheet`,
- * `Money`, …) son la tarea 3.2 del roadmap, y se hacen DESPUÉS de partir las
- * páginas para no abstraer sobre la estructura equivocada. Hasta entonces, esto
- * evita que la misma cadena de 130 caracteres viva copiada en veinte archivos y
- * se desincronice.
+ * Ya no es un paliativo: desde la tarea 3.2 el único que la lee es `Campo`, y
+ * ningún sitio de llamada la importa. Sigue viviendo acá y no dentro del
+ * componente porque `tailwind.config.js` necesita ver la cadena literal, y
+ * porque es la definición del control, no de ese componente.
  *
  * Ojo con el tamaño de letra: el piso de 16px en táctil lo pone `index.css` con
  * `!important`, porque una utilidad como `text-sm` le gana a la capa base.

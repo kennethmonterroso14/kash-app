@@ -1,8 +1,8 @@
 import { useState } from 'react'
+import Campo from '../components/Campo'
 import { toCentavos } from '../lib/finanzas'
 import { useSesion } from '../context/sesion'
 import { useMetas } from '../hooks/useMetas'
-import { CLASE_INPUT } from '../lib/clasesUI'
 import TarjetaMeta from './metas/TarjetaMeta'
 import ModalMeta from './metas/ModalMeta'
 
@@ -54,13 +54,10 @@ export default function MetasPage() {
       )}
 
       <div className="bg-surface rounded-tarjeta px-4 py-4 mb-5">
-        <label htmlFor="ahorro-mensual" className="text-textDim text-xs mb-1 block tracking-micro">
-          Ahorro mensual estimado (Q)
-        </label>
-        <input
-          id="ahorro-mensual" type="number" min="1" step="100"
+        <Campo
+          etiqueta="Ahorro mensual estimado (Q)" tipo="number" min="1" step="100"
           value={ahorroQ} onChange={e => setAhorroQ(e.target.value)}
-          className={`w-full text-xl font-mono ${CLASE_INPUT}`}
+          clase="text-xl font-mono"
         />
       </div>
 

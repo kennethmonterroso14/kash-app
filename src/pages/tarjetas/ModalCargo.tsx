@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
@@ -73,16 +73,14 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
       )}
 
       <div className="flex flex-col gap-3">
-        <input
-          placeholder="Monto (Q)"
+        <Campo
+          etiqueta="Monto (Q)" placeholder="0.00" inputMode="decimal"
           value={monto} onChange={e => setMonto(e.target.value)}
-          inputMode="decimal"
-          className={CLASE_INPUT}
+          clase="font-mono"
         />
-        <input
-          placeholder="Descripción"
+        <Campo
+          etiqueta="Descripción" placeholder="¿En qué?"
           value={desc} onChange={e => setDesc(e.target.value)}
-          className={CLASE_INPUT}
         />
         <div>
           <p className="text-textDim text-xs mb-2 tracking-micro">Categoría</p>
@@ -100,10 +98,9 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
             ))}
           </div>
         </div>
-        <input
-          type="date"
+        <Campo
+          etiqueta="Fecha" tipo="date"
           value={fecha} onChange={e => setFecha(e.target.value)}
-          className={CLASE_INPUT}
         />
         {err && <p className="text-danger text-sm">{err}</p>}
         <button

@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
@@ -60,24 +60,22 @@ export default function ModalPago({ tc, onCerrar }: Props) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <input
-          placeholder="Monto a pagar (Q)"
+        <Campo
+          etiqueta="Monto a pagar (Q)" placeholder="0.00" inputMode="decimal"
           value={monto} onChange={e => setMonto(e.target.value)}
-          inputMode="decimal"
-          className={CLASE_INPUT}
+          clase="font-mono"
         />
-        <select
+        <Campo
+          etiqueta="Cuenta de cargo" tipo="select"
           value={cuenta} onChange={e => setCuenta(e.target.value)}
-          className={CLASE_INPUT}
         >
           {cuentas.map(c => (
             <option key={c.id} value={c.id}>{c.nombre} — {fmt(c.saldo)}</option>
           ))}
-        </select>
-        <input
-          type="date"
+        </Campo>
+        <Campo
+          etiqueta="Fecha" tipo="date"
           value={fecha} onChange={e => setFecha(e.target.value)}
-          className={CLASE_INPUT}
         />
         {err && <p className="text-danger text-sm">{err}</p>}
         <button

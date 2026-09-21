@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos, type Inversion } from '../../lib/finanzas'
-import { CLASE_INPUT } from '../../lib/clasesUI'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
 
@@ -69,26 +69,18 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
       </div>
 
       <div className="flex flex-col gap-3">
-        <input
-          placeholder={`Nuevo valor (${esUSD ? '$' : 'Q'})`}
+        <Campo
+          etiqueta={`Nuevo valor (${esUSD ? '$' : 'Q'})`}
+          placeholder="0.00" inputMode="decimal"
           value={valor} onChange={e => setValor(e.target.value)}
-          inputMode="decimal"
-          className={CLASE_INPUT}
+          clase="font-mono"
         />
-        <div>
-          <label htmlFor="inv-fecha-update" className="text-textDim text-xs mb-1 block tracking-micro">
-            Fecha del update
-          </label>
-          <input
-            id="inv-fecha-update" type="date"
-            value={fecha} onChange={e => setFecha(e.target.value)}
-            min={inv.fecha_inicio} max={fechas.hoy()}
-            className={`w-full ${CLASE_INPUT}`}
-          />
-          <p className="text-textDim text-xs mt-1">
-            Una fecha anterior agrega un punto al historial sin reemplazar el valor vigente.
-          </p>
-        </div>
+        <Campo
+          etiqueta="Fecha del update" tipo="date"
+          value={fecha} onChange={e => setFecha(e.target.value)}
+          min={inv.fecha_inicio} max={fechas.hoy()}
+          pista="Una fecha anterior agrega un punto al historial sin reemplazar el valor vigente."
+        />
 
         {err && <p className="text-danger text-sm">{err}</p>}
         <button
