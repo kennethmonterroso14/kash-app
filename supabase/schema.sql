@@ -176,6 +176,15 @@ create table if not exists ciclos_tc (
   saldo_final   bigint not null default 0,
   estado        estado_ciclo_tc not null default 'abierto',
   created_at    timestamptz not null default now(),
+  -- CUÁNDO se cerró de verdad, no cuándo tocaba cerrarse. `fecha_cierre` es
+  -- la fecha teórica del corte y el usuario cierra cuando quiere, así que sin
+  -- esta columna no se puede saber en qué momento un monto pasó de
+  -- deuda_actual a deuda_ciclo_anterior — y sin eso la historia de la deuda no
+  -- se puede reproducir desde el ledger (RESTRUCTURE §2.1). La escribe
+  -- cerrar_ciclo_tc. NULL en un ciclo cerrado significa "se cerró antes de que
+  -- existiera esta columna": ese tramo no es derivable y la derivación lo dice
+  -- en vez de inventarlo.
+  cerrado_at    timestamptz,
 
   constraint ciclo_fechas_validas check (fecha_cierre > fecha_inicio),
   unique (tarjeta_id, fecha_inicio)
@@ -184,6 +193,11 @@ create table if not exists ciclos_tc (
 -- del enum. Corrió después del de la Fase 6, así que el `create table if not
 -- exists` no hizo nada y la base real tiene el enum. Si en la base real
 -- `estado` es text, este archivo no lo cambia (create if not exists).
+
+-- Aditivo para una base ya desplegada: el `create table if not exists` de
+-- arriba no agrega columnas a una tabla que ya existe.
+alter table ciclos_tc
+  add column if not exists cerrado_at timestamptz;
 
 -- ─── TRANSACCIONES ────────────────────────────────────────────────────
 -- Ledger universal. Ver CLAUDE.md para la tabla de tipos.
@@ -785,9 +799,15 @@ begin
      and user_id = v_uid
      and estado = 'abierto';
 
+  -- `cerrado_at` es el momento REAL del cierre, y es lo que vuelve
+  -- reproducible la historia de la deuda: sin él no se sabe si un cargo entró
+  -- antes o después de que su monto pasara al bucket anterior. `clock_timestamp()`
+  -- y no `now()`: `now()` es el inicio de la transacción, y dos cierres en la
+  -- misma transacción quedarían con el mismo instante y sin orden entre ellos.
   update ciclos_tc
      set estado = 'cerrado',
-         saldo_final = v_tc.deuda_actual
+         saldo_final = v_tc.deuda_actual,
+         cerrado_at = clock_timestamp()
    where tarjeta_id = p_tarjeta_id
      and user_id = v_uid
      and estado = 'abierto';

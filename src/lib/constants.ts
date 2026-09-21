@@ -110,6 +110,21 @@ export const ahoraEn = (zona: string): Date => new Date(`${hoyEn(zona)}T12:00:00
 /** Mes actual ('YYYY-MM') en una zona horaria. */
 export const mesActualEn = (zona: string): string => hoyEn(zona).substring(0, 7)
 
+/**
+ * El día de calendario ('YYYY-MM-DD') en que cayó un instante, en una zona.
+ *
+ * Existe para los `timestamptz` que sí guardamos — hoy `ciclos_tc.cerrado_at`.
+ * El resto de las fechas de la app son columnas `date` y ya vienen como
+ * 'YYYY-MM-DD'; un instante no, y `new Date(iso).toLocaleDateString()` lo
+ * resolvería en la zona del navegador, que es justo lo que el perfil existe
+ * para no hacer.
+ *
+ * Lanza si la zona es inválida, igual que `hoyEn`: un fallback silencioso
+ * mostraría el día equivocado sin avisar.
+ */
+export const diaEn = (iso: string, zona: string): string =>
+  formateadorFecha(zona).format(new Date(iso))
+
 // Los alias hoyGT/ahoraGT/mesActual se retiraron en la tarea 1.4.7: ya no
 // quedaba ningún sitio que asumiera Guatemala. Todo pasa por `useFechas()`, que
 // currifica estas funciones con la zona del perfil. Las dos excepciones, ambas
