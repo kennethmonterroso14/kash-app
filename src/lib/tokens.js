@@ -83,10 +83,23 @@ export const sombras = {
  * `entrada` es su inversa exacta, para que una transición reversible vuelva
  * por el mismo camino (§7 "mirror the easing").
  */
+/**
+ * Los cuatro puntos de control, que es la forma que necesita Motion (`ease`
+ * quiere el arreglo, no la cadena `cubic-bezier(...)`). Las cadenas de `curvas`
+ * salen de acá: si el número vive en dos lugares, un día dejan de coincidir.
+ */
+export const curvasBezier = {
+  salida:   [0.22, 1, 0.36, 1],
+  entrada:  [0.78, 0, 0.64, 1],
+  estandar: [0.4, 0, 0.2, 1],
+}
+
+const bezier = ([a, b, c, d]) => `cubic-bezier(${a}, ${b}, ${c}, ${d})`
+
 export const curvas = {
-  salida:   'cubic-bezier(0.22, 1, 0.36, 1)',
-  entrada:  'cubic-bezier(0.78, 0, 0.64, 1)',
-  estandar: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  salida:   bezier(curvasBezier.salida),
+  entrada:  bezier(curvasBezier.entrada),
+  estandar: bezier(curvasBezier.estandar),
 }
 
 /** Duraciones. `presion` es el feedback de `:active`: 100–160ms o se siente lento. */
