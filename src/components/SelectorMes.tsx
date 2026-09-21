@@ -1,4 +1,4 @@
-import { MESES } from '../../lib/constants'
+import { MESES } from '../lib/constants'
 
 interface Props {
   /** 'YYYY-MM' */
@@ -6,7 +6,11 @@ interface Props {
   onCambiar: (mes: string) => void
 }
 
-/** Navegación mes a mes. El mes viaja como 'YYYY-MM'; el hook deriva la ventana. */
+/**
+ * Navegación mes a mes. El mes viaja como 'YYYY-MM' y el hook deriva la ventana.
+ * Vive en components/ y no junto a una página porque lo usan Movimientos y
+ * Presupuesto, que antes tenían cada una su propia copia de esta aritmética.
+ */
 export default function SelectorMes({ mes, onCambiar }: Props) {
   const [anio, mesNum] = mes.split('-').map(Number)
 

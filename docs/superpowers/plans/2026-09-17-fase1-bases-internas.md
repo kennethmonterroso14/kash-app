@@ -112,7 +112,15 @@ del roadmap.
       archivar usaba `window.confirm` contra la convención del repo, y el color de la gráfica era
       un hex suelto. El chequeo de "tipo de cambio viejo" sale a una función pura con tests, y el
       reloj se lee una sola vez en el inicializador del estado (leerlo en render es impuro).
-- [ ] **1.4.4** `BudgetPage` (612)
+- [x] **1.4.4** `BudgetPage`: 611 → **170**. Acá el problema de fondo no era el largo: `presupuestos`
+      era **la única tabla sin hook**, así que ~250 líneas de acceso a datos vivían mezcladas con el
+      JSX. Sale `src/hooks/usePresupuestos.ts` con todo el estado delicado (etiquetado por mes, el
+      latch de la copia, el banner) y la página lo recibe ya filtrado por el mes visible: de cinco
+      estados etiquetados a cero. Más `./presupuesto/{TarjetaPresupuesto,ModalPresupuesto}` y
+      `SelectorMes` movido a `components/` porque ya lo usan dos páginas. Tres defectos: el % usaba
+      `text-yellow-400` (color crudo) mientras la barra usaba `colores.warning` — dos amarillos
+      distintos; un fallo al cargar los movimientos dejaba las barras en Q0.00 gastado sin avisar; y
+      "Reintentar" recargaba la app entera en lugar de repetir la consulta.
 - [ ] **1.4.5** `DashboardPage` (436)
 - [ ] **1.4.6** `MetasPage` (368) y `PagosRecurrentesPage` (367)
 - [ ] **1.4.7** Barrido final: grep de `formatQ(` y `hoyGT(` sin llamadas fuera de los alias, y
@@ -121,8 +129,13 @@ del roadmap.
 ## Task 1.5 — Tests de hooks
 
 - [x] **1.5.1** Agregar `@testing-library/react` y un `setup` de Vitest para React.
-- [ ] **1.5.2** Carry-over de presupuestos: no resucita lo borrado, no escribe meses futuros, el
-      banner y "Deshacer" son alcanzables.
+- [x] **1.5.2** Carry-over de presupuestos: **10 tests** sobre `usePresupuestos`. Cubren que no
+      resucite lo borrado, que no materialice meses futuros, que el banner y "Deshacer" sean
+      alcanzables, que deshacer no re-dispare la copia, que un fetch fallido no cuente como mes
+      vacío, y que las tres escrituras vayan acotadas por `user_id` y `mes`. **Verificados por
+      mutación**: quitar el guard de mes futuro rompe un test, y volver a decidir la copia con la
+      lista viva rompe otro. (La primera mutación que probé no rompía nada porque no era fiel al
+      bug — le faltaba la dependencia del efecto; con la fiel sí rompe.)
 - [ ] **1.5.3** `useAutoApplyPagos`: idempotencia por mes al editar `dia_del_mes`, el
       compare-and-swap, y que un insert fallido no deje avanzado `ultima_aplicacion`.
 - [ ] **1.5.4** Reparto de deuda de TC en insert / update / delete.

@@ -169,7 +169,7 @@ export default function PagosRecurrentesPage() {
                     <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">✓ aplicado</span>
                   )}
                   {estado === 'pendiente' && (
-                    <span className="text-xs bg-yellow-400/10 text-yellow-400 px-2 py-0.5 rounded-full">pendiente</span>
+                    <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full">pendiente</span>
                   )}
                 </div>
                 <p className="text-textDim text-xs mt-1">
