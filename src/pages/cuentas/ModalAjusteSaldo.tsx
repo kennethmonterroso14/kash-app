@@ -1,0 +1,82 @@
+import { useId, useState } from 'react'
+import { toCentavos } from '../../lib/finanzas'
+import { supabase } from '../../lib/supabase'
+import { CLASE_INPUT } from '../../lib/clasesUI'
+import { useSesion } from '../../context/sesion'
+import { useFechas } from '../../hooks/useFechas'
+
+interface Props {
+  cuenta: { id: string; nombre: string }
+  onCerrar: () => void
+}
+
+/**
+ * Corrige el saldo insertando una transacción de tipo `ajuste`, que es la única
+ * vía: `cuentas.saldo` lo mantiene el trigger y nunca se escribe desde acá.
+ */
+export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
+  const id = useId()
+  const { userId, refrescar } = useSesion()
+  const fechas = useFechas()
+
+  const [monto, setMonto] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [err, setErr] = useState('')
+
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const val = parseFloat(monto)
+    // La base rechaza cantidad = 0, así que se ataja antes de llegar.
+    if (!Number.isFinite(val) || val === 0) return setErr('Ingresa un monto distinto de cero')
+    setGuardando(true)
+    setErr('')
+    // El signo lo aplica el llamador: toCentavos lanza con negativos.
+    const { error } = await supabase.from('transacciones').insert({
+      user_id: userId,
+      cuenta_id: cuenta.id,
+      fecha: fechas.hoy(),
+      cantidad: toCentavos(Math.abs(val)) * (val < 0 ? -1 : 1),
+      descripcion: `Ajuste de saldo — ${cuenta.nombre}`,
+      categoria: 'Ajuste de cuenta',
+      tipo: 'ajuste',
+    })
+    if (error) { setErr(error.message); setGuardando(false); return }
+    setGuardando(false)
+    onCerrar()
+    await refrescar.cuentas()
+  }
+
+  return (
+    <div
+      className="fixed inset-0 scrim flex items-end justify-center z-50"
+      onClick={e => { if (e.target === e.currentTarget) onCerrar() }}
+    >
+      <div className="vidrio-hoja w-full max-w-lg rounded-t-hoja p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4">
+        <div className="flex justify-between items-center gap-2">
+          <h2 className="text-text font-semibold tracking-titulo truncate">Ajustar — {cuenta.nombre}</h2>
+          <button onClick={onCerrar} aria-label="Cerrar" className="presionable text-textDim text-xl flex-shrink-0">×</button>
+        </div>
+        <p className="text-textDim text-sm">
+          Ingresa un valor positivo para sumar o negativo para restar del saldo.
+        </p>
+        <form onSubmit={enviar} className="space-y-3">
+          <div>
+            <label htmlFor={`${id}-monto`} className="text-textDim text-xs mb-1 block tracking-micro">Monto (Q)</label>
+            <input
+              id={`${id}-monto`} type="number" step="0.01" required placeholder="ej. -500.00 o 200.00"
+              value={monto} onChange={e => setMonto(e.target.value)}
+              className={`w-full text-xl font-mono ${CLASE_INPUT}`}
+            />
+          </div>
+          {err && <p role="alert" className="text-danger text-xs">{err}</p>}
+          <button
+            type="submit" disabled={guardando}
+            className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control disabled:opacity-50"
+          >
+            {guardando ? 'Guardando...' : 'Aplicar ajuste'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
