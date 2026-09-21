@@ -88,7 +88,9 @@ export default function BudgetPage() {
     <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
       <div className="flex items-center justify-between mb-2 gap-2">
         <SelectorMes mes={mes} onCambiar={setMes} />
-        {botonAgregar('text-sm px-4 py-2 rounded-control flex-shrink-0')}
+        {/* Solo si hay presupuestos: con la lista vacía el estado vacío ya trae
+            su propio botón, y se veían dos "+ Categoría". */}
+        {presupuestos.length > 0 && botonAgregar('text-sm px-4 py-2 rounded-control flex-shrink-0')}
       </div>
 
       {banner && (

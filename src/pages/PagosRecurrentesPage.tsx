@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usePagosRecurrentes, type PagoRecurrente } from '../hooks/usePagosRecurrentes'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
@@ -8,6 +9,7 @@ import ModalPagoFijo, { type CamposPago } from './pagos/ModalPagoFijo'
 const MS_CONFIRMAR_BORRADO = 3000
 
 export default function PagosRecurrentesPage() {
+  const navigate = useNavigate()
   const { userId, cuentas } = useSesion()
   const fechas = useFechas()
   const { pagos, loading, error, addPago, updatePago, deletePago } = usePagosRecurrentes(userId)
@@ -77,9 +79,20 @@ export default function PagosRecurrentesPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
       <div className="flex items-center justify-between mb-2 gap-2">
-        <div className="min-w-0">
-          <h1 className="text-text font-semibold text-lg tracking-titulo">Pagos Fijos</h1>
-          <p className="text-textDim text-xs mt-0.5 tracking-micro">Se aplican automáticamente cada mes</p>
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Se llega desde Ajustes y no hay riel ni nav que la marque, así que
+              la pantalla tiene que decir cómo salir. */}
+          <button
+            onClick={() => navigate('/ajustes')}
+            aria-label="Volver a Ajustes"
+            className="presionable text-accent text-xl px-1 flex-shrink-0"
+          >
+            ←
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-text font-semibold text-lg tracking-titulo">Pagos Fijos</h1>
+            <p className="text-textDim text-xs mt-0.5 tracking-micro">Se aplican automáticamente cada mes</p>
+          </div>
         </div>
         {botonAgregar('+ Agregar', 'text-sm px-4 py-2 rounded-control flex-shrink-0')}
       </div>

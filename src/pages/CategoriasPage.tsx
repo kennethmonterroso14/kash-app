@@ -84,13 +84,14 @@ export default function CategoriasPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => navigate('/perfil')}
-          className="text-accent text-xl hover:opacity-80 transition-opacity"
+          onClick={() => navigate('/ajustes')}
+          aria-label="Volver a Ajustes"
+          className="presionable text-accent text-xl px-1"
         >
           ←
         </button>
         <div>
-          <h1 className="text-text font-display font-bold text-xl">Categorías</h1>
+          <h1 className="text-text font-display font-bold text-xl tracking-titulo">Categorías</h1>
           <p className="text-textDim text-xs">Personaliza tus categorías de gastos</p>
         </div>
       </div>

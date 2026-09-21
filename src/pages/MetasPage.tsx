@@ -43,11 +43,15 @@ export default function MetasPage() {
   )
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-5 gap-2">
-        <h1 className="text-text font-semibold text-lg tracking-titulo">Metas de ahorro</h1>
-        {botonNueva('text-sm px-4 py-2 rounded-control flex-shrink-0')}
-      </div>
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-6">
+      {/* Sin <h1>: el riel de la sección ya dice "Metas". Y el botón de arriba
+          solo aparece si hay metas: con la lista vacía, el estado vacío ya trae
+          el suyo y se veían dos "+ Nueva meta" en la misma pantalla. */}
+      {metas.length > 0 && (
+        <div className="flex items-center justify-end mb-5">
+          {botonNueva('text-sm px-4 py-2 rounded-control')}
+        </div>
+      )}
 
       <div className="bg-surface rounded-tarjeta px-4 py-4 mb-5">
         <label htmlFor="ahorro-mensual" className="text-textDim text-xs mb-1 block tracking-micro">

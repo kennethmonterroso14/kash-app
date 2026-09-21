@@ -150,7 +150,6 @@ export default function ProyeccionesPage() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Proyecciones</h1>
           <p className="text-textDim text-sm mt-1">
             Patrimonio actual:{' '}
             {loading

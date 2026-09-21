@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { supabase } from './lib/supabase'
 import Layout from './components/Layout'
+import SeccionConPestanas from './components/SeccionConPestanas'
 import LoginPage from './pages/LoginPage'
 import SetupPage from './pages/SetupPage'
 import DashboardPage from './pages/DashboardPage'
@@ -11,7 +12,7 @@ import CuentasPage from './pages/CuentasPage'
 import BudgetPage from './pages/BudgetPage'
 import MetasPage from './pages/MetasPage'
 import ProyeccionesPage from './pages/ProyeccionesPage'
-import PerfilPage from './pages/PerfilPage'
+import AjustesPage from './pages/AjustesPage'
 import PagosRecurrentesPage from './pages/PagosRecurrentesPage'
 import CategoriasPage from './pages/CategoriasPage'
 import TarjetasPage from './pages/TarjetasPage'
@@ -19,6 +20,17 @@ import TarjetaHistorialPage from './pages/TarjetaHistorialPage'
 import InversionesPage from './pages/InversionesPage'
 import AutoAplicarPagos from './components/AutoAplicarPagos'
 import { SesionProvider } from './context/SesionProvider'
+
+const PESTANAS_PATRIMONIO = [
+  { to: '/patrimonio/cuentas',     label: 'Cuentas' },
+  { to: '/patrimonio/inversiones', label: 'Inversiones' },
+]
+
+const PESTANAS_PLAN = [
+  { to: '/plan/presupuesto',  label: 'Presupuesto' },
+  { to: '/plan/metas',        label: 'Metas' },
+  { to: '/plan/proyecciones', label: 'Proyecciones' },
+]
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
@@ -50,7 +62,7 @@ export default function App() {
 
   if (loading || (user && hasSetup === null)) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="min-h-dvh bg-bg flex items-center justify-center">
         <p className="text-accent font-display text-lg animate-pulse">Vorta</p>
       </div>
     )
@@ -60,8 +72,8 @@ export default function App() {
 
   if (hasSetup === 'error') {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <div className="bg-surface rounded-2xl p-6 max-w-sm text-center space-y-3">
+      <div className="min-h-dvh bg-bg flex items-center justify-center px-4">
+        <div className="bg-surface rounded-tarjeta p-6 max-w-sm text-center space-y-3">
           <p className="text-text font-semibold">No se pudo cargar tu perfil</p>
           <p className="text-textDim text-sm">
             Revisa tu conexión e intenta de nuevo. No se hizo ningún cambio en tus datos.
@@ -69,7 +81,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="w-full bg-accent text-bg font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity"
+            className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control"
           >
             Reintentar
           </button>
@@ -89,22 +101,50 @@ export default function App() {
     <SesionProvider userId={user.id} email={user.email ?? null}>
       {/* Dentro del provider: necesita la zona horaria del perfil. */}
       <AutoAplicarPagos userId={user.id} />
-      <Layout onSignOut={signOut} userId={user.id}>
+      <Layout userId={user.id}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/resumen" replace />} />
+
+          {/* ── Los cinco destinos de la nav ────────────────────────── */}
+          <Route path="/resumen" element={<DashboardPage />} />
           <Route path="/txns" element={<TransaccionesPage />} />
-          <Route path="/cuentas" element={<CuentasPage />} />
-          <Route path="/budget" element={<BudgetPage />} />
-          <Route path="/metas" element={<MetasPage />} />
-          <Route path="/proyecciones" element={<ProyeccionesPage />} />
-          <Route path="/pagos" element={<PagosRecurrentesPage />} />
           <Route path="/tarjetas" element={<TarjetasPage />} />
           <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage />} />
-          <Route path="/inversiones" element={<InversionesPage />} />
-          <Route path="/perfil" element={<PerfilPage onSignOut={signOut} />} />
-          <Route path="/categorias" element={<CategoriasPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+          <Route path="/patrimonio" element={<SeccionConPestanas pestanas={PESTANAS_PATRIMONIO} />}>
+            <Route index element={<Navigate to="/patrimonio/cuentas" replace />} />
+            <Route path="cuentas" element={<CuentasPage />} />
+            <Route path="inversiones" element={<InversionesPage />} />
+          </Route>
+
+          <Route path="/plan" element={<SeccionConPestanas pestanas={PESTANAS_PLAN} />}>
+            <Route index element={<Navigate to="/plan/presupuesto" replace />} />
+            <Route path="presupuesto" element={<BudgetPage />} />
+            <Route path="metas" element={<MetasPage />} />
+            <Route path="proyecciones" element={<ProyeccionesPage />} />
+          </Route>
+
+          {/* ── Configuración: no es un destino de la nav ───────────── */}
+          <Route path="/ajustes" element={<AjustesPage onSignOut={signOut} />} />
+          <Route path="/ajustes/pagos" element={<PagosRecurrentesPage />} />
+          <Route path="/ajustes/categorias" element={<CategoriasPage />} />
+
+          {/*
+            Rutas viejas conservadas como redirecciones: pueden estar en un
+            atajo de la PWA instalada o en un bookmark, y romperlas por un
+            cambio de navegación es gratuito de evitar.
+          */}
+          <Route path="/dashboard"    element={<Navigate to="/resumen" replace />} />
+          <Route path="/cuentas"      element={<Navigate to="/patrimonio/cuentas" replace />} />
+          <Route path="/inversiones"  element={<Navigate to="/patrimonio/inversiones" replace />} />
+          <Route path="/budget"       element={<Navigate to="/plan/presupuesto" replace />} />
+          <Route path="/metas"        element={<Navigate to="/plan/metas" replace />} />
+          <Route path="/proyecciones" element={<Navigate to="/plan/proyecciones" replace />} />
+          <Route path="/pagos"        element={<Navigate to="/ajustes/pagos" replace />} />
+          <Route path="/categorias"   element={<Navigate to="/ajustes/categorias" replace />} />
+          <Route path="/perfil"       element={<Navigate to="/ajustes" replace />} />
+
+          <Route path="*" element={<Navigate to="/resumen" replace />} />
         </Routes>
       </Layout>
     </SesionProvider>

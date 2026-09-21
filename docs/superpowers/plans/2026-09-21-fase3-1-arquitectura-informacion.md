@@ -61,18 +61,34 @@ las apps de Apple con los controles segmentados: viven en el contenido.
 
 ## Tareas
 
-- [ ] **3.1.1** `SeccionConPestanas`: el riel segmentado + `<Outlet>`. Con `aria-current` en la
+- [x] **3.1.1** `SeccionConPestanas`: el riel segmentado + `<Outlet>`. Con `aria-current` en la
       pestaña activa y `role="tablist"` **no** — son enlaces de navegación, no pestañas ARIA, y
       mentir el rol rompe la semántica que el lector de pantalla ya entiende.
-- [ ] **3.1.2** Rutas: `/patrimonio/*`, `/plan/*`, `/ajustes`, `/resumen`, más las redirecciones de
+- [x] **3.1.2** Rutas: `/patrimonio/*`, `/plan/*`, `/ajustes`, `/resumen`, más las redirecciones de
       las siete rutas viejas.
-- [ ] **3.1.3** `Layout`: la nav de cinco con las etiquetas nuevas y el engranaje en el header.
-- [ ] **3.1.4** `PerfilPage` → `AjustesPage`: la lista queda solo con lo que es configuración
+- [x] **3.1.3** `Layout`: la nav de cinco con las etiquetas nuevas y el engranaje en el header.
+- [x] **3.1.4** `PerfilPage` → `AjustesPage`: la lista queda solo con lo que es configuración
       (Pagos Fijos, Categorías) más la cuenta y cerrar sesión.
-- [ ] **3.1.5** Quitar de las páginas los títulos que ahora duplican el riel o la nav
+- [x] **3.1.5** Quitar de las páginas los títulos que ahora duplican el riel o la nav
       ("Inversiones", "Metas de ahorro", "Pagos Fijos", "Tarjetas de Crédito").
-- [ ] **3.1.6** Verificar con capturas: los cinco destinos, las dos secciones con pestañas, el
+- [x] **3.1.6** Verificar con capturas: los cinco destinos, las dos secciones con pestañas, el
       engranaje, y que las redirecciones viejas caigan donde deben.
+
+## Lo que salió al implementarlo
+
+- **`NavLink` no sirve para el nav de abajo.** En React Router 7 fija
+  `aria-current="page"` sin opción de cambiarlo, así que en una ruta con pestañas quedaban DOS
+  elementos contestando "¿cuál es la página actual?": el item de nav y la pestaña. El nav pasa a
+  `Link` con el activo calculado a mano y dice `location` cuando la sección tiene pestañas.
+  Verificado en el DOM: `/plan/metas` da `["Metas=page","Plan=location"]`.
+- **El `<Outlet>` quedó FUERA del contenedor del riel.** Con el riel y el contenido en el mismo
+  `max-w-lg px-4`, y cada página con su propio wrapper, el gutter se duplicaba a 32px.
+- **Dos páginas mostraban su botón de acción dos veces** cuando la lista estaba vacía: el del
+  encabezado y el del estado vacío. Ahora el de arriba solo aparece si hay algo que listar.
+- **`PagosRecurrentesPage` no tenía forma de volver.** Se alcanza desde Ajustes y no hay riel ni
+  nav que la marque, así que la pantalla tenía que decir cómo salir (wayfinding).
+- **Un engranaje dibujado y no un emoji** en el header: el emoji cambia de forma y de color según
+  la plataforma, y ese es cromo, no contenido.
 
 ## Fuera de alcance, a propósito
 

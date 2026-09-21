@@ -49,15 +49,17 @@ export default function InversionesPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-6">
+      {/* Sin <h1>: el riel de pestañas de la sección ya dice "Inversiones", y
+          repetirlo le hace anunciar dos veces lo mismo al lector de pantalla. */}
       <div className="flex items-center justify-between mb-6 gap-2">
         <div className="min-w-0">
-          <h1 className="text-text font-display font-bold text-xl tracking-titulo">Inversiones</h1>
-          {resumen.ganancia_total !== 0 && (
-            <p className={`text-xs mt-0.5 font-mono ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
-              {resumen.ganancia_total >= 0 ? '+' : ''}{fmt(resumen.ganancia_total)} total
+          {resumen.ganancia_total !== 0 ? (
+            <p className={`text-sm font-mono font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
+              {resumen.ganancia_total >= 0 ? '+' : ''}{fmt(resumen.ganancia_total)}
+              <span className="text-textDim font-sans text-xs font-normal"> de ganancia</span>
             </p>
-          )}
+          ) : <span />}
         </div>
         <div className="flex gap-2 items-center flex-shrink-0">
           {tieneUSD && (
