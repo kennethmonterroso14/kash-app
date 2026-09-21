@@ -179,8 +179,35 @@ del roadmap.
 - [x] **1.5.6** `SesionProvider`: una sola carga por slice, y que el error de un slice no tumbe los
       otros.
 
-## Cierre de fase
+## Cierre de fase · ✅ FASE 1 TERMINADA
 
-- [ ] Verificar los criterios de terminado del spec.
-- [ ] Actualizar `CLAUDE.md` (la arquitectura cambia: ya no es "un hook por tabla instanciado por
-      página") y marcar en `RESTRUCTURE.md` lo que sale del inventario.
+- [x] **Criterios de terminado del spec, verificados uno por uno:**
+
+  | Criterio | Estado |
+  |---|---|
+  | Una consulta de perfil, cuentas, categorías y tarjetas — no seis | ✅ con un test que cuenta las consultas por tabla |
+  | Ninguna página recibe el objeto `User` | ✅ salvo `SetupPage`, que corre antes del provider |
+  | Ningún `window.location.reload()` como refetch | ✅ quedan los dos de pantallas de error, que el spec deja |
+  | Ninguna página sobre 300 líneas | ✅ la mayor es `ProyeccionesPage` con 294 |
+  | `formatMoneda` con tests de al menos tres monedas | ✅ cinco, y `formatQ` ya no existe |
+  | Tests de hooks para los cuatro escenarios | ✅ los cuatro, y verificados por mutación |
+  | `npm test` / `lint` / `tsc` en verde | ✅ 122 tests, 0 problemas de lint, `tsc` limpio |
+
+- [x] `CLAUDE.md` actualizado: la arquitectura ya no es "un hook por tabla instanciado por página",
+      así que la capa 3 se reescribió con el provider, qué tablas quedaron fuera del contexto y por
+      qué, la restricción de que un hook que monta el provider no puede llamar `useSesion()`, el
+      conteo de tests y `npm run test:sql`.
+- [x] `RESTRUCTURE.md`: salen del inventario **3.1, 3.2, 3.3, 3.4 y 3.6**. Siguen abiertos 3.5
+      (el auto-apply no es atómico contra dos dispositivos: eso necesita un RPC transaccional) y
+      3.7 (`calcPagoDeuda` es un export muerto).
+
+### Lo que la fase NO resolvió, y conviene no perder de vista
+
+- **Nadie ha visto las páginas corriendo con datos reales.** Se verificaron tipos, lint, 122 tests,
+  el SQL contra Postgres y capturas en Chromium con datos de prueba. No puedo autenticarme contra
+  Supabase desde el entorno, así que la verificación con datos propios sigue pendiente.
+- **Tres cosas solo se comprueban en un teléfono**: el costo en frames de `backdrop-filter` dentro
+  del WebView de Capacitor, las safe areas, y que los inputs ya no hagan zoom en iOS.
+- **No hay test de render de una página completa.** Los hooks y la matemática sí están cubiertos.
+- Los pendientes del mundo real (el Q6.50 de "Ysi Visa" y la protección de contraseñas filtradas)
+  están en el roadmap, no acá.

@@ -13,13 +13,15 @@ npm run lint                     # eslint .
 npx vitest run src/lib/finanzas.test.ts        # single file
 npx vitest run -t "calcFechasCiclo"            # single describe/it by name
 npx tsc -b                       # type-check only, no bundle
+npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (ver supabase/tests/)
 ```
 
 `src/lib/supabase.ts` **throws at import time** if `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (84 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (122 tests) and `lint` (0 problems) all pass.
+`npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
 ## Architecture
@@ -45,12 +47,24 @@ table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`v
    `src/hooks/`; `src/test/sesionFalsa.ts` + `ConSesion.tsx` build a read-only fake session for
    testing hooks that only consume the context.
 3. **One hook per table in `src/hooks/`** wraps the queries and holds the state. There is no global
-   store, no react-query: each hook runs its own `useEffect` fetch and each page instantiates the
-   hooks it needs, so the same rows are refetched per page mount. Writes update local state
+   store and no react-query: each hook runs its own `useEffect` fetch. Writes update local state
    optimistically and only refetch when a trigger changed something server-side (`useTarjetas`
    calls `cargar()` after every write for exactly this reason).
 
-Pages are glue: local `useState` for modals/forms, hooks for data, `finanzas.ts` for numbers.
+   **`SesionProvider` (`src/context/`) owns the four session-wide slices** — profile, cuentas,
+   categorías, tarjetas — and mounts their hooks **once**, with `cargando` and `error` *per slice*
+   so a failing slice doesn't hide the others. Pages read `useSesion()` and never instantiate those
+   hooks themselves. The month-scoped and page-specific tables keep their own hooks, instantiated
+   by the page: `useTransacciones`, `usePresupuestos`, `useInversiones`, `useMetas`,
+   `usePagosRecurrentes`, `useResumen6Meses`.
+
+   **A hook the provider mounts cannot call `useSesion()`** — it would consume the context that
+   component provides. That is why `useTarjetas(userId, zonaHoraria)` takes the timezone as a
+   parameter instead of using `useFechas()`, and it is the kind of thing someone "fixes" and breaks.
+
+Pages are glue: `useSesion()` plus their own hooks for data, `finanzas.ts` for numbers, and the
+sections and modals as components under `src/pages/<pagina>/`. No page is over 300 lines; the
+add/edit form of a given entity is **one** component, not two copies.
 
 **App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase email + password —
 `signInWithPassword` / `signUp`, *not* a magic link) →
@@ -61,8 +75,8 @@ reached from `PerfilPage`.
 
 ## Data model rules
 
-**Money is always integer centavos**, `bigint` in Postgres, `number` in TS. `formatQ` throws on a
-non-integer input and `toCentavos` throws on NaN or a negative — these are deliberate guard rails,
+**Money is always integer centavos**, `bigint` in Postgres, `number` in TS. `formatMoneda` throws on
+a non-integer input and `toCentavos` throws on NaN or a negative — these are deliberate guard rails,
 so the *caller* applies the sign (`cantidad: -Math.abs(monto)` for a gasto) and **validates user
 input before calling them**. Never call either with an unvalidated `parseFloat` during render: they
 throw, and that unmounts the tree (there is an `ErrorBoundary` in `main.tsx`, but it is a last
@@ -103,13 +117,14 @@ DELETE or UPDATE cannot reverse it. The trigger is BEFORE precisely so it can wr
   context** — that is deliberate, it is what keeps it testable. `useMoneda()` currys it with the
   profile (`fmt(x)`, or `fmt(x, 'USD')` for an amount stored in another currency, which is what
   the USD `inversiones` rows are). It returns `'—'` when the profile failed to load rather than
-  formatting with a guessed currency. `formatQ` is the GTQ/es-GT alias, kept only until the last
-  call site migrates.
+  formatting with a guessed currency. **There is no `formatQ` any more** — it was retired once the
+  last call site migrated, so nothing can hardcode quetzales by accident. `calcDisponibleReal`
+  takes the money options too, because one of its three warnings quotes an amount.
 - `hoyEn(zona)` / `mesActualEn(zona)` / `ahoraEn(zona)` in `constants.ts`, with `useFechas()`
   currying them. **An invalid timezone throws** — a silent fallback would write wrong dates — so
   the provider validates with `zonaValida()` and flags `error.perfil` instead of guessing.
-  `hoyGT()` / `mesActual()` / `ahoraGT()` are the Guatemala aliases, same deal as `formatQ`.
-  Use these instead of `new Date()` for anything stored.
+  **The `hoyGT()` / `mesActual()` / `ahoraGT()` aliases were retired too.** Use `useFechas()`
+  instead of `new Date()` for anything stored.
 
 Month selectors pass `mes` as `'YYYY-MM'` and hooks derive the window themselves — note
 `presupuestos.mes` is a `date` column holding the first of the month (`'YYYY-MM-01'`) with a
@@ -125,8 +140,10 @@ constants directly in a page silently drops the user's own categories.
 currency. `profiles.tipo_cambio_usd` is *centavos GTQ per 1 USD* (`775` = Q7.75). Convert with
 `usdToGTQ(...)` before summing anything across currencies.
 
-**Recurring payments**: `useAutoApplyPagos` runs once per session per user from `App.tsx`, keyed by
-a `useRef` on the user id. It applies **at most one period per pago per run**, dated at the due date
+**Recurring payments**: `useAutoApplyPagos` runs once per session per user, keyed by a `useRef` on
+the user id. It is mounted by `<AutoAplicarPagos>` **inside** the provider, not from `App.tsx`,
+because the user's timezone decides which month is current — and therefore which due date counts as
+overdue. It applies **at most one period per pago per run**, dated at the due date
 (not today), with idempotency evaluated **by month** so editing `dia_del_mes` cannot re-apply a
 month already applied. The advance of `ultima_aplicacion` is a compare-and-swap done *before* the
 insert: on any failure it prefers not applying (recoverable by hand) over duplicating (which
