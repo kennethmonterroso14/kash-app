@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { DUR, SALIDA, useMenosMovimiento } from '../lib/movimiento'
 
 interface Props {
   /** `error` para algo que falló, `atencion` para algo que conviene saber. */
@@ -28,11 +30,28 @@ const TONOS = {
  * Los avisos dentro de las hojas eran una línea roja suelta en `text-xs` y sin
  * fondo, que a ese tamaño y ese contraste se leía como una nota al pie en lugar
  * de como el motivo por el que el formulario no guardó.
+ *
+ * ## El movimiento
+ *
+ * Entra con un fundido y 4px de asentamiento. Es indicación de estado: el aviso
+ * es lo único que dice que la escritura falló, y aparecer de golpe en medio de
+ * un formulario se confunde con algo que ya estaba ahí.
+ *
+ * **No anima su salida.** Eso necesitaría que el aviso decidiera cuándo lo
+ * desmonta el padre, como hace `Hoja`, y no vale la cirugía: el aviso se va
+ * cuando el usuario reintenta, o sea mirando otra cosa.
+ *
+ * Tampoco intenta evitar el salto del contenido de abajo: eso sería animar el
+ * `height`, que no es una propiedad que se pueda animar barato.
  */
 export default function Aviso({ tono = 'error', onCerrar, clase, children }: Props) {
+  const reducido = useMenosMovimiento()
   return (
-    <div
+    <motion.div
       role="alert"
+      initial={reducido ? { opacity: 0 } : { opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DUR.rapida, ease: SALIDA }}
       className={`text-sm rounded-control px-4 py-3 ${TONOS[tono]}${
         onCerrar ? ' flex justify-between items-start gap-3' : ''
       }${clase ? ` ${clase}` : ''}`}
@@ -50,6 +69,6 @@ export default function Aviso({ tono = 'error', onCerrar, clase, children }: Pro
           ×
         </button>
       )}
-    </div>
+    </motion.div>
   )
 }

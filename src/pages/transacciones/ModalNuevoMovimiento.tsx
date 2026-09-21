@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'motion/react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
@@ -6,6 +7,7 @@ import { toCentavos } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
+import { AL_INSTANTE, posicionIndicador, RESORTE_SEGMENTO, useMenosMovimiento } from '../../lib/movimiento'
 import type { useTransacciones } from '../../hooks/useTransacciones'
 
 type Tipo = 'gasto' | 'ingreso' | 'gasto_tc' | 'transferencia'
@@ -13,13 +15,23 @@ type Tipo = 'gasto' | 'ingreso' | 'gasto_tc' | 'transferencia'
 const ETIQUETAS: Record<Tipo, string> = {
   gasto: 'Gasto', ingreso: 'Ingreso', gasto_tc: 'Cargo TC', transferencia: 'Transferencia',
 }
+/** El orden del riel, que es también el que usa el indicador para ubicarse. */
+const TIPOS = Object.keys(ETIQUETAS) as Tipo[]
 
 // Clases literales por tipo: `bg-${tipo}` no lo ve el JIT de Tailwind.
-const CLASE_TAB: Record<Tipo, string> = {
-  ingreso:       'bg-accent text-bg',
-  gasto:         'bg-danger text-text',
-  gasto_tc:      'bg-warning/20 text-warning',
-  transferencia: 'bg-accentAlt text-bg',
+// El fondo y el texto van separados porque el fondo lo pinta el indicador que
+// se desliza y el texto lo pinta cada pestaña.
+const FONDO_TAB: Record<Tipo, string> = {
+  ingreso:       'bg-accent',
+  gasto:         'bg-danger',
+  gasto_tc:      'bg-warning/20',
+  transferencia: 'bg-accentAlt',
+}
+const TEXTO_TAB: Record<Tipo, string> = {
+  ingreso:       'text-bg',
+  gasto:         'text-text',
+  gasto_tc:      'text-warning',
+  transferencia: 'text-bg',
 }
 const CLASE_SUBMIT: Record<Tipo, string> = {
   ingreso:       'bg-accent text-bg',
@@ -46,6 +58,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
   // enfoca el campo. useId() da prefijos únicos por instancia del modal.
   const fmt = useMoneda()
   const fechas = useFechas()
+  const reducido = useMenosMovimiento()
 
   const [tipo, setTipo] = useState<Tipo>('gasto')
   const [cantidad, setCantidad] = useState('')
@@ -132,18 +145,29 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
 
   return (
     <Hoja titulo="Nuevo movimiento" onCerrar={onCerrar}>
-      <div className="flex gap-1 bg-bg rounded-control p-1">
-        {(Object.keys(ETIQUETAS) as Tipo[]).map(t => (
+      <div className="relative flex gap-1 bg-bg rounded-control p-1">
+        {/* El indicador se desliza entre pestañas (§7): dice de dónde vino la
+            selección. La posición sale de la aritmética y no del `layoutId` de
+            Motion, que habría costado +37 KB gzip por medir lo que acá ya se
+            sabe: las cuatro pestañas son `flex-1`, todas del mismo ancho. */}
+        <motion.span
+          aria-hidden="true"
+          className={`absolute top-1 bottom-1 left-1 rounded-chip ${FONDO_TAB[tipo]}`}
+          style={{ width: posicionIndicador(TIPOS.indexOf(tipo), TIPOS.length).width }}
+          animate={{ transform: posicionIndicador(TIPOS.indexOf(tipo), TIPOS.length).transform }}
+          transition={reducido ? AL_INSTANTE : RESORTE_SEGMENTO}
+        />
+        {TIPOS.map(t => (
           <button
             key={t}
             onClick={() => cambiarTipo(t)}
             // 11px y px-1: con text-xs, "Transferencia" se salía del riel de
             // pestañas a 390px.
-            className={`presionable flex-1 min-w-0 px-1 py-2 rounded-chip text-[11px] font-medium ${
-              tipo === t ? CLASE_TAB[t] : 'text-textDim'
+            className={`presionable relative flex-1 min-w-0 px-1 py-2 rounded-chip text-[11px] font-medium ${
+              tipo === t ? TEXTO_TAB[t] : 'text-textDim'
             }`}
           >
-            {ETIQUETAS[t]}
+            <span className="relative">{ETIQUETAS[t]}</span>
           </button>
         ))}
       </div>

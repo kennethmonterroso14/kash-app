@@ -1,7 +1,7 @@
 import { useCallback, useId, useState, type ReactNode } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useCerrarConEscape } from '../hooks/useCerrarConEscape'
-import { DUR, SALIDA } from '../lib/movimiento'
+import { DUR, SALIDA, useMenosMovimiento } from '../lib/movimiento'
 
 interface Props {
   titulo: ReactNode
@@ -35,14 +35,14 @@ interface Props {
  */
 export default function Dialogo({ titulo, onCerrar, children }: Props) {
   const id = useId()
-  const reducido = useReducedMotion()
+  const reducido = useMenosMovimiento()
   const [visible, setVisible] = useState(true)
 
   const cerrar = useCallback(() => setVisible(false), [])
   useCerrarConEscape(cerrar)
 
-  const transicion = { duration: DUR.rapida, ease: SALIDA }
   // Con movimiento reducido queda el fundido y se va la escala (§14).
+  const transicion = { duration: DUR.rapida, ease: SALIDA }
   const oculto = reducido ? { opacity: 0 } : { opacity: 0, scale: 0.96 }
   const puesto = { opacity: 1, scale: 1 }
 

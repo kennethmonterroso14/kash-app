@@ -5,11 +5,10 @@ import {
   motion,
   useDragControls,
   useMotionValue,
-  useReducedMotion,
   useTransform,
 } from 'motion/react'
 import { useCerrarConEscape } from '../hooks/useCerrarConEscape'
-import { descartaHoja, DUR, RESORTE_HOJA, SALIDA } from '../lib/movimiento'
+import { descartaHoja, DUR, RESORTE_HOJA, SALIDA, useMenosMovimiento } from '../lib/movimiento'
 
 interface Props {
   titulo: ReactNode
@@ -68,7 +67,7 @@ interface Props {
  */
 export default function Hoja({ titulo, onCerrar, children }: Props) {
   const id = useId()
-  const reducido = useReducedMotion()
+  const reducido = useMenosMovimiento()
   const controles = useDragControls()
   const y = useMotionValue(0)
   const hoja = useRef<HTMLDivElement>(null)
@@ -132,8 +131,8 @@ export default function Hoja({ titulo, onCerrar, children }: Props) {
             className="relative vidrio-hoja w-full max-w-lg rounded-t-hoja pt-2 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4 max-h-[92dvh] overflow-y-auto overscroll-contain"
             style={{ y }}
             // Con movimiento reducido la hoja aparece donde va a quedarse: se
-            // mantiene el fundido, que ayuda a entender que algo se abrió, y se
-            // quita el desplazamiento (§14 — menos movimiento, no cero).
+            // mantiene el fundido del contenedor, que es el que dice que algo
+            // se abrió, y se quita el desplazamiento (§14).
             initial={reducido ? false : { y: '100%' }}
             animate={reducido ? {} : { y: 0 }}
             exit={reducido ? {} : { y: '100%' }}
