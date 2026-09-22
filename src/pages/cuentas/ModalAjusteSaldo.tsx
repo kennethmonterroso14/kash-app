@@ -56,7 +56,7 @@ export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
         <Campo
           etiqueta="Monto (Q)" tipo="number" step="0.01" required placeholder="ej. -500.00 o 200.00"
           value={monto} onChange={e => setMonto(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
         {err && <Aviso>{err}</Aviso>}
         <button

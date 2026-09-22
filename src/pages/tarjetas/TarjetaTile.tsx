@@ -1,5 +1,6 @@
 import type { ResumenTC, TarjetaCredito } from '../../lib/finanzas'
 import { useMoneda } from '../../hooks/useMoneda'
+import { IconoEditar, IconoAlerta, IconoChevron } from '../../components/iconos'
 
 interface Props {
   tc: TarjetaCredito
@@ -53,14 +54,14 @@ export default function TarjetaTile({
             className="presionable text-textDim hover:text-text text-sm leading-none px-1"
             title="Editar tarjeta"
           >
-            ✎
+            <IconoEditar size={15} />
           </button>
         </div>
       </div>
 
       <div>
         <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible</p>
-        <p className="text-text font-mono font-bold text-2xl tracking-titulo">{fmt(resumen.disponible)}</p>
+        <p className="text-text tabular-nums font-bold text-2xl tracking-titulo">{fmt(resumen.disponible)}</p>
       </div>
 
       <div className="h-1.5 bg-bg rounded-full overflow-hidden">
@@ -72,17 +73,18 @@ export default function TarjetaTile({
 
       <div className="flex justify-between text-xs">
         <span className="text-textDim">
-          Ciclo actual: <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
+          Ciclo actual: <span className="text-text tabular-nums">{fmt(tc.deuda_actual)}</span>
         </span>
         <span className="text-textDim">
-          Límite: <span className="text-text font-mono">{fmt(tc.limite_credito)}</span>
+          Límite: <span className="text-text tabular-nums">{fmt(tc.limite_credito)}</span>
         </span>
       </div>
 
       {tc.deuda_ciclo_anterior > 0 && (
         <div className="bg-danger/10 border border-danger/20 rounded-control p-3">
-          <p className="text-danger text-xs font-semibold">
-            ⚠ Pagar {fmt(tc.deuda_ciclo_anterior)} antes del día {tc.dia_pago}
+          <p className="text-danger text-xs font-semibold flex items-start gap-1">
+            <IconoAlerta size={14} className="shrink-0 mt-0.5" />
+            <span>Pagar {fmt(tc.deuda_ciclo_anterior)} antes del día {tc.dia_pago}</span>
           </p>
           <p className="text-danger/70 text-xs mt-0.5">
             {resumen.dias_para_pago} días restantes para el pago
@@ -118,9 +120,9 @@ export default function TarjetaTile({
       </div>
       <button
         onClick={onHistorial}
-        className="presionable text-xs text-textDim hover:text-text py-1"
+        className="presionable text-xs text-textDim hover:text-text py-1 inline-flex items-center gap-1"
       >
-        Ver historial →
+        Ver historial <IconoChevron direccion="der" size={13} />
       </button>
     </div>
   )

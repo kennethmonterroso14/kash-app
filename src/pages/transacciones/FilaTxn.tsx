@@ -1,4 +1,5 @@
 import BotonConfirmar from '../../components/BotonConfirmar'
+import { IconoEditar } from '../../components/iconos'
 import type { Transaccion } from '../../hooks/useTransacciones'
 import { COLOR_CATEGORIA_FALLBACK, MESES } from '../../lib/constants'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -38,7 +39,7 @@ export default function FilaTxn({ txn, color, editable, onEditar, onBorrar }: Pr
         <p className="text-text text-sm truncate">{txn.descripcion}</p>
         <p className="text-textDim text-xs tracking-micro truncate">{txn.categoria} · {fechaCorta(txn.fecha)}</p>
       </div>
-      <span className={`font-mono text-sm font-semibold flex-shrink-0 ${txn.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
+      <span className={`tabular-nums text-sm font-semibold flex-shrink-0 ${txn.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
         {txn.cantidad > 0 ? '+' : ''}{fmt(txn.cantidad)}
       </span>
       {editable && (
@@ -48,7 +49,7 @@ export default function FilaTxn({ txn, color, editable, onEditar, onBorrar }: Pr
           className="presionable text-xs px-2 py-1 rounded-chip text-textDim hover:text-accent flex-shrink-0"
           aria-label={`Editar ${txn.descripcion}`}
         >
-          ✎
+          <IconoEditar size={15} />
         </button>
       )}
       <BotonConfirmar

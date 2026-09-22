@@ -11,7 +11,7 @@ interface Comunes {
   etiqueta: ReactNode
   /** Texto de ayuda bajo el control. */
   pista?: ReactNode
-  /** Clases extra sobre el control (`text-xl font-mono`, típicamente). */
+  /** Clases extra sobre el control (`text-xl tabular-nums`, típicamente). */
   clase?: string
 }
 

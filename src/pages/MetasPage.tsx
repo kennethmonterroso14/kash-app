@@ -47,7 +47,7 @@ export default function MetasPage() {
         <Campo
           etiqueta="Ahorro mensual estimado (Q)" tipo="number" min="1" step="100"
           value={ahorroQ} onChange={e => setAhorroQ(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
       </div>
 

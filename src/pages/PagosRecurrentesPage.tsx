@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
+import { IconoChevron } from '../components/iconos'
 import { usePagosRecurrentes, type PagoRecurrente } from '../hooks/usePagosRecurrentes'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
@@ -75,9 +76,9 @@ export default function PagosRecurrentesPage() {
           <button
             onClick={() => navigate('/ajustes')}
             aria-label="Volver a Ajustes"
-            className="presionable text-accent text-xl px-1 flex-shrink-0"
+            className="presionable text-accent px-1 flex-shrink-0"
           >
-            ←
+            <IconoChevron direccion="izq" size={22} />
           </button>
           <div className="min-w-0">
             <h1 className="text-text font-semibold text-lg tracking-titulo">Pagos Fijos</h1>

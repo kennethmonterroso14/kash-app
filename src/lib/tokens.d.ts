@@ -14,12 +14,14 @@ export declare const materiales: {
   chip: string
   panel: string
   chrome: string
+  flotante: string
   hoja: string
   scrim: string
 }
-export declare const desenfoques: { chip: string; panel: string; chrome: string; hoja: string }
+export declare const desenfoques: { chip: string; panel: string; chrome: string; flotante: string; hoja: string }
 export declare const bordesVidrio: { canto: string; perimetro: string }
-export declare const sombras: { chip: string; panel: string; chrome: string; hoja: string }
+export declare const sombras: { chip: string; panel: string; chrome: string; flotante: string; hoja: string }
+export declare const fuentes: { principal: string[]; mono: string[] }
 export type PuntosBezier = [number, number, number, number]
 export declare const curvasBezier: { salida: PuntosBezier; entrada: PuntosBezier; estandar: PuntosBezier }
 export declare const curvas: { salida: string; entrada: string; estandar: string }

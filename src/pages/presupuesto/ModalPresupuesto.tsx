@@ -57,7 +57,7 @@ export default function ModalPresupuesto({
         <Campo
           etiqueta="Monto límite (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={monto} onChange={e => setMonto(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
 
         {err && <Aviso>{err}</Aviso>}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
+import { IconoAlerta } from '../../components/iconos'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -62,13 +63,19 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
       {disponibleTras !== null && (
         <div className="bg-bg rounded-control p-3">
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible tras este cargo</p>
-          <p className={`font-mono font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
+          <p className={`tabular-nums font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
             {fmt(Math.max(0, disponibleTras))}
           </p>
-          {disponibleTras < 0 && <p className="text-danger text-xs mt-1">⚠ Excede el disponible</p>}
+          {disponibleTras < 0 && (
+            <p className="text-danger text-xs mt-1 flex items-center gap-1">
+              <IconoAlerta size={13} className="shrink-0" /> Excede el disponible
+            </p>
+          )}
           {disponibleTras >= 0 &&
             (tc.deuda_actual + toCentavos(montoNum)) / tc.limite_credito >= 0.9 && (
-            <p className="text-warning text-xs mt-1">⚠ Superarás el 90% de uso de la TC</p>
+            <p className="text-warning text-xs mt-1 flex items-center gap-1">
+              <IconoAlerta size={13} className="shrink-0" /> Superarás el 90% de uso de la TC
+            </p>
           )}
         </div>
       )}
@@ -77,7 +84,7 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
         <Campo
           etiqueta="Monto (Q)" placeholder="0.00" inputMode="decimal"
           value={monto} onChange={e => setMonto(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         <Campo
           etiqueta="Descripción" placeholder="¿En qué?"

@@ -107,23 +107,23 @@ export default function ModalTC({ tc, onCerrar }: Props) {
           etiqueta="Últimos 4 dígitos (opcional)"
           value={ult4} onChange={e => setUlt4(e.target.value.replace(/\D/g, '').slice(0, 4))}
           inputMode="numeric" maxLength={4}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         <Campo
           etiqueta="Límite de crédito (Q)" placeholder="0.00" inputMode="decimal"
           value={limite} onChange={e => setLimite(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         <div className="grid grid-cols-2 gap-3">
           <Campo
             etiqueta="Día de cierre" inputMode="numeric"
             value={cierre} onChange={e => setCierre(e.target.value)}
-            clase="font-mono"
+            clase="tabular-nums"
           />
           <Campo
             etiqueta="Día de pago" inputMode="numeric"
             value={pago} onChange={e => setPago(e.target.value)}
-            clase="font-mono"
+            clase="tabular-nums"
           />
         </div>
 

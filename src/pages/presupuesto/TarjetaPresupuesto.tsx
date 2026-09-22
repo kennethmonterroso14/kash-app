@@ -1,4 +1,5 @@
 import BotonConfirmar from '../../components/BotonConfirmar'
+import { IconoEditar, IconoChevron } from '../../components/iconos'
 import { calcEstadoPresupuesto, esGastoComputable } from '../../lib/finanzas'
 import { colores } from '../../lib/tokens'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -54,12 +55,12 @@ export default function TarjetaPresupuesto({
           className="presionable flex items-center gap-2 rounded-chip -m-1 p-1 min-w-0"
         >
           <span className="text-text text-sm font-medium truncate">{p.categoria}</span>
-          <span aria-hidden="true" className={`text-xs flex-shrink-0 ${expandido ? 'text-accent' : 'text-textDim'}`}>
-            {expandido ? '▴' : '▾'}
+          <span aria-hidden="true" className={`flex-shrink-0 ${expandido ? 'text-accent' : 'text-textDim'}`}>
+            <IconoChevron direccion={expandido ? 'arriba' : 'abajo'} size={14} />
           </span>
         </button>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span aria-label={`${pct}% del límite usado`} className={`text-xs font-mono font-semibold ${claseTexto}`}>
+          <span aria-label={`${pct}% del límite usado`} className={`text-xs tabular-nums font-semibold ${claseTexto}`}>
             {pct}%
           </span>
           <button
@@ -68,7 +69,7 @@ export default function TarjetaPresupuesto({
             aria-label={`Editar límite de ${p.categoria}`}
             className="presionable text-xs px-2 py-1 rounded-chip text-textDim hover:text-accent"
           >
-            ✎
+            <IconoEditar size={15} />
           </button>
           <BotonConfirmar
             accion={`Eliminar presupuesto de ${p.categoria}`}
@@ -107,7 +108,7 @@ export default function TarjetaPresupuesto({
                   <p className="text-text text-xs truncate">{t.descripcion}</p>
                   <p className="text-textDim text-xs tracking-micro">{t.fecha}</p>
                 </div>
-                <span className="text-danger text-xs font-mono font-semibold flex-shrink-0">
+                <span className="text-danger text-xs tabular-nums font-semibold flex-shrink-0">
                   −{fmt(Math.abs(t.cantidad))}
                 </span>
               </div>

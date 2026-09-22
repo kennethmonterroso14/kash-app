@@ -47,16 +47,27 @@ export const materiales = {
   panel:  'rgba(18, 20, 26, 0.62)',
   chrome: 'rgba(12, 14, 19, 0.72)',
   hoja:   'rgba(18, 20, 26, 0.84)',
+  /**
+   * Cromo FLOTANTE: la cápsula del nav, el FAB y el header. A diferencia de
+   * `chrome` (que va pegado a un borde, con el contenido detrás), este flota
+   * con `bg` alrededor, así que tiene que LEERSE como una capa despegada. Por
+   * eso es más claro y más opaco que `chrome`: `chrome` compuesto sobre `bg`
+   * (#06070a) da ~#0a0c10 —invisible como píldora suelta— y este da un gris
+   * netamente más alto. Sigue siendo translúcido: el contenido que scrollea por
+   * debajo se ve difuminado, que es el punto del vidrio.
+   */
+  flotante: 'rgba(32, 35, 46, 0.72)',
   /** Scrim de una tarea modal: oscurece para enfocar (§12 "dim to focus"). */
   scrim:  'rgba(3, 4, 6, 0.55)',
 }
 
 /** Radio del desenfoque por material. Superficie más grande = material más grueso. */
 export const desenfoques = {
-  chip:   '12px',
-  panel:  '20px',
-  chrome: '28px',
-  hoja:   '40px',
+  chip:     '12px',
+  panel:    '20px',
+  chrome:   '28px',
+  flotante: '30px',
+  hoja:     '40px',
 }
 
 /**
@@ -75,6 +86,13 @@ export const sombras = {
   panel:  '0 8px 24px -8px rgba(0, 0, 0, 0.55)',
   /** El nav flota sobre el contenido, así que su sombra va hacia arriba. */
   chrome: '0 -10px 32px -12px rgba(0, 0, 0, 0.70)',
+  /**
+   * Píldora flotante (cápsula del nav y FAB): sombra en las cuatro direcciones
+   * para despegarla del fondo por todos lados. En el header, que es full-bleed,
+   * las sombras laterales quedan fuera de pantalla y se lee como una sombra
+   * hacia abajo. La segunda capa, corta y cerrada, le da el borde de contacto.
+   */
+  flotante: '0 12px 36px -10px rgba(0, 0, 0, 0.72), 0 2px 10px -6px rgba(0, 0, 0, 0.55)',
   hoja:   '0 24px 64px -16px rgba(0, 0, 0, 0.80)',
 }
 
@@ -88,6 +106,43 @@ export const sombras = {
  * quiere el arreglo, no la cadena `cubic-bezier(...)`). Las cadenas de `curvas`
  * salen de acá: si el número vive en dos lugares, un día dejan de coincidir.
  */
+/**
+ * Las familias tipográficas. Un solo lugar: `tailwind.config.js` las lee y
+ * `index.css` declara los `@font-face` que las respaldan.
+ *
+ * Poppins va en TODO el texto, incluidos los montos — decisión del dueño del
+ * proyecto, tomada con la medición a la vista. Los montos NO usan ya `font-mono`
+ * (eso los dejaba en una pila monoespaciada, no en Poppins): usan `tabular-nums`.
+ * Lo que se cede está medido y conviene tenerlo escrito acá, porque es lo que
+ * hay que releer si algún día se revisa:
+ *
+ * - **Poppins no tiene cifras tabulares** (su GSUB no trae la feature `tnum`),
+ *   así que sobre ella `tabular-nums` es un no-op. Ocho de los diez dígitos
+ *   miden entre 575 y 635 unidades, pero el `1` mide **320** — la mitad. Medido
+ *   en el navegador: una columna de cuatro montos se dispersa **23px**. Con
+ *   Poppins los montos bailan; se aceptó a cambio de una sola familia.
+ * - Por eso los montos llevan `tabular-nums` aunque hoy no haga nada: **arma el
+ *   plan B**. La alternativa, si el baile molesta en el teléfono, es **Outfit**
+ *   (misma familia geométrica, ya estuvo en el repo, y SÍ trae `tnum`): con ella
+ *   la dispersión de esa columna es **0px**. El cambio es **una línea** —
+ *   `principal` acá abajo pasa a `['Outfit', ...]` — y `tabular-nums`, que ya
+ *   está puesto en cada monto, empieza a alinear solo. No hay que tocar 65
+ *   sitios.
+ *
+ * El `mono` se queda declarado, pero ya casi no se usa: solo el volcado técnico
+ * de error del ErrorBoundary, donde monoespaciado es lo correcto.
+ */
+const PILA_SISTEMA = [
+  '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Segoe UI', 'Roboto',
+  'system-ui', 'sans-serif',
+]
+
+export const fuentes = {
+  /** La de toda la app. El fallback importa: Poppins no trae todos los glifos. */
+  principal: ['Poppins', ...PILA_SISTEMA],
+  mono: ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'JetBrains Mono', 'monospace'],
+}
+
 export const curvasBezier = {
   salida:   [0.22, 1, 0.36, 1],
   entrada:  [0.78, 0, 0.64, 1],

@@ -9,6 +9,20 @@ create extension if not exists "uuid-ossp";
 
 create schema if not exists auth;
 
+-- Los roles que Supabase crea en cada proyecto. Un PostgreSQL pelado no los
+-- trae, y `schema.sql` los necesita para el `grant execute` de
+-- `borrar_mi_cuenta` (tarea 2.2).
+do $$
+begin
+  create role anon;
+exception when duplicate_object then null;
+end $$;
+do $$
+begin
+  create role authenticated;
+exception when duplicate_object then null;
+end $$;
+
 create table if not exists auth.users (
   id uuid primary key default uuid_generate_v4()
 );

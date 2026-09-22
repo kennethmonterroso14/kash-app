@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vorta">
+  <!--
+    Fuente de los PNG de tienda. `scripts/generar-iconos.mjs` la rasteriza.
+    Igual al favicon pero con fondo: un ícono de app no puede ser transparente
+    en iOS, y Android lo recorta.
+
+    El glifo ocupa el 55% del lienzo, centrado. Los recortes de Android
+    (círculo, squircle, etc.) se quedan con el 80% central, así que todo lo que
+    importa tiene que caber ahí — y cabe con margen.
+  -->
+  <rect width="512" height="512" fill="#12141a"/>
+  <path d="M 150 196 L 256 334 L 362 122"
+        fill="none" stroke="#7c6af7" stroke-width="58"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

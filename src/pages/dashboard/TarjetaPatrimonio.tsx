@@ -47,7 +47,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
         <p className="text-textDim text-xs uppercase tracking-widest">Patrimonio total</p>
         <div className="flex items-center gap-2">
           {oculto && (
-            <span aria-hidden="true" className="text-textDim font-mono tracking-widest text-sm">••••••</span>
+            <span aria-hidden="true" className="text-textDim tracking-widest text-sm">••••••</span>
           )}
           <Ojo tachado={oculto} />
         </div>
@@ -63,7 +63,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
         <>
           {/* Con la consulta fallida el total es 0, y mostrar ese 0 como un
               hecho es justo el defecto que se estaba corrigiendo. */}
-          <p className="text-3xl font-mono font-bold text-text tracking-display">
+          <p className="text-3xl tabular-nums font-bold text-text tracking-display">
             {error ? '—' : fmt(total)}
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
@@ -71,7 +71,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
               <div key={c.id} className="flex items-center gap-1.5 bg-bg rounded-chip px-2 py-1">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
                 <span className="text-xs text-textDim">{c.nombre}</span>
-                <span className="text-xs font-mono text-text">{fmt(c.saldo)}</span>
+                <span className="text-xs tabular-nums text-text">{fmt(c.saldo)}</span>
               </div>
             ))}
           </div>

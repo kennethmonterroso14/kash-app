@@ -3,6 +3,7 @@ import { useCallback, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { calcAlertasTC, type AlertaTC, type TarjetaCredito } from '../lib/finanzas'
+import { IconoAlerta, IconoCerrar } from './iconos'
 import { useMoneda } from '../hooks/useMoneda'
 
 interface Props { userId: string }
@@ -80,14 +81,16 @@ export default function AlertasBanner({ userId }: Props) {
         if (alerta.tipo === 'pago_vencido') {
           return (
             <div key={key} className="bg-danger flex justify-between items-center px-4 py-2">
-              <span className="text-text text-xs font-semibold">
-                ⚠ Pago vencido en {alerta.tc.nombre}: {fmt(alerta.monto!)}
+              <span className="text-text text-xs font-semibold flex items-center gap-1.5 min-w-0">
+                <IconoAlerta size={14} className="shrink-0" />
+                <span className="truncate">Pago vencido en {alerta.tc.nombre}: {fmt(alerta.monto!)}</span>
               </span>
               <button
                 onClick={() => descartar(key)}
-                className="text-text/80 hover:text-text ml-3 text-base leading-none"
+                aria-label="Descartar alerta"
+                className="presionable text-text/80 hover:text-text ml-3 shrink-0"
               >
-                ✕
+                <IconoCerrar size={16} />
               </button>
             </div>
           )
@@ -95,14 +98,15 @@ export default function AlertasBanner({ userId }: Props) {
         // cierre_proximo
         return (
           <div key={key} className="bg-warning flex justify-between items-center px-4 py-2">
-            <span className="text-bg text-xs font-semibold">
+            <span className="text-bg text-xs font-semibold min-w-0 truncate">
               ⏰ {alerta.tc.nombre} cierra en {alerta.diasRestantes} {alerta.diasRestantes === 1 ? 'día' : 'días'}
             </span>
             <button
               onClick={() => descartar(key)}
-              className="text-bg/70 hover:text-bg ml-3 text-base leading-none"
+              aria-label="Descartar alerta"
+              className="presionable text-bg/70 hover:text-bg ml-3 shrink-0"
             >
-              ✕
+              <IconoCerrar size={16} />
             </button>
           </div>
         )

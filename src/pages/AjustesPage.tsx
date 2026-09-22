@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { useSesion } from '../context/sesion'
+import DialogoBorrarCuenta from './ajustes/DialogoBorrarCuenta'
+import ModalPerfil from './ajustes/ModalPerfil'
 
 interface Props {
   onSignOut: () => void
@@ -15,6 +17,8 @@ interface Props {
 export default function AjustesPage({ onSignOut }: Props) {
   const navigate = useNavigate()
   const [confirmarSalida, setConfirmarSalida] = useState(false)
+  const [borrarCuenta, setBorrarCuenta] = useState(false)
+  const [editarPerfil, setEditarPerfil] = useState(false)
   // Sin consulta propia: el perfil ya viene del contexto.
   const { perfil, email, error: errores } = useSesion()
   const nombre = perfil.nombre
@@ -24,7 +28,7 @@ export default function AjustesPage({ onSignOut }: Props) {
   const nombreVisible = nombre ?? email ?? 'Usuario'
 
   const AJUSTES = [
-    { to: '/ajustes/pagos',      icon: '↻',  label: 'Pagos Fijos',
+    { to: '/ajustes/pagos',      icon: '🔁', label: 'Pagos Fijos',
       detalle: 'Se aplican solos cada mes' },
     { to: '/ajustes/categorias', icon: '🏷️', label: 'Categorías',
       detalle: 'Las tuyas, además de las base' },
@@ -40,6 +44,15 @@ export default function AjustesPage({ onSignOut }: Props) {
           <p className="text-text font-semibold text-lg tracking-titulo">{nombreVisible}</p>
           {nombre && email && <p className="text-textDim text-sm mt-0.5">{email}</p>}
           {errorPerfil && <Aviso clase="mt-1">{errorPerfil}</Aviso>}
+          {/* Editar el perfil cuelga de la identidad, no de la lista de
+              ajustes: es sobre quién sos, no sobre cómo se comporta la app. */}
+          <button
+            type="button"
+            onClick={() => setEditarPerfil(true)}
+            className="presionable text-accent text-xs mt-2 hover:opacity-80 tracking-micro"
+          >
+            Editar perfil
+          </button>
         </div>
       </div>
 
@@ -92,7 +105,53 @@ export default function AjustesPage({ onSignOut }: Props) {
         )}
       </div>
 
+      <div className="border-t border-perimetro mt-8 mb-5" />
+
+      {/* Requisito de las dos tiendas: accesibles DESDE la app, no solo un
+          enlace en la ficha de la tienda. */}
+      <div className="flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={() => navigate('/ajustes/privacidad')}
+          className="presionable text-textDim text-xs hover:text-text tracking-micro"
+        >
+          Privacidad
+        </button>
+        <span aria-hidden="true" className="text-textDim/40 text-xs">·</span>
+        <button
+          type="button"
+          onClick={() => navigate('/ajustes/terminos')}
+          className="presionable text-textDim text-xs hover:text-text tracking-micro"
+        >
+          Términos
+        </button>
+      </div>
+
+      {/* Separado del cierre de sesión por su propia línea: son dos acciones
+          de peso muy distinto y no deben leerse como una lista de opciones
+          equivalentes. */}
+      <div className="border-t border-perimetro mt-5 mb-6" />
+
+      <button
+        type="button"
+        onClick={() => setBorrarCuenta(true)}
+        className="presionable w-full py-2 rounded-control text-danger/70 text-xs hover:text-danger"
+      >
+        Borrar mi cuenta
+      </button>
+
       <p className="text-textDim text-xs text-center mt-12 tracking-micro">Vorta v2.0</p>
+
+      {editarPerfil && <ModalPerfil onCerrar={() => setEditarPerfil(false)} />}
+
+      {borrarCuenta && email && (
+        <DialogoBorrarCuenta
+          email={email}
+          onCerrar={() => setBorrarCuenta(false)}
+          // Ya no hay cuenta: `onSignOut` es el que devuelve la app al login.
+          onBorrada={onSignOut}
+        />
+      )}
     </div>
   )
 }

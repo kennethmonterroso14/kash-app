@@ -1,5 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AlertasBanner from './AlertasBanner'
+import BotonNuevoMovimiento from './BotonNuevoMovimiento'
+import {
+  IconoResumen, IconoMovimientos, IconoTarjetas, IconoPatrimonio, IconoPlan,
+} from './iconos'
+import { useDireccionScroll } from '../hooks/useDireccionScroll'
+import { useMenosMovimiento } from '../lib/movimiento'
 
 interface Props {
   children: React.ReactNode
@@ -16,19 +22,26 @@ interface Props {
  * a una de ellas.
  */
 const NAV = [
-  { to: '/resumen',    label: 'Resumen',     icon: '◈', end: true },
-  { to: '/txns',       label: 'Movimientos', icon: '≡' },
-  { to: '/tarjetas',   label: 'Tarjetas',    icon: '▭' },
+  { to: '/resumen',    label: 'Resumen',     Icono: IconoResumen,    end: true },
+  { to: '/txns',       label: 'Movimientos', Icono: IconoMovimientos },
+  { to: '/tarjetas',   label: 'Tarjetas',    Icono: IconoTarjetas },
   // `conPestanas` cambia el aria-current a "location": en una sección con
   // pestañas la página la marca la pestaña, y dos elementos reclamando "page"
   // le deja al lector de pantalla dos respuestas a la misma pregunta.
-  { to: '/patrimonio', label: 'Patrimonio',  icon: '◎', conPestanas: true },
-  { to: '/plan',       label: 'Plan',        icon: '◧', conPestanas: true },
+  { to: '/patrimonio', label: 'Patrimonio',  Icono: IconoPatrimonio, conPestanas: true },
+  { to: '/plan',       label: 'Plan',        Icono: IconoPlan,       conPestanas: true },
 ]
 
 export default function Layout({ children, userId }: Props) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // La barra se encoge al bajar y vuelve entera al subir (iOS 26). Se apaga con
+  // movimiento reducido: ahí queda siempre entera, que es el equivalente quieto
+  // correcto (apple-design §14), no un encogimiento sin transición.
+  const bajando = useDireccionScroll()
+  const reducido = useMenosMovimiento()
+  const compacta = bajando && !reducido
 
   /**
    * Se calcula a mano en lugar de usar `NavLink` porque en React Router 7
@@ -42,9 +55,13 @@ export default function Layout({ children, userId }: Props) {
 
   return (
     <div className="min-h-dvh bg-bg">
-      {/* Header: material pesado, y donde el contenido se mete debajo va un
-          degradado en lugar de una línea de 1px. */}
-      <header className="sticky top-0 z-30 vidrio-chrome borde-scroll-abajo segura-arriba">
+      {/*
+        Header FLOTANTE: vidrio nuevo, fijo, con el contenido pasando por
+        debajo. Es `fixed` (no `sticky`) para que la cápsula de abajo y él
+        compartan lenguaje —dos capas de vidrio suspendidas sobre el contenido—;
+        el `main` compensa con padding arriba y abajo.
+      */}
+      <header className="fixed top-0 inset-x-0 z-30 vidrio-flotante segura-arriba">
         <div className="px-4 py-3 flex justify-between items-center">
           <span className="text-accent font-display font-bold text-xl tracking-titulo">Vorta</span>
           <button
@@ -67,34 +84,66 @@ export default function Layout({ children, userId }: Props) {
         </div>
       </header>
 
-      {/* Alertas globales */}
-      <AlertasBanner userId={userId} />
-
-      {/* El padding de abajo es el alto del nav más la safe area, para que el
-          último elemento de cualquier página quede alcanzable. */}
-      <main className="pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]">
+      {/*
+        Padding arriba = alto del header + safe area; abajo = alto de la barra
+        flotante (cápsula/FAB ~56) + su separación del borde + un respiro, todo
+        más la safe area. Un solo lugar para las 13 páginas y el riel de pestañas
+        (SeccionConPestanas), que es el elemento más alto en las rutas con
+        pestañas: derivarlo por página dejaría a esas cinco metidas bajo el header.
+      */}
+      <main className="pt-[calc(3.25rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
+        {/* Alertas globales: full-bleed, dentro del flujo, así que scrollean con
+            el contenido y aparecer/desaparecer no descuadra ninguna capa fija. */}
+        <AlertasBanner userId={userId} />
         {children}
       </main>
 
-      {/* Nav: el canto superior claro es la luz pegando en el borde del vidrio. */}
-      <nav className="fixed bottom-0 inset-x-0 z-30 flex vidrio-chrome canto-superior segura-abajo">
-        {NAV.map(({ to, label, icon, end, conPestanas }) => {
-          const activa = esActiva(to, end)
-          return (
-            <Link
-              key={to}
-              to={to}
-              aria-current={activa ? (conPestanas ? 'location' : 'page') : undefined}
-              className={`presionable flex-1 min-w-0 flex flex-col items-center py-2.5 gap-0.5 text-[10px] tracking-micro ${
-                activa ? 'text-accent' : 'text-textDim'
-              }`}
-            >
-              <span aria-hidden="true" className="text-lg leading-none">{icon}</span>
-              <span className="truncate px-0.5">{label}</span>
-            </Link>
-          )
-        })}
-      </nav>
+      {/*
+        Barra flotante: la cápsula del nav y el FAB, misma fila, despegadas de
+        los bordes. El contenedor es `pointer-events-none` para que los toques
+        pasen por los huecos a los lados; cada pieza reactiva su propio
+        `pointer-events-auto`.
+      */}
+      <div
+        className={`fixed inset-x-0 z-30 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-3 flex items-center justify-center gap-2 pointer-events-none origin-bottom transition-transform duration-normal ease-salida ${
+          compacta ? 'scale-90' : 'scale-100'
+        }`}
+      >
+        <nav
+          aria-label="Navegación principal"
+          className="pointer-events-auto vidrio-flotante rounded-full flex items-center gap-0.5 p-1.5 min-w-0"
+        >
+          {NAV.map(({ to, label, Icono, end, conPestanas }) => {
+            const activa = esActiva(to, end)
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-current={activa ? (conPestanas ? 'location' : 'page') : undefined}
+                aria-label={label}
+                title={label}
+                className={`presionable flex items-center h-11 rounded-full transition-colors duration-rapida ease-salida ${
+                  // El activo puede encogerse (min-w-0) y su etiqueta trunca antes
+                  // que empujar al FAB: así nunca se solapan, ni en un teléfono de
+                  // 320px. Los inactivos son shrink-0 para que los iconos no se
+                  // apachurren. Cinco etiquetas + FAB no caben; por eso solo el
+                  // activo muestra texto (los demás llevan aria-label).
+                  activa ? 'bg-accent/15 text-accent gap-1.5 px-2.5 min-w-0' : 'text-textDim px-1.5 shrink-0'
+                }`}
+              >
+                <Icono size={22} className="shrink-0" />
+                {activa && (
+                  <span className="text-[12px] font-medium tracking-micro truncate">
+                    {label}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <BotonNuevoMovimiento userId={userId} />
+      </div>
     </div>
   )
 }

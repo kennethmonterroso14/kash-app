@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
+import { IconoAlerta } from '../components/iconos'
 import { useInversiones, type Inversion } from '../hooks/useInversiones'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
@@ -57,7 +58,7 @@ export default function InversionesPage() {
       <div className="flex items-center justify-between mb-6 gap-2">
         <div className="min-w-0">
           {resumen.ganancia_total !== 0 ? (
-            <p className={`text-sm font-mono font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
+            <p className={`text-sm tabular-nums font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
               {resumen.ganancia_total >= 0 ? '+' : ''}{fmt(resumen.ganancia_total)}
               <span className="text-textDim font-sans text-xs font-normal"> de ganancia</span>
             </p>
@@ -73,7 +74,8 @@ export default function InversionesPage() {
                   : 'bg-surface2 text-textDim hover:text-text'
               }`}
             >
-              {desactualizado ? '⚠ ' : ''}Q{(tipoCambioUSD / 100).toFixed(2)}/USD
+              {desactualizado && <IconoAlerta size={12} className="inline-block align-[-0.1em] mr-1" />}
+              Q{(tipoCambioUSD / 100).toFixed(2)}/USD
             </button>
           )}
           <button

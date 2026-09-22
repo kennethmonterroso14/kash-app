@@ -1,5 +1,6 @@
 import type { ResumenTC, TarjetaCredito } from '../../lib/finanzas'
 import { useMoneda } from '../../hooks/useMoneda'
+import { IconoAlerta } from '../../components/iconos'
 
 interface Props {
   resumenTCs: { tc: TarjetaCredito; resumen: ResumenTC }[]
@@ -26,7 +27,7 @@ export default function TarjetasTC({ resumenTCs }: Props) {
             </div>
             <div>
               <p className="text-textDim text-xs tracking-micro">Disponible</p>
-              <p className="font-mono text-sm text-text font-semibold">{fmt(resumen.disponible)}</p>
+              <p className="tabular-nums text-sm text-text font-semibold">{fmt(resumen.disponible)}</p>
             </div>
             <div className="h-1 bg-bg rounded-full overflow-hidden">
               <div
@@ -38,7 +39,11 @@ export default function TarjetasTC({ resumenTCs }: Props) {
                 style={{ width: `${Math.min(resumen.pct_uso, 100)}%` }}
               />
             </div>
-            {tc.deuda_ciclo_anterior > 0 && <p className="text-danger text-xs">⚠ Pago pendiente</p>}
+            {tc.deuda_ciclo_anterior > 0 && (
+              <p className="text-danger text-xs flex items-center gap-1">
+                <IconoAlerta size={12} className="shrink-0" /> Pago pendiente
+              </p>
+            )}
           </div>
         ))}
       </div>

@@ -57,7 +57,7 @@ export default function ModalEditarTxn({ txn, actualizar, onCerrar }: Props) {
           etiqueta={`Monto (Q) — ${txn.tipo}`}
           tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={cantidad} onChange={e => setCantidad(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
         <Campo
           etiqueta="Descripción" required placeholder="¿En qué?"
