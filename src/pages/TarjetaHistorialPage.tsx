@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
-import { IconoChevron, IconoCerrar } from '../components/iconos'
+import Hoja from '../components/Hoja'
+import { IconoChevron } from '../components/iconos'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
@@ -115,7 +116,7 @@ export default function TarjetaHistorialPage() {
         {ciclos.map(ciclo => {
           const badge = ESTADO_BADGE[ciclo.estado] ?? ESTADO_BADGE['cerrado']
           return (
-            <div key={ciclo.id} className="bg-surface rounded-2xl p-4">
+            <div key={ciclo.id} className="bg-surface rounded-tarjeta p-4">
               {/* Encabezado del ciclo */}
               <div className="flex justify-between items-start mb-3">
                 <div>
@@ -142,19 +143,19 @@ export default function TarjetaHistorialPage() {
 
               {/* Métricas del ciclo */}
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="bg-bg rounded-xl p-2.5 text-center">
+                <div className="bg-bg rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Cargos</p>
                   <p className="text-danger tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_cargos)}
                   </p>
                 </div>
-                <div className="bg-bg rounded-xl p-2.5 text-center">
+                <div className="bg-bg rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Pagos</p>
                   <p className="text-success tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_pagos)}
                   </p>
                 </div>
-                <div className="bg-bg rounded-xl p-2.5 text-center">
+                <div className="bg-bg rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Saldo</p>
                   <p className={`tabular-nums font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
                     {fmt(ciclo.saldo_final)}
@@ -165,7 +166,7 @@ export default function TarjetaHistorialPage() {
               {/* Botón ver transacciones */}
               <button
                 onClick={() => abrirModal(ciclo)}
-                className="w-full py-2 rounded-xl bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors inline-flex items-center justify-center gap-1"
+                className="w-full py-2 rounded-control bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors inline-flex items-center justify-center gap-1"
               >
                 Ver transacciones <IconoChevron direccion="der" size={14} />
               </button>
@@ -174,77 +175,65 @@ export default function TarjetaHistorialPage() {
         })}
       </div>
 
-      {/* Modal bottom sheet — transacciones del ciclo */}
+      {/* Hoja de transacciones del ciclo. Antes era un bottom sheet a mano
+          (`bg-black/60`, `rounded-t-2xl`, sin Escape ni arrastre ni los
+          fallbacks de accesibilidad); ahora usa el primitivo `Hoja`, que trae
+          el vidrio, el scrim, Escape, arrastre para cerrar, dvh y el scroll. */}
       {cicloSelId && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-50" onClick={cerrarModal}>
-          <div
-            className="bg-surface w-full rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-text font-semibold text-sm">Transacciones del ciclo</h2>
-                {cicloSel && (
-                  <p className="text-textDim text-xs mt-0.5">
-                    {formatPeriodo(cicloSel.fecha_inicio, cicloSel.fecha_cierre)}
-                  </p>
-                )}
+        <Hoja titulo="Transacciones del ciclo" onCerrar={cerrarModal}>
+          {cicloSel && (
+            <p className="text-textDim text-xs -mt-2 mb-4">
+              {formatPeriodo(cicloSel.fecha_inicio, cicloSel.fecha_cierre)}
+            </p>
+          )}
+
+          {loadingTxns && (
+            <p className="text-textDim text-sm text-center py-8">Cargando...</p>
+          )}
+
+          {errTxns && <Aviso>{errTxns}</Aviso>}
+
+          {!loadingTxns && txns.length === 0 && !errTxns && (
+            <p className="text-textDim text-sm text-center py-8">Sin transacciones en este ciclo</p>
+          )}
+
+          <div className="flex flex-col gap-2">
+            {txns.map(tx => (
+              <div key={tx.id} className="flex justify-between items-center py-2.5 border-b border-perimetro last:border-0">
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-text text-sm truncate">{tx.descripcion}</p>
+                  <p className="text-textDim text-xs">{tx.categoria} · {tx.fecha}</p>
+                </div>
+                <p className={`tabular-nums text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
+                  {tx.cantidad < 0 ? '−' : '+'}{fmt(Math.abs(tx.cantidad))}
+                </p>
               </div>
-              <button onClick={cerrarModal} aria-label="Cerrar" className="presionable text-textDim hover:text-text">
-                <IconoCerrar size={20} />
-              </button>
-            </div>
+            ))}
+          </div>
 
-            {loadingTxns && (
-              <p className="text-textDim text-sm text-center py-8">Cargando...</p>
-            )}
-
-            {errTxns && (
-              <Aviso>{errTxns}</Aviso>
-            )}
-
-            {!loadingTxns && txns.length === 0 && !errTxns && (
-              <p className="text-textDim text-sm text-center py-8">Sin transacciones en este ciclo</p>
-            )}
-
-            <div className="flex flex-col gap-2">
-              {txns.map(tx => (
-                <div key={tx.id} className="flex justify-between items-center py-2.5 border-b border-perimetro last:border-0">
-                  <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-text text-sm truncate">{tx.descripcion}</p>
-                    <p className="text-textDim text-xs">{tx.categoria} · {tx.fecha}</p>
-                  </div>
-                  <p className={`tabular-nums text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
-                    {tx.cantidad < 0 ? '−' : '+'}{fmt(Math.abs(tx.cantidad))}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Totales del modal */}
-            {txns.length > 0 && (
-              <div className="border-t border-perimetro pt-3 mt-2 flex flex-col gap-1">
+          {/* Totales del modal */}
+          {txns.length > 0 && (
+            <div className="border-t border-perimetro pt-3 mt-2 flex flex-col gap-1">
+              <div className="flex justify-between">
+                <span className="text-textDim text-sm">{txns.length} transacciones</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-textDim text-xs">Cargos</span>
+                <span className="tabular-nums text-sm text-danger font-semibold">
+                  {fmt(cargosModal)}
+                </span>
+              </div>
+              {pagosModal > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-textDim text-sm">{txns.length} transacciones</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-textDim text-xs">Cargos</span>
-                  <span className="tabular-nums text-sm text-danger font-semibold">
-                    {fmt(cargosModal)}
+                  <span className="text-textDim text-xs">Pagos</span>
+                  <span className="tabular-nums text-sm text-success font-semibold">
+                    {fmt(pagosModal)}
                   </span>
                 </div>
-                {pagosModal > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-textDim text-xs">Pagos</span>
-                    <span className="tabular-nums text-sm text-success font-semibold">
-                      {fmt(pagosModal)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          )}
+        </Hoja>
       )}
     </div>
   )
