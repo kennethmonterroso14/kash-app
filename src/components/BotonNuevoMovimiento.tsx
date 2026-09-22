@@ -1,42 +1,28 @@
-import { useState } from 'react'
-import { useEscribirTxn } from '../hooks/useEscribirTxn'
-import ModalNuevoMovimiento from '../pages/transacciones/ModalNuevoMovimiento'
 import { IconoMas } from './iconos'
 
 /**
- * El botón redondo de "nuevo movimiento", alcanzable desde CUALQUIER pantalla.
+ * El botón redondo de "nuevo movimiento", alcanzable desde cualquier pantalla.
  * Antes el `+` vivía solo dentro de Movimientos.
  *
- * Escribe con `useEscribirTxn` (no `useTransacciones`): el `+` puede estar sobre
- * el Dashboard, Presupuesto o donde sea, y no tiene una lista propia que
- * actualizar. La invalidación por generación (dentro de `useEscribirTxn`) hace
- * que la lista/gráfica que SÍ están en pantalla se vuelvan a consultar.
+ * Solo el botón: la hoja la monta `Layout` a su nivel, FUERA de la barra
+ * flotante. La barra es `pointer-events-none` (para dejar pasar los toques por
+ * los huecos) y tiene `transform` (se encoge al scrollear); un `transform`
+ * convierte a la barra en el bloque contenedor de cualquier `fixed` que cuelgue
+ * de ella, así que si la hoja se montara acá quedaría encerrada en la barra y
+ * sorda al tap del cierre.
  *
  * El FAB es un botón sólido de acento, sin `backdrop-filter`, así que lleva
- * `.presionable` directo. La hoja (`Hoja`, `fixed inset-0 z-50`) queda por
- * encima de la cápsula sin tocar z-index.
+ * `.presionable` directo.
  */
-export default function BotonNuevoMovimiento({ userId }: { userId: string }) {
-  const [abierto, setAbierto] = useState(false)
-  const { addTxn, addTransferencia } = useEscribirTxn(userId)
-
+export default function BotonNuevoMovimiento({ onClick }: { onClick: () => void }) {
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        aria-label="Nuevo movimiento"
-        className="presionable pointer-events-auto shrink-0 grid place-items-center w-[52px] h-[52px] rounded-full bg-accent text-bg shadow-flotante"
-      >
-        <IconoMas size={26} />
-      </button>
-      {abierto && (
-        <ModalNuevoMovimiento
-          agregar={addTxn}
-          agregarTransferencia={addTransferencia}
-          onCerrar={() => setAbierto(false)}
-        />
-      )}
-    </>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Nuevo movimiento"
+      className="presionable pointer-events-auto shrink-0 grid place-items-center w-[52px] h-[52px] rounded-full bg-accent text-bg shadow-flotante"
+    >
+      <IconoMas size={26} />
+    </button>
   )
 }
