@@ -41,20 +41,24 @@ Por valor y por independencia, no por número:
 
 ## Decisiones
 
-**Borrar la cuenta va por un RPC con orden explícito, no por un `delete from auth.users`.** Todas
-las tablas cuelgan de `auth.users` con `on delete cascade`, así que la tentación es borrar el
-usuario y dejar que la base haga el resto. **No funciona:** hay tres FKs entre tablas hermanas que
-no son cascade —`transacciones.cuenta_id` y `pagos_recurrentes.cuenta_id` son `on delete restrict`,
-y `transacciones.tarjeta_id` / `ciclo_id` son NO ACTION— y un `restrict` se evalúa de inmediato, no
-al final de la sentencia. El orden de los cascades entre hermanas no está garantizado, así que
-borrar `cuentas` mientras `transacciones` todavía la referencia puede fallar. El RPC borra en orden
-de dependencia y recién al final la fila de `auth.users`.
+**Borrar la cuenta va por un RPC, y la razón medida no es la que yo esperaba.** Todas las tablas
+cuelgan de `auth.users` con `on delete cascade`, así que la tentación es borrar el usuario y dejar
+que la base haga el resto. Escribí que eso "no funciona" — y al probarlo por mutación resultó que
+**sí funciona**: un `delete from auth.users` pelado se lleva las once tablas. Corregido acá, porque
+una premisa que no se sostiene es peor que no tenerla.
 
-**Y apaga el trigger de deuda mientras borra.** `trg_deuda_tc` corre en cada DELETE de
-`transacciones` y **lanza** si la fila no tiene reparto guardado. Una cuenta vieja con filas
-anteriores al backfill no se podría borrar nunca. Para eso está `vorta.reparto_manual`: las tarjetas
-se van en la misma operación, así que mantener sus columnas de deuda al día mientras se borran no
-tiene sentido.
+Lo que sí obliga al RPC, y está medido:
+
+1. **El trigger de deuda bloquea el borrado.** `trg_deuda_tc` corre también en un DELETE por
+   cascada y **lanza** si la fila no tiene reparto guardado (`aplicado_*` en NULL). Una cuenta con
+   filas anteriores al backfill no se podría borrar nunca — y una cuenta vieja es exactamente la que
+   va a querer irse. Apagarlo necesita `set_config`, o sea una función: desde el cliente no se
+   puede. **Esta es la razón real.**
+2. **El orden entre hermanas no está garantizado.** `transacciones.cuenta_id` y
+   `pagos_recurrentes.cuenta_id` son `on delete restrict`, y `transacciones.tarjeta_id` / `ciclo_id`
+   son NO ACTION. Un `restrict` se evalúa de inmediato y Postgres no promete en qué orden procesa
+   los cascades, así que que hoy funcione no garantiza que siga funcionando. Que el orden importa
+   está medido: quitar `transacciones` de la lista rompe con `transacciones_ciclo_id_fkey`.
 
 **Borrar la cuenta no es un borrado de 2 toques.** La convención del repo son dos toques para lo
 destructivo, y eso está bien para una fila. Esto borra *todo* y es irreversible, así que pide
@@ -67,7 +71,7 @@ documento; lo que sí son es una descripción exacta y verificable de qué datos
 
 ## Tareas
 
-- [ ] **2.2** RPC `borrar_mi_cuenta()` con orden de dependencia + tests de SQL, y la pantalla de
+- [x] **2.2** RPC `borrar_mi_cuenta()` con orden de dependencia + tests de SQL, y la pantalla de
       confirmación en Ajustes.
 - [ ] **2.4** Política de privacidad y términos, accesibles desde Ajustes.
 - [ ] **2.5** Marca: un glifo propio en SVG y los PNG de tienda exportados a un peso razonable.

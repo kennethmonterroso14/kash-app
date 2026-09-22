@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { useSesion } from '../context/sesion'
+import DialogoBorrarCuenta from './ajustes/DialogoBorrarCuenta'
 
 interface Props {
   onSignOut: () => void
@@ -15,6 +16,7 @@ interface Props {
 export default function AjustesPage({ onSignOut }: Props) {
   const navigate = useNavigate()
   const [confirmarSalida, setConfirmarSalida] = useState(false)
+  const [borrarCuenta, setBorrarCuenta] = useState(false)
   // Sin consulta propia: el perfil ya viene del contexto.
   const { perfil, email, error: errores } = useSesion()
   const nombre = perfil.nombre
@@ -92,7 +94,29 @@ export default function AjustesPage({ onSignOut }: Props) {
         )}
       </div>
 
+      {/* Separado del cierre de sesión por su propia línea: son dos acciones
+          de peso muy distinto y no deben leerse como una lista de opciones
+          equivalentes. */}
+      <div className="border-t border-perimetro mt-8 mb-6" />
+
+      <button
+        type="button"
+        onClick={() => setBorrarCuenta(true)}
+        className="presionable w-full py-2 rounded-control text-danger/70 text-xs hover:text-danger"
+      >
+        Borrar mi cuenta
+      </button>
+
       <p className="text-textDim text-xs text-center mt-12 tracking-micro">Vorta v2.0</p>
+
+      {borrarCuenta && email && (
+        <DialogoBorrarCuenta
+          email={email}
+          onCerrar={() => setBorrarCuenta(false)}
+          // Ya no hay cuenta: `onSignOut` es el que devuelve la app al login.
+          onBorrada={onSignOut}
+        />
+      )}
     </div>
   )
 }
