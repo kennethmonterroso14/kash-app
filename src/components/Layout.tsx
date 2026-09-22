@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AlertasBanner from './AlertasBanner'
 import BotonNuevoMovimiento from './BotonNuevoMovimiento'
+import ModalNuevoMovimiento from '../pages/transacciones/ModalNuevoMovimiento'
 import {
   IconoResumen, IconoMovimientos, IconoTarjetas, IconoPatrimonio, IconoPlan,
 } from './iconos'
 import { useDireccionScroll } from '../hooks/useDireccionScroll'
+import { useEscribirTxn } from '../hooks/useEscribirTxn'
 import { useMenosMovimiento } from '../lib/movimiento'
 
 interface Props {
@@ -42,6 +45,13 @@ export default function Layout({ children, userId }: Props) {
   const bajando = useDireccionScroll()
   const reducido = useMenosMovimiento()
   const compacta = bajando && !reducido
+
+  // El `+` global. La hoja se monta abajo, FUERA de la barra flotante: esa barra
+  // es `pointer-events-none` y tiene `transform` (se encoge al scrollear), y un
+  // `transform` la vuelve el bloque contenedor de cualquier `fixed` que cuelgue
+  // de ella — la hoja quedaba encerrada en la barra y sorda al tap del cierre.
+  const [nuevoAbierto, setNuevoAbierto] = useState(false)
+  const { addTxn, addTransferencia } = useEscribirTxn(userId)
 
   /**
    * Se calcula a mano en lugar de usar `NavLink` porque en React Router 7
@@ -142,8 +152,19 @@ export default function Layout({ children, userId }: Props) {
           })}
         </nav>
 
-        <BotonNuevoMovimiento userId={userId} />
+        <BotonNuevoMovimiento onClick={() => setNuevoAbierto(true)} />
       </div>
+
+      {/* La hoja del `+`, a nivel de Layout (no dentro de la barra): raíz sin
+          `transform` ni `pointer-events-none`, así el `fixed inset-0` es relativo
+          al viewport y todo el contenido —incluido el cierre— recibe toques. */}
+      {nuevoAbierto && (
+        <ModalNuevoMovimiento
+          agregar={addTxn}
+          agregarTransferencia={addTransferencia}
+          onCerrar={() => setNuevoAbierto(false)}
+        />
+      )}
     </div>
   )
 }
