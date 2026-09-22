@@ -1,6 +1,6 @@
 import {
   colores, materiales, desenfoques, bordesVidrio,
-  sombras, curvas, duraciones, radios, tracking,
+  sombras, curvas, duraciones, radios, tracking, fuentes,
 } from './src/lib/tokens.js'
 
 export default {
@@ -22,16 +22,15 @@ export default {
       letterSpacing: tracking,
       transitionTimingFunction: curvas,
       transitionDuration: duraciones,
+      // Salen de `fuentes` en tokens.js, que documenta qué se cedió al elegir
+      // Poppins y cuál es la alternativa. `sans` y `display` apuntan a la misma
+      // familia: la app usa una sola. `display` se conserva como token para que
+      // volver a tener una fuente aparte para títulos sea una línea, y para no
+      // reescribir los 8 sitios que ya dicen `font-display`.
       fontFamily: {
-        // La fuente del sistema antes que una propia (apple-design §15): trae
-        // su propio optical sizing y tablas de tracking, y dentro del WebView
-        // de Capacitor en iOS esto es SF Pro de verdad. Outfit queda solo para
-        // el logotipo.
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter',
-               'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo',
-               'JetBrains Mono', 'monospace'],
-        display: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: fuentes.principal,
+        display: fuentes.principal,
+        mono: fuentes.mono,
       },
     },
   },

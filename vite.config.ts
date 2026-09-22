@@ -11,7 +11,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg', 'marca.svg', 'marca-maskable.svg'],
+      // Los defaults de Workbox precachean js/css/html/ico/png/svg — **no
+      // woff2**. Sin esto la fuente se sirve del propio origen pero NO queda
+      // disponible sin señal, que era la mitad del motivo de self-hostearla.
+      // Verificado: sin `woff2` acá, `dist/sw.js` no menciona ningún .woff2.
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      },
+      // `icons.svg` se fue: era un sprite de iconos de redes sociales de la
+      // plantilla de Vite, sin un solo uso en `src/`, y estaba precacheándose.
+      includeAssets: ['favicon.svg', 'marca.svg', 'marca-maskable.svg'],
       manifest: {
         name: 'Vorta — Finanzas Personales',
         short_name: 'Vorta',

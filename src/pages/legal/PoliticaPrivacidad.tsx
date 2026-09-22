@@ -10,7 +10,11 @@ import PaginaLegal, { H, L, P } from './PaginaLegal'
  *   sobre `src/` e `index.html` no devuelve nada.
  * - Una sola llamada a un tercero: `api.exchangerate-api.com` en
  *   `useInversiones.fetchTipoCambioDesdeAPI`, y es un GET de tipos de cambio
- *   que no manda ningún dato del usuario.
+ *   que no manda ningún dato del usuario. **Esto era falso cuando se escribió**:
+ *   `index.css` traía un `@import` de Google Fonts, o sea un pedido a un
+ *   tercero en cada carga. La fuente pasó a servirse desde el propio origen y
+ *   ahora la frase es verdad. Si alguien vuelve a agregar un `@import` remoto,
+ *   este documento queda mintiendo.
  * - Todo lo demás va a Supabase con RLS `auth.uid() = user_id` en las once
  *   tablas (ver `supabase/schema.sql`).
  * - Borrar la cuenta la borra de verdad: `borrar_mi_cuenta()`.

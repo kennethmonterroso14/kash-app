@@ -1,7 +1,71 @@
-/* Solo Outfit queda de Google Fonts: es el logotipo. El resto del texto usa la
-   fuente del sistema (apple-design §15), que además no cuesta una petición de
-   red — relevante dentro del WebView de Capacitor, que puede abrir sin señal. */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&display=swap');
+/* ──────────────────────────────────────────────────────────────────────
+   POPPINS, SERVIDA DESDE EL PROPIO ORIGEN.
+
+   Antes acá había un `@import url('https://fonts.googleapis.com/…')` para
+   Outfit. Se fue por tres motivos, en orden de importancia:
+
+   1. Era una petición a un TERCERO en cada carga. La política de privacidad
+      de la app afirma que la única llamada externa es la del tipo de cambio;
+      con ese @import esa frase era falsa. Ahora es verdad.
+   2. Un `@import` en CSS SERIALIZA dos viajes de red antes del primer paint:
+      hay que bajar y parsear el CSS de Google para recién enterarse de la URL
+      del .woff2. Desde el propio origen es un solo viaje, y el service worker
+      lo precachea.
+   3. No funcionaba sin señal. El WebView de Capacitor se abre offline.
+
+   Solo el subconjunto LATINO y solo los cuatro pesos que la app usa de verdad
+   (400, 500, 600, 700 — contados: 0 usos de font-light, font-extrabold y
+   font-black). 7.8 KB cada uno, 31 KB en total.
+
+   `swap` y no `block`: con la fuente precacheada y precargada llega antes del
+   primer paint en la práctica, y si no llega, texto legible con la del sistema
+   es mejor que texto invisible.
+
+   OJO con el `unicode-range`: cubre Latin-1 más puntuación general. Poppins NO
+   trae los glifos que la app usaba como iconos (→ ← ✕ ✎ ⚠ ◈ ▭ ◎ ◧ ≡ ↻ ▸), y
+   por eso esos pasaron a ser SVG — ver src/components/iconos.tsx.
+   ────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fuentes/poppins-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fuentes/poppins-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fuentes/poppins-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fuentes/poppins-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
