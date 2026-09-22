@@ -1,5 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AlertasBanner from './AlertasBanner'
+import {
+  IconoResumen, IconoMovimientos, IconoTarjetas, IconoPatrimonio, IconoPlan,
+} from './iconos'
 
 interface Props {
   children: React.ReactNode
@@ -16,14 +19,14 @@ interface Props {
  * a una de ellas.
  */
 const NAV = [
-  { to: '/resumen',    label: 'Resumen',     icon: '◈', end: true },
-  { to: '/txns',       label: 'Movimientos', icon: '≡' },
-  { to: '/tarjetas',   label: 'Tarjetas',    icon: '▭' },
+  { to: '/resumen',    label: 'Resumen',     Icono: IconoResumen,    end: true },
+  { to: '/txns',       label: 'Movimientos', Icono: IconoMovimientos },
+  { to: '/tarjetas',   label: 'Tarjetas',    Icono: IconoTarjetas },
   // `conPestanas` cambia el aria-current a "location": en una sección con
   // pestañas la página la marca la pestaña, y dos elementos reclamando "page"
   // le deja al lector de pantalla dos respuestas a la misma pregunta.
-  { to: '/patrimonio', label: 'Patrimonio',  icon: '◎', conPestanas: true },
-  { to: '/plan',       label: 'Plan',        icon: '◧', conPestanas: true },
+  { to: '/patrimonio', label: 'Patrimonio',  Icono: IconoPatrimonio, conPestanas: true },
+  { to: '/plan',       label: 'Plan',        Icono: IconoPlan,       conPestanas: true },
 ]
 
 export default function Layout({ children, userId }: Props) {
@@ -78,7 +81,7 @@ export default function Layout({ children, userId }: Props) {
 
       {/* Nav: el canto superior claro es la luz pegando en el borde del vidrio. */}
       <nav className="fixed bottom-0 inset-x-0 z-30 flex vidrio-chrome canto-superior segura-abajo">
-        {NAV.map(({ to, label, icon, end, conPestanas }) => {
+        {NAV.map(({ to, label, Icono, end, conPestanas }) => {
           const activa = esActiva(to, end)
           return (
             <Link
@@ -89,7 +92,7 @@ export default function Layout({ children, userId }: Props) {
                 activa ? 'text-accent' : 'text-textDim'
               }`}
             >
-              <span aria-hidden="true" className="text-lg leading-none">{icon}</span>
+              <Icono size={22} />
               <span className="truncate px-0.5">{label}</span>
             </Link>
           )
