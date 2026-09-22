@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
+import { IconoChevron, IconoCerrar } from '../components/iconos'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
@@ -84,9 +85,10 @@ export default function TarjetaHistorialPage() {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate('/tarjetas')}
-          className="text-accent text-xl hover:opacity-80 transition-opacity"
+          aria-label="Volver a Tarjetas"
+          className="presionable text-accent hover:opacity-80 transition-opacity"
         >
-          ←
+          <IconoChevron direccion="izq" size={22} />
         </button>
         <div>
           <h1 className="text-text font-display font-bold text-xl">
@@ -163,9 +165,9 @@ export default function TarjetaHistorialPage() {
               {/* Botón ver transacciones */}
               <button
                 onClick={() => abrirModal(ciclo)}
-                className="w-full py-2 rounded-xl bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors"
+                className="w-full py-2 rounded-xl bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors inline-flex items-center justify-center gap-1"
               >
-                Ver transacciones →
+                Ver transacciones <IconoChevron direccion="der" size={14} />
               </button>
             </div>
           )
@@ -188,7 +190,9 @@ export default function TarjetaHistorialPage() {
                   </p>
                 )}
               </div>
-              <button onClick={cerrarModal} className="text-textDim hover:text-text text-lg">✕</button>
+              <button onClick={cerrarModal} aria-label="Cerrar" className="presionable text-textDim hover:text-text">
+                <IconoCerrar size={20} />
+              </button>
             </div>
 
             {loadingTxns && (

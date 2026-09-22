@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
+import { IconoAlerta } from '../../components/iconos'
 import { toCentavos, type TarjetaCredito } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -65,10 +66,16 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
           <p className={`font-mono font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
             {fmt(Math.max(0, disponibleTras))}
           </p>
-          {disponibleTras < 0 && <p className="text-danger text-xs mt-1">⚠ Excede el disponible</p>}
+          {disponibleTras < 0 && (
+            <p className="text-danger text-xs mt-1 flex items-center gap-1">
+              <IconoAlerta size={13} className="shrink-0" /> Excede el disponible
+            </p>
+          )}
           {disponibleTras >= 0 &&
             (tc.deuda_actual + toCentavos(montoNum)) / tc.limite_credito >= 0.9 && (
-            <p className="text-warning text-xs mt-1">⚠ Superarás el 90% de uso de la TC</p>
+            <p className="text-warning text-xs mt-1 flex items-center gap-1">
+              <IconoAlerta size={13} className="shrink-0" /> Superarás el 90% de uso de la TC
+            </p>
           )}
         </div>
       )}

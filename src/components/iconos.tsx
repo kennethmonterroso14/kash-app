@@ -83,3 +83,51 @@ export function IconoPlan(p: Props) {
     </Base>
   )
 }
+
+// ── Iconos de acción y estado ──────────────────────────────────────────────
+// Los que siguen reemplazan glifos que Poppins tampoco trae (✎ ✕ ⚠ ✓ ← → ▴ ▾)
+// y que, con la fuente nueva, caían a la pila del sistema. Heredan currentColor
+// igual que los del nav.
+
+const DIRECCION = {
+  der:    'm9 5 7 7-7 7',
+  izq:    'm15 5-7 7 7 7',
+  arriba: 'm5 15 7-7 7 7',
+  abajo:  'm5 9 7 7 7-7',
+} as const
+
+/** Chevron. Una sola flecha para atrás, adelante, expandir y contraer. */
+export function IconoChevron({ direccion = 'der', ...p }: Props & { direccion?: keyof typeof DIRECCION }) {
+  return <Base {...p}><path d={DIRECCION[direccion]} /></Base>
+}
+
+/** Editar: el lápiz. */
+export function IconoEditar(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </Base>
+  )
+}
+
+/** Cerrar / quitar: la equis. */
+export function IconoCerrar(p: Props) {
+  return <Base {...p}><path d="M6 6l12 12M18 6 6 18" /></Base>
+}
+
+/** Atención: el triángulo. Hereda el color del texto (danger/warning). */
+export function IconoAlerta(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M12 4 2.7 20h18.6z" />
+      <path d="M12 10v4" />
+      <path d="M12 17.5h.01" />
+    </Base>
+  )
+}
+
+/** Hecho: el visto. */
+export function IconoCheck(p: Props) {
+  return <Base {...p}><path d="M5 12.5 9.5 17 19 7" /></Base>
+}

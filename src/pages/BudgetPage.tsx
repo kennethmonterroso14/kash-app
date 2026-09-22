@@ -93,7 +93,7 @@ export default function BudgetPage() {
             onClick={() => void deshacerCopia()}
             className="presionable text-xs font-semibold bg-bg/20 rounded-chip px-3 py-1 hover:bg-bg/30 flex-shrink-0"
           >
-            ↩ Deshacer
+            Deshacer
           </button>
         </div>
       )}

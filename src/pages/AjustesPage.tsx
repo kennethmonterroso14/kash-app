@@ -28,7 +28,7 @@ export default function AjustesPage({ onSignOut }: Props) {
   const nombreVisible = nombre ?? email ?? 'Usuario'
 
   const AJUSTES = [
-    { to: '/ajustes/pagos',      icon: '↻',  label: 'Pagos Fijos',
+    { to: '/ajustes/pagos',      icon: '🔁', label: 'Pagos Fijos',
       detalle: 'Se aplican solos cada mes' },
     { to: '/ajustes/categorias', icon: '🏷️', label: 'Categorías',
       detalle: 'Las tuyas, además de las base' },

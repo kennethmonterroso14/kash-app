@@ -22,9 +22,9 @@
    es mejor que texto invisible.
 
    OJO con el `unicode-range`: cubre Latin-1 más puntuación general. Poppins NO
-   trae varios símbolos que la app usaba como iconos (→ ← ✕ ✎ ⚠ ◈ ▭ ◎ ◧ ≡ ↻). Los
-   cinco del nav (◈ ≡ ▭ ◎ ◧) ya son SVG en src/components/iconos.tsx; el resto se
-   migra por tandas — hasta entonces caen a la pila del sistema del fallback.
+   trae los símbolos que la app usaba como iconos (← → ✕ ✎ ⚠ ✓ ▴ ▾ ↻ ↩ ◈ ▭ ◎ ◧ ≡).
+   Todos pasaron a ser SVG en src/components/iconos.tsx, salvo los que sí caen en
+   este rango (× ↑ ↓) y los emoji de verdad (💳 📈 🏷️ …), que el sistema dibuja.
    ────────────────────────────────────────────────────────────────────── */
 @font-face {
   font-family: 'Poppins';

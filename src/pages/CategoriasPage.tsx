@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
 import Campo from '../components/Campo'
+import { IconoChevron, IconoCerrar } from '../components/iconos'
 import { type CategoriaUsuario } from '../hooks/useCategorias'
 import { useSesion } from '../context/sesion'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from '../lib/constants'
@@ -89,9 +90,9 @@ export default function CategoriasPage() {
         <button
           onClick={() => navigate('/ajustes')}
           aria-label="Volver a Ajustes"
-          className="presionable text-accent text-xl px-1"
+          className="presionable text-accent px-1"
         >
-          ←
+          <IconoChevron direccion="izq" size={22} />
         </button>
         <div>
           <h1 className="text-text font-display font-bold text-xl tracking-titulo">Categorías</h1>
@@ -111,7 +112,7 @@ export default function CategoriasPage() {
             onClick={() => { setShowAdd(v => !v); setSaveError(null) }}
             className="text-xs text-accent hover:opacity-80 transition-opacity font-medium"
           >
-            {showAdd ? '✕ Cancelar' : '+ Agregar'}
+            {showAdd ? '× Cancelar' : '+ Agregar'}
           </button>
         </div>
 
@@ -189,9 +190,10 @@ export default function CategoriasPage() {
                 ) : (
                   <button
                     onClick={() => setConfirmDel(cat.id)}
-                    className="text-textDim hover:text-danger text-base transition-colors"
+                    aria-label={`Eliminar ${cat.nombre}`}
+                    className="presionable text-textDim hover:text-danger transition-colors"
                   >
-                    ✕
+                    <IconoCerrar size={16} />
                   </button>
                 )}
               </div>

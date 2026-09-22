@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
+import { IconoAlerta } from '../components/iconos'
 import { useInversiones, type Inversion } from '../hooks/useInversiones'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
@@ -73,7 +74,8 @@ export default function InversionesPage() {
                   : 'bg-surface2 text-textDim hover:text-text'
               }`}
             >
-              {desactualizado ? '⚠ ' : ''}Q{(tipoCambioUSD / 100).toFixed(2)}/USD
+              {desactualizado && <IconoAlerta size={12} className="inline-block align-[-0.1em] mr-1" />}
+              Q{(tipoCambioUSD / 100).toFixed(2)}/USD
             </button>
           )}
           <button

@@ -1,4 +1,5 @@
 import { MESES } from '../lib/constants'
+import { IconoChevron } from './iconos'
 
 interface Props {
   /** 'YYYY-MM' */
@@ -24,13 +25,17 @@ export default function SelectorMes({ mes, onCambiar }: Props) {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <button onClick={() => mover(-1)} aria-label="Mes anterior" className="presionable text-textDim hover:text-text p-1">←</button>
+      <button onClick={() => mover(-1)} aria-label="Mes anterior" className="presionable text-textDim hover:text-text p-1">
+        <IconoChevron direccion="izq" size={18} />
+      </button>
       {/* nowrap: "Septiembre 2026" se partía en dos renglones a 390px y
           descuadraba toda la fila del header. */}
       <span className="text-text font-medium tracking-titulo whitespace-nowrap">
         {MESES[mesNum - 1]} {anio}
       </span>
-      <button onClick={() => mover(1)} aria-label="Mes siguiente" className="presionable text-textDim hover:text-text p-1">→</button>
+      <button onClick={() => mover(1)} aria-label="Mes siguiente" className="presionable text-textDim hover:text-text p-1">
+        <IconoChevron direccion="der" size={18} />
+      </button>
     </div>
   )
 }
