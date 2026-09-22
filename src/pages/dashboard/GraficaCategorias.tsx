@@ -76,7 +76,7 @@ export default function GraficaCategorias({ porCategoria, coloresCategorias }: P
           <div key={cat} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: fill }} />
             <span className="text-xs text-textDim">{cat}</span>
-            <span className="text-xs font-mono text-text">{fmt(value)}</span>
+            <span className="text-xs tabular-nums text-text">{fmt(value)}</span>
           </div>
         ))}
       </div>

@@ -144,19 +144,19 @@ export default function TarjetaHistorialPage() {
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="bg-bg rounded-xl p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Cargos</p>
-                  <p className="text-danger font-mono font-semibold text-xs">
+                  <p className="text-danger tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_cargos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Pagos</p>
-                  <p className="text-success font-mono font-semibold text-xs">
+                  <p className="text-success tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_pagos)}
                   </p>
                 </div>
                 <div className="bg-bg rounded-xl p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Saldo</p>
-                  <p className={`font-mono font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
+                  <p className={`tabular-nums font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
                     {fmt(ciclo.saldo_final)}
                   </p>
                 </div>
@@ -214,7 +214,7 @@ export default function TarjetaHistorialPage() {
                     <p className="text-text text-sm truncate">{tx.descripcion}</p>
                     <p className="text-textDim text-xs">{tx.categoria} · {tx.fecha}</p>
                   </div>
-                  <p className={`font-mono text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
+                  <p className={`tabular-nums text-sm font-semibold flex-shrink-0 ${tx.cantidad < 0 ? 'text-danger' : 'text-success'}`}>
                     {tx.cantidad < 0 ? '−' : '+'}{fmt(Math.abs(tx.cantidad))}
                   </p>
                 </div>
@@ -229,14 +229,14 @@ export default function TarjetaHistorialPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-textDim text-xs">Cargos</span>
-                  <span className="font-mono text-sm text-danger font-semibold">
+                  <span className="tabular-nums text-sm text-danger font-semibold">
                     {fmt(cargosModal)}
                   </span>
                 </div>
                 {pagosModal > 0 && (
                   <div className="flex justify-between">
                     <span className="text-textDim text-xs">Pagos</span>
-                    <span className="font-mono text-sm text-success font-semibold">
+                    <span className="tabular-nums text-sm text-success font-semibold">
                       {fmt(pagosModal)}
                     </span>
                   </div>

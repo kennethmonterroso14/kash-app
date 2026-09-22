@@ -174,13 +174,13 @@ export default function ProyeccionesPage() {
           <Campo
             etiqueta="Ahorro mensual (Q)" tipo="number" min={0} step={100}
             value={ahorroMensualQ} onChange={e => setAhorroMensualQ(Number(e.target.value))}
-            clase="font-mono"
+            clase="tabular-nums"
           />
 
           <Campo
             etiqueta="Rendimiento anual (%)" tipo="number" min={0} max={100} step={0.5}
             value={rendimientoPct} onChange={e => setRendimientoPct(Number(e.target.value))}
-            clase="font-mono"
+            clase="tabular-nums"
           />
 
           {/* El horizonte es un riel de botones, no un control de formulario:

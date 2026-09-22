@@ -15,10 +15,10 @@ export default function Monto({ valor, oculto, className = '', signo = '' }: Pro
   const fmt = useMoneda()
   if (oculto) {
     return (
-      <span className="font-mono tracking-widest text-textDim">
+      <span className="tracking-widest text-textDim">
         ••••••<span className="sr-only">oculto</span>
       </span>
     )
   }
-  return <span className={`font-mono ${className}`}>{signo}{fmt(valor)}</span>
+  return <span className={`tabular-nums ${className}`}>{signo}{fmt(valor)}</span>
 }

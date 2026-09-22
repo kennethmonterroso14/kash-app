@@ -62,7 +62,7 @@ export default function TarjetaMeta({
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-success font-mono text-sm">
+        <span className="text-success tabular-nums text-sm">
           {fmt(meta.monto_actual)}
           <span className="text-textDim"> / {fmt(meta.monto_objetivo)}</span>
         </span>

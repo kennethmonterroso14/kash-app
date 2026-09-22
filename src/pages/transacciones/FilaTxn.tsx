@@ -39,7 +39,7 @@ export default function FilaTxn({ txn, color, editable, onEditar, onBorrar }: Pr
         <p className="text-text text-sm truncate">{txn.descripcion}</p>
         <p className="text-textDim text-xs tracking-micro truncate">{txn.categoria} · {fechaCorta(txn.fecha)}</p>
       </div>
-      <span className={`font-mono text-sm font-semibold flex-shrink-0 ${txn.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
+      <span className={`tabular-nums text-sm font-semibold flex-shrink-0 ${txn.cantidad > 0 ? 'text-success' : 'text-danger'}`}>
         {txn.cantidad > 0 ? '+' : ''}{fmt(txn.cantidad)}
       </span>
       {editable && (

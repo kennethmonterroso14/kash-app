@@ -57,7 +57,7 @@ export default function ModalTipoCambio({
     <Hoja titulo="Tipo de cambio USD" onCerrar={onCerrar}>
       <div className="bg-bg rounded-control p-3">
         <p className="text-textDim text-xs tracking-micro">Tipo de cambio actual</p>
-        <p className="text-text font-mono">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
+        <p className="text-text tabular-nums">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
         <p className={`text-xs mt-0.5 ${desactualizado ? 'text-warning' : 'text-textDim'}`}>
           {!tipoCambioFecha
             ? '⚠️ Sin verificar — confirma el tipo de cambio'
@@ -71,7 +71,7 @@ export default function ModalTipoCambio({
         <Campo
           etiqueta="Nuevo tipo de cambio" placeholder="7.75" inputMode="decimal"
           value={valor} onChange={e => setValor(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         {err && <Aviso>{err}</Aviso>}
         <button

@@ -50,7 +50,7 @@ export default function TarjetasPage() {
           <h1 className="text-text font-display font-bold text-xl tracking-titulo">Tarjetas de Crédito</h1>
           {totalDeuda > 0 && (
             <p className="text-danger text-xs mt-0.5">
-              Deuda total: <span className="font-mono">{fmt(totalDeuda)}</span>
+              Deuda total: <span className="tabular-nums">{fmt(totalDeuda)}</span>
             </p>
           )}
         </div>

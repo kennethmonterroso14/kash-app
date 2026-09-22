@@ -177,7 +177,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
         <Campo
           etiqueta="Monto (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={cantidad} onChange={e => setCantidad(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
 
         {tipo === 'transferencia' ? (
@@ -223,7 +223,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
               )}
             </div>
             {trasCargo !== null && (
-              <p className={`text-xs font-mono flex items-center gap-1 flex-wrap ${trasCargo >= 0 ? 'text-success' : 'text-danger'}`}>
+              <p className={`text-xs tabular-nums flex items-center gap-1 flex-wrap ${trasCargo >= 0 ? 'text-success' : 'text-danger'}`}>
                 <span>Disponible tras cargo: {fmt(Math.max(0, trasCargo))}</span>
                 {trasCargo < 0 && (
                   <span className="flex items-center gap-1">

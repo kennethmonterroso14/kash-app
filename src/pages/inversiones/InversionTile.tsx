@@ -62,17 +62,17 @@ export default function InversionTile({ inv, tipoCambioUSD, onEditar, onActualiz
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
           <p className="text-textDim tracking-micro">Capital</p>
-          <p className="text-text font-mono">{nativo(inv.monto_invertido)}</p>
+          <p className="text-text tabular-nums">{nativo(inv.monto_invertido)}</p>
           {esUSD && <p className="text-textDim">~ {convertido(inv.monto_invertido)}</p>}
         </div>
         <div>
           <p className="text-textDim tracking-micro">Valor actual</p>
-          <p className="text-text font-mono font-bold">{nativo(inv.valor_actual)}</p>
+          <p className="text-text tabular-nums font-bold">{nativo(inv.valor_actual)}</p>
           {esUSD && <p className="text-textDim">~ {convertido(inv.valor_actual)}</p>}
         </div>
         <div>
           <p className="text-textDim tracking-micro">Ganancia</p>
-          <p className={`font-mono font-semibold ${gananciaNativa >= 0 ? 'text-success' : 'text-danger'}`}>
+          <p className={`tabular-nums font-semibold ${gananciaNativa >= 0 ? 'text-success' : 'text-danger'}`}>
             {signo(gananciaNativa)}{nativo(gananciaNativa)}
           </p>
           {esUSD && (
@@ -83,7 +83,7 @@ export default function InversionTile({ inv, tipoCambioUSD, onEditar, onActualiz
         </div>
         <div>
           <p className="text-textDim tracking-micro">Anualizado</p>
-          <p className={`font-mono font-semibold ${rendimiento >= INFLACION_ANUAL_REF ? 'text-success' : 'text-warning'}`}>
+          <p className={`tabular-nums font-semibold ${rendimiento >= INFLACION_ANUAL_REF ? 'text-success' : 'text-warning'}`}>
             {signo(rendimiento)}{rendimiento.toFixed(1)}% / año
           </p>
         </div>

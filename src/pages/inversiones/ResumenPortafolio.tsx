@@ -22,15 +22,15 @@ export default function ResumenPortafolio({ resumen, evolucion }: Props) {
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Capital invertido</p>
-          <p className="text-text font-mono">{fmt(resumen.capital_total)}</p>
+          <p className="text-text tabular-nums">{fmt(resumen.capital_total)}</p>
         </div>
         <div>
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Valor actual</p>
-          <p className="text-text font-mono font-bold">{fmt(resumen.valor_total)}</p>
+          <p className="text-text tabular-nums font-bold">{fmt(resumen.valor_total)}</p>
         </div>
         <div>
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Ganancia total</p>
-          <p className={`font-mono font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
+          <p className={`tabular-nums font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
             {signo(resumen.ganancia_total)}{fmt(resumen.ganancia_total)}
             <span className="text-xs ml-1">
               ({signo(resumen.ganancia_pct)}{resumen.ganancia_pct.toFixed(1)}%)
@@ -39,7 +39,7 @@ export default function ResumenPortafolio({ resumen, evolucion }: Props) {
         </div>
         <div>
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Rendimiento anual</p>
-          <p className={`font-mono font-semibold ${
+          <p className={`tabular-nums font-semibold ${
             resumen.rendimiento_anualizado >= INFLACION_ANUAL_REF ? 'text-success' : 'text-warning'
           }`}>
             {signo(resumen.rendimiento_anualizado)}{resumen.rendimiento_anualizado.toFixed(1)}% / año

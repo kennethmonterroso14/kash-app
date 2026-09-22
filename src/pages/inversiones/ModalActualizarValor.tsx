@@ -59,7 +59,7 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
     <Hoja titulo={`Actualizar — ${inv.nombre}`} onCerrar={onCerrar}>
       <div className="bg-bg rounded-control p-3">
         <p className="text-textDim text-xs tracking-micro">Valor anterior</p>
-        <p className="text-text font-mono">
+        <p className="text-text tabular-nums">
           {esUSD ? fmt(inv.valor_actual, 'USD') : fmt(inv.valor_actual)}
         </p>
       </div>
@@ -69,7 +69,7 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
           etiqueta={`Nuevo valor (${esUSD ? '$' : 'Q'})`}
           placeholder="0.00" inputMode="decimal"
           value={valor} onChange={e => setValor(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         <Campo
           etiqueta="Fecha del update" tipo="date"

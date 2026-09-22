@@ -36,7 +36,7 @@ export default function FilaPago({
           </p>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-danger font-mono text-sm font-semibold">-{fmt(p.monto)}</span>
+          <span className="text-danger tabular-nums text-sm font-semibold">-{fmt(p.monto)}</span>
           <button
             onClick={onEditar}
             aria-label={`Editar ${p.nombre}`}

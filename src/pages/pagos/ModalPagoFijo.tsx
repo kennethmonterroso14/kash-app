@@ -76,7 +76,7 @@ export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
         <Campo
           etiqueta="Monto (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={monto} onChange={e => setMonto(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
         <div className="grid grid-cols-2 gap-3">
           <Campo

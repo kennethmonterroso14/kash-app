@@ -61,7 +61,7 @@ export default function TarjetaTile({
 
       <div>
         <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible</p>
-        <p className="text-text font-mono font-bold text-2xl tracking-titulo">{fmt(resumen.disponible)}</p>
+        <p className="text-text tabular-nums font-bold text-2xl tracking-titulo">{fmt(resumen.disponible)}</p>
       </div>
 
       <div className="h-1.5 bg-bg rounded-full overflow-hidden">
@@ -73,10 +73,10 @@ export default function TarjetaTile({
 
       <div className="flex justify-between text-xs">
         <span className="text-textDim">
-          Ciclo actual: <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
+          Ciclo actual: <span className="text-text tabular-nums">{fmt(tc.deuda_actual)}</span>
         </span>
         <span className="text-textDim">
-          Límite: <span className="text-text font-mono">{fmt(tc.limite_credito)}</span>
+          Límite: <span className="text-text tabular-nums">{fmt(tc.limite_credito)}</span>
         </span>
       </div>
 

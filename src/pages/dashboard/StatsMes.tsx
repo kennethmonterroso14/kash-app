@@ -17,15 +17,15 @@ export default function StatsMes({ stats }: Props) {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface rounded-tarjeta p-4">
           <p className="text-textDim text-xs mb-1 tracking-micro">Ingresos</p>
-          <p className="text-success font-mono font-semibold text-sm">{fmt(stats.ingresos)}</p>
+          <p className="text-success tabular-nums font-semibold text-sm">{fmt(stats.ingresos)}</p>
         </div>
         <div className="bg-surface rounded-tarjeta p-4">
           <p className="text-textDim text-xs mb-1 tracking-micro">Gastos</p>
-          <p className="text-danger font-mono font-semibold text-sm">{fmt(stats.gastos)}</p>
+          <p className="text-danger tabular-nums font-semibold text-sm">{fmt(stats.gastos)}</p>
         </div>
         <div className="bg-surface rounded-tarjeta p-4">
           <p className="text-textDim text-xs mb-1 tracking-micro">Neto</p>
-          <p className={`font-mono font-semibold text-sm ${stats.neto >= 0 ? 'text-success' : 'text-danger'}`}>
+          <p className={`tabular-nums font-semibold text-sm ${stats.neto >= 0 ? 'text-success' : 'text-danger'}`}>
             {fmt(stats.neto)}
           </p>
         </div>
@@ -36,7 +36,7 @@ export default function StatsMes({ stats }: Props) {
         <div className="bg-surface rounded-tarjeta p-4">
           <div className="flex justify-between mb-2">
             <span className="text-textDim text-sm">Tasa de ahorro</span>
-            <span className={`font-mono font-semibold text-sm ${llegaALaMeta ? 'text-success' : 'text-danger'}`}>
+            <span className={`tabular-nums font-semibold text-sm ${llegaALaMeta ? 'text-success' : 'text-danger'}`}>
               {stats.pctAhorro}%
             </span>
           </div>

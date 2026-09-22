@@ -50,12 +50,12 @@ export default function ModalMeta({ guardar, onCerrar }: Props) {
         <Campo
           etiqueta="Monto objetivo (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={objetivo} onChange={e => setObjetivo(e.target.value)}
-          clase="text-xl font-mono"
+          clase="text-xl tabular-nums"
         />
         <Campo
           etiqueta="Ya tengo (Q, opcional)" tipo="number" step="0.01" min="0" placeholder="0.00"
           value={actual} onChange={e => setActual(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
 
         {err && <Aviso>{err}</Aviso>}

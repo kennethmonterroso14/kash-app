@@ -63,7 +63,7 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
       {disponibleTras !== null && (
         <div className="bg-bg rounded-control p-3">
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible tras este cargo</p>
-          <p className={`font-mono font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
+          <p className={`tabular-nums font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
             {fmt(Math.max(0, disponibleTras))}
           </p>
           {disponibleTras < 0 && (
@@ -84,7 +84,7 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
         <Campo
           etiqueta="Monto (Q)" placeholder="0.00" inputMode="decimal"
           value={monto} onChange={e => setMonto(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         <Campo
           etiqueta="Descripción" placeholder="¿En qué?"

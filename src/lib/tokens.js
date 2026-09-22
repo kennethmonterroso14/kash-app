@@ -93,22 +93,26 @@ export const sombras = {
  * `index.css` declara los `@font-face` que las respaldan.
  *
  * Poppins va en TODO el texto, incluidos los montos — decisión del dueño del
- * proyecto, tomada con la medición a la vista. Lo que se cede está medido y
- * conviene tenerlo escrito acá, porque es lo que hay que releer si algún día se
- * revisa:
+ * proyecto, tomada con la medición a la vista. Los montos NO usan ya `font-mono`
+ * (eso los dejaba en una pila monoespaciada, no en Poppins): usan `tabular-nums`.
+ * Lo que se cede está medido y conviene tenerlo escrito acá, porque es lo que
+ * hay que releer si algún día se revisa:
  *
  * - **Poppins no tiene cifras tabulares** (su GSUB no trae la feature `tnum`),
- *   así que `font-variant-numeric: tabular-nums` es un no-op. Ocho de los diez
- *   dígitos miden entre 575 y 635 unidades, pero el `1` mide **320** — la
- *   mitad. Medido en el navegador: una columna de cuatro montos se dispersa
- *   **23px**.
- * - La alternativa, si eso molesta, es **Outfit**: misma familia geométrica, ya
- *   estaba en el repo, y SÍ trae `tnum` — con él la dispersión de esa misma
- *   columna es **0px**. Cambiarla es editar `principal` acá abajo y agregar
- *   `font-variant-numeric: tabular-nums` a la clase de los montos.
+ *   así que sobre ella `tabular-nums` es un no-op. Ocho de los diez dígitos
+ *   miden entre 575 y 635 unidades, pero el `1` mide **320** — la mitad. Medido
+ *   en el navegador: una columna de cuatro montos se dispersa **23px**. Con
+ *   Poppins los montos bailan; se aceptó a cambio de una sola familia.
+ * - Por eso los montos llevan `tabular-nums` aunque hoy no haga nada: **arma el
+ *   plan B**. La alternativa, si el baile molesta en el teléfono, es **Outfit**
+ *   (misma familia geométrica, ya estuvo en el repo, y SÍ trae `tnum`): con ella
+ *   la dispersión de esa columna es **0px**. El cambio es **una línea** —
+ *   `principal` acá abajo pasa a `['Outfit', ...]` — y `tabular-nums`, que ya
+ *   está puesto en cada monto, empieza a alinear solo. No hay que tocar 65
+ *   sitios.
  *
- * El `mono` se queda declarado aunque `principal` lo cubra: hay 69 usos de
- * `font-mono` en la app y varios no son dinero (fechas, días, códigos).
+ * El `mono` se queda declarado, pero ya casi no se usa: solo el volcado técnico
+ * de error del ErrorBoundary, donde monoespaciado es lo correcto.
  */
 const PILA_SISTEMA = [
   '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Segoe UI', 'Roboto',

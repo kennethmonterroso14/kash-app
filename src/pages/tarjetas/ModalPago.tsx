@@ -50,13 +50,13 @@ export default function ModalPago({ tc, onCerrar }: Props) {
       <div className="bg-bg rounded-control p-3 space-y-1.5">
         <div className="flex justify-between text-xs">
           <span className="text-textDim">Deuda vencida (pagar ya)</span>
-          <span className={`font-mono ${tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-textDim'}`}>
+          <span className={`tabular-nums ${tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-textDim'}`}>
             {fmt(tc.deuda_ciclo_anterior)}
           </span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-textDim">Deuda ciclo actual</span>
-          <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
+          <span className="text-text tabular-nums">{fmt(tc.deuda_actual)}</span>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function ModalPago({ tc, onCerrar }: Props) {
         <Campo
           etiqueta="Monto a pagar (Q)" placeholder="0.00" inputMode="decimal"
           value={monto} onChange={e => setMonto(e.target.value)}
-          clase="font-mono"
+          clase="tabular-nums"
         />
         <Campo
           etiqueta="Cuenta de cargo" tipo="select"

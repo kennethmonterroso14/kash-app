@@ -22,7 +22,7 @@ export default function CuentasPage() {
           <p className="text-textDim text-xs uppercase tracking-widest mb-1">Patrimonio total</p>
           {/* Con la consulta fallida el total es 0, y mostrar ese 0 como un
               hecho es justo el defecto que se estaba corrigiendo. */}
-          <p className="text-3xl font-mono font-bold text-text tracking-display">
+          <p className="text-3xl tabular-nums font-bold text-text tracking-display">
             {error ? '—' : fmt(totalPatrimonio)}
           </p>
         </div>
@@ -64,7 +64,7 @@ export default function CuentasPage() {
               <span className="text-textDim text-xs capitalize tracking-micro">{c.tipo}</span>
             </div>
             <p className="text-text text-sm font-medium mb-1 truncate">{c.nombre}</p>
-            <p className={`font-mono font-semibold ${c.saldo >= 0 ? 'text-text' : 'text-danger'}`}>
+            <p className={`tabular-nums font-semibold ${c.saldo >= 0 ? 'text-text' : 'text-danger'}`}>
               {fmt(c.saldo)}
             </p>
             <button

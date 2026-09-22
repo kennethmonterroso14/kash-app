@@ -90,7 +90,7 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
               etiqueta={`Capital inicial (${moneda === 'USD' ? 'USD $' : 'GTQ Q'})`}
               placeholder="0.00" inputMode="decimal"
               value={capital} onChange={e => setCapital(e.target.value)}
-              clase="font-mono"
+              clase="tabular-nums"
             />
           </div>
           {editando ? (

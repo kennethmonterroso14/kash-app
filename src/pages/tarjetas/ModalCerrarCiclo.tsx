@@ -52,7 +52,7 @@ export default function ModalCerrarCiclo({ tc, onCerrar }: Props) {
         Tarjeta: <span className="text-text">{tc.nombre}</span>
       </p>
       <p className="text-textDim text-sm mb-4">
-        Cargos del ciclo: <span className="text-text font-mono">{fmt(tc.deuda_actual)}</span>
+        Cargos del ciclo: <span className="text-text tabular-nums">{fmt(tc.deuda_actual)}</span>
         <br />
         <span className="text-textDim text-xs">
           Al cerrar, esta deuda pasará a "pendiente de pago" y el ciclo actual se reinicia en Q0.

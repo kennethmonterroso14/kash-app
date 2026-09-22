@@ -60,7 +60,7 @@ export default function TarjetaPresupuesto({
           </span>
         </button>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span aria-label={`${pct}% del límite usado`} className={`text-xs font-mono font-semibold ${claseTexto}`}>
+          <span aria-label={`${pct}% del límite usado`} className={`text-xs tabular-nums font-semibold ${claseTexto}`}>
             {pct}%
           </span>
           <button
@@ -108,7 +108,7 @@ export default function TarjetaPresupuesto({
                   <p className="text-text text-xs truncate">{t.descripcion}</p>
                   <p className="text-textDim text-xs tracking-micro">{t.fecha}</p>
                 </div>
-                <span className="text-danger text-xs font-mono font-semibold flex-shrink-0">
+                <span className="text-danger text-xs tabular-nums font-semibold flex-shrink-0">
                   −{fmt(Math.abs(t.cantidad))}
                 </span>
               </div>

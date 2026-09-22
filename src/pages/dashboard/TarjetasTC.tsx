@@ -27,7 +27,7 @@ export default function TarjetasTC({ resumenTCs }: Props) {
             </div>
             <div>
               <p className="text-textDim text-xs tracking-micro">Disponible</p>
-              <p className="font-mono text-sm text-text font-semibold">{fmt(resumen.disponible)}</p>
+              <p className="tabular-nums text-sm text-text font-semibold">{fmt(resumen.disponible)}</p>
             </div>
             <div className="h-1 bg-bg rounded-full overflow-hidden">
               <div

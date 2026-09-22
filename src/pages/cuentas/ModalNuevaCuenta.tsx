@@ -69,7 +69,7 @@ export default function ModalNuevaCuenta({ onCerrar }: Props) {
           <Campo
             etiqueta="Saldo inicial (Q)" tipo="number" step="0.01" min="0" placeholder="0.00"
             value={saldo} onChange={e => setSaldo(e.target.value)}
-            clase="font-mono"
+            clase="tabular-nums"
           />
         </div>
 
