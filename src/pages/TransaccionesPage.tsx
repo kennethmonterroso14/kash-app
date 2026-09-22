@@ -146,7 +146,7 @@ export default function TransaccionesPage() {
       </div>
 
       {ultimoBorrado && (
-        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto vidrio-panel rounded-panel px-4 py-3 flex items-center justify-between">
+        <div className="fixed z-40 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 max-w-lg mx-auto vidrio-panel rounded-panel px-4 py-3 flex items-center justify-between">
           <span className="text-text text-sm">Movimiento eliminado</span>
           <button onClick={deshacer} className="presionable text-accent text-sm font-semibold">
             Deshacer
