@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (122 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (177 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -69,9 +69,11 @@ add/edit form of a given entity is **one** component, not two copies.
 **App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase email + password —
 `signInWithPassword` / `signUp`, *not* a magic link) →
 `SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` is the header +
-global `AlertasBanner` + 5-item bottom nav (Dashboard · Movimientos · Cuentas · Presupuesto ·
-Perfil); everything else (Inversiones, Tarjetas, Pagos Fijos, Categorías, Metas, Proyecciones) is
-reached from `PerfilPage`.
+global `AlertasBanner` + 5-item bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan;
+the nav icons are drawn SVGs in `src/components/iconos.tsx`, not glyphs — Poppins doesn't carry
+them). Patrimonio (Cuentas · Inversiones) and Plan (Presupuesto · Metas · Proyecciones) are tab
+rails via `SeccionConPestanas`. There is no `PerfilPage`: configuration (Pagos Fijos, Categorías,
+Metas edit, profile) lives behind the header gear at `/ajustes` (`AjustesPage`).
 
 ## Data model rules
 
@@ -206,8 +208,15 @@ commit per task.
   `button`/`a`/`[role=button]` on press globally (it replaces the tap highlight that was removed);
   add `.presionable` for the scale on top, for large targets. The global
   `-webkit-tap-highlight-color: transparent` means a control with neither gives no feedback at all.
-- **Body text uses the system font** (`font-sans` → SF Pro inside the iOS WebView). `font-display`
-  (Outfit, the only webfont left) is the wordmark only.
+- **One typeface, Poppins, everywhere** (`font-sans`, `font-display` and — via a nearly-unused
+  `font-mono` — all map through `fuentes` in `src/lib/tokens.js`). It is **self-hosted** under
+  `public/fuentes/` (latin subset, weights 400/500/600/700), declared with `@font-face` in
+  `index.css` and precached by the SW; there is no Google-Fonts `@import` any more (that was a
+  third-party request the privacy policy forbids). `font-display` still exists as a token (points at
+  Poppins) so a separate title face is a one-line change. **Amounts use `tabular-nums`, not
+  `font-mono`** — a no-op on Poppins (no `tnum`) that arms the one-line Outfit fallback documented in
+  `tokens.js`. Poppins lacks the glyphs the app used as icons, so those are SVGs in
+  `src/components/iconos.tsx`; `font-mono` survives only for the ErrorBoundary's technical dump.
 - **Destructive actions are 2-tap**, not `window.confirm`: a `pendingDelete` state holds the row id
   and the button relabels to "Confirmar". Transaction deletes additionally show an undo toast backed
   by `restoreTxn`.
