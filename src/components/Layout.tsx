@@ -4,6 +4,8 @@ import BotonNuevoMovimiento from './BotonNuevoMovimiento'
 import {
   IconoResumen, IconoMovimientos, IconoTarjetas, IconoPatrimonio, IconoPlan,
 } from './iconos'
+import { useDireccionScroll } from '../hooks/useDireccionScroll'
+import { useMenosMovimiento } from '../lib/movimiento'
 
 interface Props {
   children: React.ReactNode
@@ -33,6 +35,13 @@ const NAV = [
 export default function Layout({ children, userId }: Props) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // La barra se encoge al bajar y vuelve entera al subir (iOS 26). Se apaga con
+  // movimiento reducido: ahí queda siempre entera, que es el equivalente quieto
+  // correcto (apple-design §14), no un encogimiento sin transición.
+  const bajando = useDireccionScroll()
+  const reducido = useMenosMovimiento()
+  const compacta = bajando && !reducido
 
   /**
    * Se calcula a mano en lugar de usar `NavLink` porque en React Router 7
@@ -95,7 +104,11 @@ export default function Layout({ children, userId }: Props) {
         pasen por los huecos a los lados; cada pieza reactiva su propio
         `pointer-events-auto`.
       */}
-      <div className="fixed inset-x-0 z-30 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-3 flex items-center justify-center gap-2 pointer-events-none">
+      <div
+        className={`fixed inset-x-0 z-30 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-3 flex items-center justify-center gap-2 pointer-events-none origin-bottom transition-transform duration-normal ease-salida ${
+          compacta ? 'scale-90' : 'scale-100'
+        }`}
+      >
         <nav
           aria-label="Navegación principal"
           className="pointer-events-auto vidrio-flotante rounded-full flex items-center gap-0.5 p-1.5 min-w-0"
