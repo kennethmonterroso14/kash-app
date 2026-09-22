@@ -131,3 +131,8 @@ export function IconoAlerta(p: Props) {
 export function IconoCheck(p: Props) {
   return <Base {...p}><path d="M5 12.5 9.5 17 19 7" /></Base>
 }
+
+/** Más: el botón de nuevo movimiento (FAB). */
+export function IconoMas(p: Props) {
+  return <Base {...p}><path d="M12 5v14M5 12h14" /></Base>
+}
