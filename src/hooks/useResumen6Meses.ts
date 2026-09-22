@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { MESES } from '../lib/constants'
 import { useFechas } from './useFechas'
+import { useSesion } from '../context/sesion'
 import { esGastoComputable } from '../lib/finanzas'
 
 export interface ResumenMes {
@@ -15,6 +16,10 @@ export function useResumen6Meses(userId: string | undefined) {
   // Las fechas salen de la zona del usuario. Este hook se monta desde una
   // página, o sea dentro del SesionProvider, así que puede leer el perfil.
   const fechas = useFechas()
+  // Sin esto no había NINGUNA forma de invalidarlo: solo se salvaba porque
+  // DashboardPage remonta al navegar. Un `+` global escribiendo mientras se ve
+  // el Dashboard lo dejaba viejo.
+  const { generacionTxns } = useSesion()
   const [data, setData] = useState<ResumenMes[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -80,9 +85,10 @@ export function useResumen6Meses(userId: string | undefined) {
       })
 
     return () => { ignorar = true }
-    // `fechas` es estable (useMemo por zona), así que esto se re-consulta
-    // solo si el usuario o su zona horaria cambian.
-  }, [userId, fechas])
+    // `fechas` es estable (useMemo por zona): esto se re-consulta si cambia el
+    // usuario, su zona, o la generación de transacciones (un write en cualquier
+    // parte, incluido el `+` global).
+  }, [userId, fechas, generacionTxns])
 
   return { data, loading, error }
 }

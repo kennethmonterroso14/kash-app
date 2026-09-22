@@ -15,6 +15,11 @@ export function SesionProvider(
   const [perfilError, setPerfilError] = useState<string | null>(null)
   const genRef = useRef(0)
 
+  // Generación de transacciones: la incrementa cualquier escritura y los hooks
+  // acotados por mes la escuchan (ver `generacionTxns` en sesion.ts).
+  const [generacionTxns, setGeneracionTxns] = useState(0)
+  const invalidarTxns = useCallback(() => setGeneracionTxns(g => g + 1), [])
+
   // El provider usa los hooks existentes por dentro, así que el comportamiento
   // es idéntico — solo cambia que se montan UNA vez.
   const cuentas = useCuentas(userId)
@@ -76,9 +81,27 @@ export function SesionProvider(
     async (...args: Parameters<typeof tarjetas.registrarPago>) => {
       const r = await tarjetas.registrarPago(...args)
       await cuentas.recargar()
+      // Un pago_tc también inserta una fila en `transacciones` (debita la cuenta):
+      // la lista del mes y el resumen de 6 meses tienen que volver a pedir.
+      invalidarTxns()
       return r
     },
-    [tarjetas, cuentas],
+    [tarjetas, cuentas, invalidarTxns],
+  )
+
+  /**
+   * Un `gasto_tc` es una compra: cuenta como gasto (esGastoComputable) y por lo
+   * tanto mueve las cifras del Dashboard y de Presupuestos. `useTarjetas` recarga
+   * su propio slice, pero como esas cifras salen de hooks por mes que no montamos
+   * acá, hay que incrementar la generación para que se re-consulten.
+   */
+  const registrarCargoTC = useCallback(
+    async (...args: Parameters<typeof tarjetas.registrarCargo>) => {
+      const r = await tarjetas.registrarCargo(...args)
+      invalidarTxns()
+      return r
+    },
+    [tarjetas, invalidarTxns],
   )
 
   const valor = useMemo<Sesion>(() => ({
@@ -117,15 +140,17 @@ export function SesionProvider(
         ])
       },
     },
+    generacionTxns,
+    invalidarTxns,
     agregarCategoria: categorias.agregarCategoria,
     eliminarCategoria: categorias.eliminarCategoria,
     agregarTC: tarjetas.agregarTC,
     actualizarTC: tarjetas.actualizarTC,
     archivarTC: tarjetas.archivarTC,
     cerrarCiclo: tarjetas.cerrarCiclo,
-    registrarCargo: tarjetas.registrarCargo,
+    registrarCargo: registrarCargoTC,
     registrarPago: registrarPagoTC,
-  }), [userId, email, perfil, perfilCargando, perfilError, refrescarPerfil, cuentas, categorias, tarjetas, registrarPagoTC])
+  }), [userId, email, perfil, perfilCargando, perfilError, refrescarPerfil, cuentas, categorias, tarjetas, generacionTxns, invalidarTxns, registrarCargoTC, registrarPagoTC])
 
   return <SesionCtx.Provider value={valor}>{children}</SesionCtx.Provider>
 }

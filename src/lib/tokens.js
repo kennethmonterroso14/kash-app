@@ -47,16 +47,27 @@ export const materiales = {
   panel:  'rgba(18, 20, 26, 0.62)',
   chrome: 'rgba(12, 14, 19, 0.72)',
   hoja:   'rgba(18, 20, 26, 0.84)',
+  /**
+   * Cromo FLOTANTE: la cápsula del nav, el FAB y el header. A diferencia de
+   * `chrome` (que va pegado a un borde, con el contenido detrás), este flota
+   * con `bg` alrededor, así que tiene que LEERSE como una capa despegada. Por
+   * eso es más claro y más opaco que `chrome`: `chrome` compuesto sobre `bg`
+   * (#06070a) da ~#0a0c10 —invisible como píldora suelta— y este da un gris
+   * netamente más alto. Sigue siendo translúcido: el contenido que scrollea por
+   * debajo se ve difuminado, que es el punto del vidrio.
+   */
+  flotante: 'rgba(32, 35, 46, 0.72)',
   /** Scrim de una tarea modal: oscurece para enfocar (§12 "dim to focus"). */
   scrim:  'rgba(3, 4, 6, 0.55)',
 }
 
 /** Radio del desenfoque por material. Superficie más grande = material más grueso. */
 export const desenfoques = {
-  chip:   '12px',
-  panel:  '20px',
-  chrome: '28px',
-  hoja:   '40px',
+  chip:     '12px',
+  panel:    '20px',
+  chrome:   '28px',
+  flotante: '30px',
+  hoja:     '40px',
 }
 
 /**
@@ -75,6 +86,13 @@ export const sombras = {
   panel:  '0 8px 24px -8px rgba(0, 0, 0, 0.55)',
   /** El nav flota sobre el contenido, así que su sombra va hacia arriba. */
   chrome: '0 -10px 32px -12px rgba(0, 0, 0, 0.70)',
+  /**
+   * Píldora flotante (cápsula del nav y FAB): sombra en las cuatro direcciones
+   * para despegarla del fondo por todos lados. En el header, que es full-bleed,
+   * las sombras laterales quedan fuera de pantalla y se lee como una sombra
+   * hacia abajo. La segunda capa, corta y cerrada, le da el borde de contacto.
+   */
+  flotante: '0 12px 36px -10px rgba(0, 0, 0, 0.72), 0 2px 10px -6px rgba(0, 0, 0, 0.55)',
   hoja:   '0 24px 64px -16px rgba(0, 0, 0, 0.80)',
 }
 

@@ -64,6 +64,17 @@ export interface Sesion {
     tarjetas: () => Promise<void>
     todo: () => Promise<void>
   }
+  /**
+   * Generación de `transacciones`. Los hooks acotados por mes (`useTransacciones`,
+   * `useResumen6Meses`) NO viven en el provider, así que una escritura hecha
+   * desde OTRA instancia —el `+` global, o registrarCargo/registrarPago del
+   * provider— no los tocaría. La ponen en las deps de su fetch y así se vuelven
+   * a consultar cuando cualquier escritura la incrementa. Es el mismo bug del
+   * saldo del dashboard, pero para la lista y el resumen de 6 meses.
+   */
+  generacionTxns: number
+  /** La incrementa quien escribe en `transacciones`. Estable. */
+  invalidarTxns: () => void
   /** Writers que invalidan su propio slice. */
   agregarCategoria: ReturnType<typeof useCategorias>['agregarCategoria']
   eliminarCategoria: ReturnType<typeof useCategorias>['eliminarCategoria']

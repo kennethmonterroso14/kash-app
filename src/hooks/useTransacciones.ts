@@ -41,8 +41,15 @@ export function useTransacciones(userId: string | undefined, mes: string) {
    * Va acá y no en cada sitio de llamada a propósito: en el sitio de llamada se
    * olvida, y es justo lo que pasó.
    */
-  const { refrescar } = useSesion()
-  const invalidarSaldos = refrescar.cuentas
+  const { refrescar, invalidarTxns, generacionTxns } = useSesion()
+  // Toda escritura invalida DOS cosas: los saldos de cuentas (los mueve el
+  // trigger del servidor) y la generación de transacciones (para que otras
+  // instancias del hook y el resumen de 6 meses se re-consulten — p. ej. tras
+  // escribir desde el `+` global mientras se ve el Dashboard).
+  const invalidar = useCallback(async () => {
+    await refrescar.cuentas()
+    invalidarTxns()
+  }, [refrescar, invalidarTxns])
   // Guardamos el mes al que pertenecen las filas para poder descartar una
   // respuesta lenta de un mes que el usuario ya dejó atrás.
   const [state, setState] = useState<{ mes: string | null; rows: Transaccion[] }>({ mes: null, rows: [] })
@@ -80,7 +87,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     })()
 
     return () => { ignorar = true }
-  }, [userId, mes, recarga])
+  }, [userId, mes, recarga, generacionTxns])
 
   // Nunca devolvemos las filas de otro mes mientras el mes actual carga
   const txns = state.mes === mes ? state.rows : []
@@ -107,7 +114,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .single()
     if (!error && data) {
       setRows(prev => [data, ...prev])
-      await invalidarSaldos()
+      await invalidar()
     }
     return { data, error }
   }
@@ -116,7 +123,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     const { error } = await supabase.from('transacciones').delete().eq('id', id)
     if (!error) {
       setRows(prev => prev.filter(t => t.id !== id))
-      await invalidarSaldos()
+      await invalidar()
     }
     return { error }
   }
@@ -130,7 +137,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .single()
     if (!error && data) {
       setRows(prev => [data, ...prev].sort((a, b) => b.fecha.localeCompare(a.fecha)))
-      await invalidarSaldos()
+      await invalidar()
     }
     return { data, error }
   }
@@ -149,7 +156,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .single()
     if (!error && data) {
       setRows(prev => prev.map(t => t.id === id ? { ...t, ...data } : t))
-      await invalidarSaldos()
+      await invalidar()
     }
     return { data, error }
   }
@@ -173,7 +180,7 @@ export function useTransacciones(userId: string | undefined, mes: string) {
       .select(COLS)
     if (!error && data) {
       setRows(prev => [...data, ...prev])
-      await invalidarSaldos()
+      await invalidar()
     }
     return { data, error }
   }
