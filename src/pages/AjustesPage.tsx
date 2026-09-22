@@ -94,10 +94,32 @@ export default function AjustesPage({ onSignOut }: Props) {
         )}
       </div>
 
+      <div className="border-t border-perimetro mt-8 mb-5" />
+
+      {/* Requisito de las dos tiendas: accesibles DESDE la app, no solo un
+          enlace en la ficha de la tienda. */}
+      <div className="flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={() => navigate('/ajustes/privacidad')}
+          className="presionable text-textDim text-xs hover:text-text tracking-micro"
+        >
+          Privacidad
+        </button>
+        <span aria-hidden="true" className="text-textDim/40 text-xs">·</span>
+        <button
+          type="button"
+          onClick={() => navigate('/ajustes/terminos')}
+          className="presionable text-textDim text-xs hover:text-text tracking-micro"
+        >
+          Términos
+        </button>
+      </div>
+
       {/* Separado del cierre de sesión por su propia línea: son dos acciones
           de peso muy distinto y no deben leerse como una lista de opciones
           equivalentes. */}
-      <div className="border-t border-perimetro mt-8 mb-6" />
+      <div className="border-t border-perimetro mt-5 mb-6" />
 
       <button
         type="button"

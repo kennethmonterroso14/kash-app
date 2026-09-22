@@ -73,7 +73,7 @@ documento; lo que sí son es una descripción exacta y verificable de qué datos
 
 - [x] **2.2** RPC `borrar_mi_cuenta()` con orden de dependencia + tests de SQL, y la pantalla de
       confirmación en Ajustes.
-- [ ] **2.4** Política de privacidad y términos, accesibles desde Ajustes.
+- [x] **2.4** Política de privacidad y términos, accesibles desde Ajustes.
 - [ ] **2.5** Marca: un glifo propio en SVG y los PNG de tienda exportados a un peso razonable.
 - [ ] **2.1** Onboarding que cree la primera cuenta con su saldo.
 - [x] **2.3** Reescrita arriba: no hay código, son dos decisiones del dueño.

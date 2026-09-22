@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { supabase } from '../lib/supabase'
 import Campo from '../components/Campo'
@@ -82,6 +83,19 @@ export default function LoginPage() {
               {loading ? 'Cargando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
             </button>
           </form>
+
+          {/* Se puede leer antes de crear la cuenta: aceptar algo que no se
+              puede abrir no es aceptar nada. */}
+          <p className="text-textDim text-xs text-center mt-6 tracking-micro">
+            Al crear una cuenta aceptás los{' '}
+            <Link to="/ajustes/terminos" className="text-textDim underline hover:text-text">
+              términos
+            </Link>{' '}
+            y la{' '}
+            <Link to="/ajustes/privacidad" className="text-textDim underline hover:text-text">
+              política de privacidad
+            </Link>.
+          </p>
         </div>
       </div>
     </div>

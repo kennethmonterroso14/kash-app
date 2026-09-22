@@ -19,6 +19,8 @@ import TarjetasPage from './pages/TarjetasPage'
 import TarjetaHistorialPage from './pages/TarjetaHistorialPage'
 import InversionesPage from './pages/InversionesPage'
 import AutoAplicarPagos from './components/AutoAplicarPagos'
+import PoliticaPrivacidad from './pages/legal/PoliticaPrivacidad'
+import Terminos from './pages/legal/Terminos'
 import { SesionProvider } from './context/SesionProvider'
 
 const PESTANAS_PATRIMONIO = [
@@ -68,7 +70,18 @@ export default function App() {
     )
   }
 
-  if (!user) return <LoginPage />
+  // Los legales tienen que poder leerse ANTES de crear la cuenta: nadie acepta
+  // términos que no puede abrir. Y un revisor de tienda los busca justo acá.
+  // Es un Routes aparte porque el de abajo vive detrás del gate de auth.
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/ajustes/privacidad" element={<PoliticaPrivacidad />} />
+        <Route path="/ajustes/terminos" element={<Terminos />} />
+        <Route path="*" element={<LoginPage />} />
+      </Routes>
+    )
+  }
 
   if (hasSetup === 'error') {
     return (
@@ -145,6 +158,11 @@ export default function App() {
           <Route path="/perfil"       element={<Navigate to="/ajustes" replace />} />
 
           <Route path="*" element={<Navigate to="/resumen" replace />} />
+          {/* Legales. Fuera del riel de pestañas de Ajustes a propósito: no
+              son configuración, son documentos, y aparecer como una pestaña
+              más los pondría al mismo nivel que Pagos Fijos. */}
+          <Route path="/ajustes/privacidad" element={<PoliticaPrivacidad />} />
+          <Route path="/ajustes/terminos" element={<Terminos />} />
         </Routes>
       </Layout>
     </SesionProvider>
