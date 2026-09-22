@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vorta">
+  <!--
+    La variante `maskable` de Android. NO es el mismo archivo que `marca.svg`:
+    Android recorta el ícono a la forma del launcher y se queda con el 80%
+    central, así que el glifo va más chico para que ningún recorte lo muerda.
+    El manifest anterior declaraba el MISMO PNG con purpose "any maskable", que
+    es justo el error que hace que el ícono salga cortado en algunos teléfonos.
+
+    El fondo llena el lienzo completo: es lo que Android recorta.
+  -->
+  <rect width="512" height="512" fill="#12141a"/>
+  <path d="M 182 226 L 256 322 L 330 174"
+        fill="none" stroke="#7c6af7" stroke-width="42"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

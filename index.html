@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <!--
       viewport-fit=cover deja que la página pase por debajo del notch y del
       indicador de home; sin él los `env(safe-area-inset-*)` de index.css valen
@@ -15,7 +16,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <!-- La barra de estado toma su color de acá. El valor es el del cromo
          (el header translúcido sobre el fondo), no el color de marca. -->
-    <meta name="theme-color" content="#0a0b0f" />
+    <!-- Igual a `colores.bg` de src/lib/tokens.js. Acá no se puede importar. -->
+    <meta name="theme-color" content="#06070a" />
     <meta name="color-scheme" content="dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
