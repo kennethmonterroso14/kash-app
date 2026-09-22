@@ -134,6 +134,22 @@ así que hay que borrarlos o convertirlos en plantilla genérica antes de que al
 
 ## 3. Deuda estructural del cliente
 
+### 3.9 La moneda, el idioma y la zona del perfil no se podían cambiar  · ✅ RESUELTO (fase 2)
+
+La Fase 1 parametrizó los montos y las fechas por perfil (`moneda`, `locale`, `zona_horaria`), y
+funcionaba — pero **nada las escribía nunca**. Las únicas escrituras a `profiles` eran el onboarding
+(solo el nombre) y el tipo de cambio de Inversiones. O sea que los tres valores quedaban con el
+default de la tabla —GTQ, es-GT, America/Guatemala— para siempre, y un usuario en México veía
+quetzales y el calendario guatemalteco sin forma de salir. De la zona salen los límites de mes de
+todas las consultas, así que no era cosmético.
+
+Se resolvió por los dos lados: el onboarding pregunta la moneda y saca la zona y el idioma del
+navegador, y `ModalPerfil` en Ajustes permite cambiar nombre, moneda y zona después. El `locale` no
+se pregunta a propósito: es una pregunta que nadie sabe contestar ("¿es-GT o es-419?") para un
+efecto que casi no se ve.
+
+
+
 ### 3.8 Una escritura en `transacciones` no invalidaba el saldo de las cuentas  · ✅ RESUELTO (fase 4)
 
 `cuentas.saldo` lo mueve el trigger `trigger_saldo_transaccion`, del lado del servidor, en cada

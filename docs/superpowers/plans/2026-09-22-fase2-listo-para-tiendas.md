@@ -75,8 +75,40 @@ documento; lo que sí son es una descripción exacta y verificable de qué datos
       confirmación en Ajustes.
 - [x] **2.4** Política de privacidad y términos, accesibles desde Ajustes.
 - [x] **2.5** Marca: un glifo propio en SVG y los PNG de tienda exportados a un peso razonable.
-- [ ] **2.1** Onboarding que cree la primera cuenta con su saldo.
+- [x] **2.1** Onboarding que cree la primera cuenta con su saldo. Salió más grande de lo planeado:
+      ver abajo.
 - [x] **2.3** Reescrita arriba: no hay código, son dos decisiones del dueño.
+
+## Lo que 2.1 destapó
+
+**No existía ningún editor de perfil.** Las únicas escrituras a `profiles` eran el onboarding (solo
+el nombre) y el tipo de cambio de Inversiones, así que `moneda`, `locale` y `zona_horaria` quedaban
+con el default de la tabla —GTQ, es-GT, America/Guatemala— **para siempre**. La Fase 1 hizo todo el
+trabajo de parametrizar los montos y las fechas por perfil y nada podía cambiar esos valores.
+
+Para una fase que se llama "listo para varios usuarios" eso es el problema, no un detalle: un
+usuario en México veía quetzales y el calendario de Guatemala sin salida. Y de la zona salen los
+límites de mes de todas las consultas, así que no era cosmético.
+
+Así que 2.1 quedó de tres partes:
+
+1. La primera cuenta, que es lo que pedía el roadmap.
+2. La zona y el idioma **del navegador**, como default y sin preguntar: se aciertan casi siempre, y
+   una pantalla menos vale más que una pregunta bien contestada.
+3. `ModalPerfil` en Ajustes, para que nada de lo que se elige en el onboarding sea permanente. Sin
+   esto, preguntar la moneda al principio sería *peor* que no preguntarla: una decisión
+   irreversible tomada en el minuto cero.
+
+La moneda sí se pregunta porque no se deduce del idioma del teléfono, y equivocarse ahí se ve en
+cada pantalla. La lista es corta y **solo de monedas de 2 decimales**: la app guarda centavos
+enteros y `formatMoneda` divide por 100, así que una moneda de 0 decimales (CLP, JPY) daría montos
+mal por un factor de 100 sin parecer un error.
+
+Y de paso salió un extracto que hacía falta: crear una cuenta con saldo son **dos** escrituras —la
+cuenta en 0 y un `ajuste` que el trigger convierte en saldo— con una compensación si la segunda
+falla. Eso vivía solo dentro de `ModalNuevaCuenta` y `SetupPage` lo necesitaba, pero no puede usar
+ese componente porque corre antes del provider. Vive en `lib/altaCuenta.ts` y ahora tiene tests: la
+compensación no tenía ninguno, y es de las cosas que solo se descubren roto cuando ya pasó.
 
 ## Fuera de alcance
 

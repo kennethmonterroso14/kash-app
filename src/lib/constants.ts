@@ -141,6 +141,34 @@ export const diaEn = (iso: string, zona: string): string =>
  */
 export const INFLACION_ANUAL_REF = 4
 
+/**
+ * Las monedas que se pueden elegir en el onboarding.
+ *
+ * **Todas tienen 2 decimales, y eso no es casualidad.** La app guarda todo en
+ * centavos enteros y `formatMoneda` divide por 100; una moneda de 0 decimales
+ * (CLP, JPY, ISK…) o de 3 (KWD, BHD) rompería ese supuesto en silencio, y el
+ * error no se vería como un error sino como montos mal por un factor de 100.
+ * Agregar una de esas exige cambiar el modelo de datos, no esta lista.
+ *
+ * Es una lista corta a propósito: las de la región más las dos de referencia.
+ * `formatMoneda` funciona con cualquier código ISO que Intl conozca, así que
+ * ampliarla es agregar una línea — pero cada línea es una promesa de que los
+ * 2 decimales se cumplen.
+ */
+export const MONEDAS_SOPORTADAS = [
+  { codigo: 'GTQ', nombre: 'Quetzal' },
+  { codigo: 'USD', nombre: 'Dólar' },
+  { codigo: 'MXN', nombre: 'Peso mexicano' },
+  { codigo: 'EUR', nombre: 'Euro' },
+  { codigo: 'CRC', nombre: 'Colón costarricense' },
+  { codigo: 'HNL', nombre: 'Lempira' },
+  { codigo: 'NIO', nombre: 'Córdoba' },
+  { codigo: 'PAB', nombre: 'Balboa' },
+  { codigo: 'DOP', nombre: 'Peso dominicano' },
+  { codigo: 'PEN', nombre: 'Sol' },
+  { codigo: 'BRL', nombre: 'Real' },
+] as const
+
 export const TIPOS_INVERSION = [
   { value: 'fondo',     label: 'Fondo de inversión' },
   { value: 'acciones',  label: 'Acciones / ETF' },

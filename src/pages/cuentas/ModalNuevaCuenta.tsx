@@ -2,8 +2,8 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
+import { crearCuentaConSaldo } from '../../lib/altaCuenta'
 import { toCentavos } from '../../lib/finanzas'
-import { supabase } from '../../lib/supabase'
 import { useSesion } from '../../context/sesion'
 import { useFechas } from '../../hooks/useFechas'
 import { paletaDatos } from '../../lib/tokens'
@@ -36,38 +36,13 @@ export default function ModalNuevaCuenta({ onCerrar }: Props) {
     setErr('')
     const saldoCentavos = toCentavos(saldoQ)
 
-    // La cuenta se crea en 0: el saldo lo pone el trigger a partir del ajuste.
-    // Nunca se escribe `cuentas.saldo` desde el cliente.
-    const { data: cuenta, error: errCuenta } = await supabase
-      .from('cuentas')
-      .insert({ user_id: userId, nombre: nombre.trim(), tipo, saldo: 0, color })
-      .select('id, nombre')
-      .single()
-    if (errCuenta) { setErr(errCuenta.message); setGuardando(false); return }
-
-    if (saldoCentavos > 0) {
-      const { error: errTxn } = await supabase.from('transacciones').insert({
-        user_id: userId,
-        cuenta_id: cuenta.id,
-        fecha: fechas.hoy(),
-        cantidad: saldoCentavos,
-        descripcion: `Saldo inicial ${cuenta.nombre}`.slice(0, 200),
-        categoria: 'Ajuste de cuenta',
-        tipo: 'ajuste',
-      })
-      if (errTxn) {
-        // Se compensa: sin esto la cuenta queda huérfana en Q0.00 y un
-        // reintento la duplica. Todavía no hay transacciones que la
-        // referencien, así que el `on delete restrict` no se dispara.
-        const { error: errRollback } = await supabase
-          .from('cuentas').delete().eq('id', cuenta.id).eq('user_id', userId)
-        setErr(errRollback
-          ? `${errTxn.message} — la cuenta "${cuenta.nombre}" quedó creada con saldo Q0.00; ajusta su saldo manualmente.`
-          : errTxn.message)
-        setGuardando(false)
-        return
-      }
-    }
+    // El alta vive en `lib/altaCuenta.ts`: la comparte con `SetupPage`, que
+    // crea la primera cuenta antes de que exista el provider. La compensación
+    // por si falla el ajuste está documentada ahí.
+    const fallo = await crearCuentaConSaldo({
+      userId, nombre, tipo, color, saldoCentavos, hoy: fechas.hoy(),
+    })
+    if (fallo) { setErr(fallo); setGuardando(false); return }
 
     setGuardando(false)
     onCerrar()
