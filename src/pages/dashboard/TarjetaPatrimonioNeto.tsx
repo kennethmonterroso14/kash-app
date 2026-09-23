@@ -11,7 +11,7 @@ interface Props {
 export default function TarjetaPatrimonioNeto({ datos, saldoCuentas, valorInversiones, oculto }: Props) {
   return (
     <div className="vidrio-panel rounded-tarjeta p-4">
-      <p className="text-textDim text-xs uppercase tracking-widest mb-3">Patrimonio Neto</p>
+      <p className="text-textDim text-[15px] font-semibold mb-3">Patrimonio neto</p>
       <div className="space-y-1.5 text-sm">
         <div className="flex justify-between">
           <span className="text-textDim">Cuentas</span>

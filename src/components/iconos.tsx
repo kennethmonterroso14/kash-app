@@ -156,3 +156,28 @@ export function IconoExportar(p: Props) {
     </Base>
   )
 }
+
+/** Entra plata: la flecha que baja hacia la izquierda (a vos). */
+export function IconoIngreso(p: Props) {
+  return <Base {...p}><path d="M17 7 7 17M7 9v8h8" /></Base>
+}
+
+/** Sale plata: la flecha que sube hacia la derecha. */
+export function IconoGasto(p: Props) {
+  return <Base {...p}><path d="M7 17 17 7M9 7h8v8" /></Base>
+}
+
+/** Ahorro: la alcancía reducida a una hucha con ranura. */
+export function IconoAhorro(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M5 11a7 6 0 0 1 12.5-3.5H20v4l-1.6.8A7 6 0 0 1 14 16.8V19h-3v-1.6a7 6 0 0 1-2 0V19H6v-2.8A6 6 0 0 1 5 11z" />
+      <path d="M10 7.5h3" />
+    </Base>
+  )
+}
+
+/** Buscar: la lupa. */
+export function IconoBuscar(p: Props) {
+  return <Base {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></Base>
+}

@@ -57,6 +57,9 @@
    respeta y solo en táctil se fuerza el piso. */
 @media (pointer: coarse) {
   input, textarea, select { font-size: 16px !important; }
+  /* Salvo el monto grande de la hoja de nuevo movimiento, que está MUY por
+     encima del piso: sin esta excepción el piso lo bajaba a 16px. */
+  input.monto-grande { font-size: 52px !important; }
 }
 
 @layer base {

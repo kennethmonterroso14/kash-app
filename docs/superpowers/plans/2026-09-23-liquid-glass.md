@@ -21,12 +21,17 @@ Salud/Fitness y Music/Fotos de iOS 26.
 - [x] El riel de pestañas de Patrimonio/Plan pasa a control segmentado de vidrio.
 
 ## Fase C — Pantallas
-- [ ] Resumen: patrimonio grande + línea de 6 meses, tiles Ingresos/Gastos/Ahorro, anillos de
-      presupuesto, próximo pago, últimos movimientos.
-- [ ] Movimientos: buscador, mes y filtro en cápsulas, lista agrupada por día.
-- [ ] Tarjetas: tarjetas apiladas estilo Wallet + panel del ciclo.
-- [ ] Patrimonio: total + barras por mes + lista de cuentas.
-- [ ] Hoja de nuevo movimiento: monto grande, categorías en círculos.
+- [x] Resumen: patrimonio grande, tiles Ingresos/Gastos/Ahorro, anillos de presupuesto (consulta
+      de solo lectura: `usePresupuestos` copia meses y no se monta acá), próximo pago, últimos
+      movimientos. La línea de 6 meses del patrimonio queda fuera por lo mismo que abajo; la
+      gráfica de ingresos/gastos de 6 meses sigue.
+- [x] Movimientos: buscador, mes y filtro en cápsulas, lista agrupada por día.
+- [x] Tarjetas: cara de tarjeta estilo Wallet (en el color de la tarjeta) + panel del ciclo, una
+      debajo de otra — apilarlas escondería las acciones de todas menos la de arriba.
+- [x] Patrimonio: total + barra de reparto por cuenta + lista de cuentas. (Las barras por MES
+      quedan fuera: el patrimonio no tiene historial guardado, y reconstruirlo desde los
+      movimientos daría cifras falsas en cuanto haya un ajuste.)
+- [x] Hoja de nuevo movimiento: monto grande, categorías en círculos.
 
 Cada fase: `tsc` · `eslint` · tests · build, y capturas de la app real (Supabase simulado) en
 oscuro y claro antes del commit.

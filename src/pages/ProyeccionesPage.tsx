@@ -208,7 +208,7 @@ export default function ProyeccionesPage() {
 
         {/* Chart */}
         <div className="vidrio-panel rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-4">
+          <h2 className="text-textDim text-[15px] font-semibold mb-4">
             Crecimiento proyectado
           </h2>
           {chartData.length > 0 ? (
@@ -255,7 +255,7 @@ export default function ProyeccionesPage() {
         {/* Milestone summary cards */}
         {milestones.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-3">
+            <h2 className="text-textDim text-[15px] font-semibold mb-3">
               Metas proyectadas
             </h2>
             <div className="grid grid-cols-3 gap-3">

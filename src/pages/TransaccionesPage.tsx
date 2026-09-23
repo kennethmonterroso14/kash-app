@@ -2,7 +2,9 @@ import { useState, useRef, useMemo } from 'react'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
 import { useTransacciones, type Transaccion } from '../hooks/useTransacciones'
-import { MESES } from '../lib/constants'
+import { MESES, etiquetaDia } from '../lib/constants'
+import { agruparPorDia } from '../lib/finanzas'
+import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
 import SelectorMes from '../components/SelectorMes'
@@ -11,7 +13,6 @@ import { IconoExportar } from '../components/iconos'
 import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import FiltrosTxn, { type Filtros } from './transacciones/FiltrosTxn'
 import FilaTxn from './transacciones/FilaTxn'
-import ModalNuevoMovimiento from './transacciones/ModalNuevoMovimiento'
 import ModalEditarTxn from './transacciones/ModalEditarTxn'
 import { construirCSV, descargarCSV } from './transacciones/exportarCSV'
 
@@ -29,13 +30,12 @@ const SEGUNDOS_DESHACER = 6000
 const esEditable = (t: Transaccion) => t.tipo !== 'gasto_tc' && t.tipo !== 'pago_tc'
 
 export default function TransaccionesPage() {
-  const { userId, cuentas, coloresCategorias, resumenTCs } = useSesion()
+  const { userId, cuentas, coloresCategorias, resumenTCs, perfil } = useSesion()
+  const fmt = useMoneda()
   const fechas = useFechas()
   const [mes, setMes] = useState(fechas.mesActual())
-  const { txns, loading, error, addTxn, deleteTxn, restoreTxn, updateTxn, addTransferencia } =
-    useTransacciones(userId, mes)
+  const { txns, loading, error, deleteTxn, restoreTxn, updateTxn } = useTransacciones(userId, mes)
 
-  const [mostrarAlta, setMostrarAlta] = useState(false)
   const [editando, setEditando] = useState<Transaccion | null>(null)
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS)
 
@@ -52,6 +52,8 @@ export default function TransaccionesPage() {
     if (filtros.busqueda && !t.descripcion.toLowerCase().includes(filtros.busqueda.toLowerCase())) return false
     return true
   }), [txns, filtros])
+  const grupos = useMemo(() => agruparPorDia(filtrados), [filtrados])
+  const hoy = fechas.hoy()
 
   const exportar = () => descargarCSV(
     construirCSV(filtrados, {
@@ -106,20 +108,16 @@ export default function TransaccionesPage() {
           </button>
         }
       />
-      <div className="flex items-center justify-between mt-3 mb-5">
-        <SelectorMes mes={mes} onCambiar={setMes} />
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => setMostrarAlta(true)}
-            className="presionable bg-accent text-bg font-semibold text-sm px-4 py-2 rounded-control"
-          >
-            + Agregar
-          </button>
-        </div>
+      {/* Sin "+ Agregar" propio: el `+` de la barra flotante es el mismo alta en
+          todas las pantallas, y dos botones para lo mismo es uno de más. */}
+      <div className="mt-3">
+        <FiltrosTxn
+          antes={<SelectorMes mes={mes} onCambiar={setMes} />}
+          filtros={filtros}
+          onCambiar={setFiltros}
+          cuentas={cuentas}
+        />
       </div>
-
-      <FiltrosTxn filtros={filtros} onCambiar={setFiltros} cuentas={cuentas} />
 
       {errorLista && (
         <Aviso clase="mb-4" onCerrar={() => setErrorLista('')}>{errorLista}</Aviso>
@@ -140,16 +138,30 @@ export default function TransaccionesPage() {
         <EstadoVacio titulo={`Sin movimientos en ${etiquetaMes}`} />
       )}
 
-      <div className="space-y-2">
-        {filtrados.map(t => (
-          <FilaTxn
-            key={t.id}
-            txn={t}
-            color={coloresCategorias[t.categoria]}
-            editable={esEditable(t)}
-            onEditar={() => setEditando(t)}
-            onBorrar={() => borrar(t.id)}
-          />
+      <div className="space-y-5">
+        {grupos.map(g => (
+          <section key={g.fecha} aria-label={etiquetaDia(g.fecha, hoy, perfil.locale)}>
+            <div className="flex items-baseline justify-between px-1 mb-1.5">
+              <h2 className="text-text text-[15px] font-semibold">{etiquetaDia(g.fecha, hoy, perfil.locale)}</h2>
+              {g.neto !== 0 && (
+                <span className="text-textDim text-[13px] tabular-nums">
+                  {g.neto > 0 ? '+' : ''}{fmt(g.neto)}
+                </span>
+              )}
+            </div>
+            <ul className="vidrio-panel rounded-tarjeta px-4">
+              {g.txns.map(t => (
+                <FilaTxn
+                  key={t.id}
+                  txn={t}
+                  color={coloresCategorias[t.categoria]}
+                  editable={esEditable(t)}
+                  onEditar={() => setEditando(t)}
+                  onBorrar={() => borrar(t.id)}
+                />
+              ))}
+            </ul>
+          </section>
         ))}
       </div>
 
@@ -170,13 +182,6 @@ export default function TransaccionesPage() {
         />
       )}
 
-      {mostrarAlta && (
-        <ModalNuevoMovimiento
-          agregar={addTxn}
-          agregarTransferencia={addTransferencia}
-          onCerrar={() => setMostrarAlta(false)}
-        />
-      )}
     </div>
   )
 }

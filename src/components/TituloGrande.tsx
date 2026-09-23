@@ -4,6 +4,8 @@ import { IconoChevron } from './iconos'
 
 interface Props {
   titulo: string
+  /** Línea chica ENCIMA del título, como la fecha en Salud o Fitness. */
+  sobretitulo?: string
   /** Línea chica debajo del título: un total, una aclaración. */
   subtitulo?: ReactNode
   /** Lo que va a la derecha, alineado con la base del título: un botón. */
@@ -19,7 +21,7 @@ interface Props {
  *
  * Es el único `<h1>` de la pantalla, así que las páginas no llevan otro.
  */
-export default function TituloGrande({ titulo, subtitulo, accion, volver }: Props) {
+export default function TituloGrande({ titulo, sobretitulo, subtitulo, accion, volver }: Props) {
   return (
     <header className="pt-6 pb-1">
       {volver && (
@@ -34,6 +36,7 @@ export default function TituloGrande({ titulo, subtitulo, accion, volver }: Prop
       )}
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
+          {sobretitulo && <p className="text-textDim text-[15px] font-medium">{sobretitulo}</p>}
           <h1 className="text-text font-display font-bold text-[34px] leading-[41px] tracking-display truncate">
             {titulo}
           </h1>

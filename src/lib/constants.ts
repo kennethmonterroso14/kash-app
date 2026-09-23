@@ -125,6 +125,54 @@ export const mesActualEn = (zona: string): string => hoyEn(zona).substring(0, 7)
 export const diaEn = (iso: string, zona: string): string =>
   formateadorFecha(zona).format(new Date(iso))
 
+/**
+ * "16 sep" en lugar de "2026-09-16", para filas de movimientos: la lista está
+ * acotada a un mes y su encabezado ya dice cuál, así que repetir año y mes en
+ * cada fila era ruido — y a 390px empujaba la línea a un segundo renglón.
+ *
+ * Se parte el string, NO `new Date(fecha)`: eso lo interpreta como UTC y en
+ * Guatemala (UTC-6) muestra el día anterior.
+ */
+export const fechaCorta = (fecha: string): string => {
+  const [, mes, dia] = fecha.split('-')
+  return `${Number(dia)} ${MESES[Number(mes) - 1].slice(0, 3).toLowerCase()}`
+}
+
+/**
+ * El encabezado de un día en la lista de movimientos: "Hoy", "Ayer" o la fecha
+ * larga. `hoy` viene de la zona del usuario; el día anterior se calcula sobre
+ * la fecha de calendario (mediodía UTC), así ningún horario de verano lo corre.
+ */
+export const etiquetaDia = (fecha: string, hoy: string, locale: string): string => {
+  if (fecha === hoy) return 'Hoy'
+  const ayer = new Date(Date.parse(`${hoy}T12:00:00Z`) - 864e5).toISOString().slice(0, 10)
+  if (fecha === ayer) return 'Ayer'
+  return fechaLarga(fecha, locale)
+}
+
+/**
+ * Días que quedan del mes después de hoy ('YYYY-MM-DD'): el 23 de septiembre
+ * devuelve 7, el último día devuelve 0. `new Date(a, m, 0)` es el último día
+ * del mes m (base 1), con los bisiestos resueltos por el calendario.
+ */
+export const diasRestantesMes = (hoy: string): number => {
+  const [a, m, d] = hoy.split('-').map(Number)
+  return new Date(a, m, 0).getDate() - d
+}
+
+/**
+ * 'YYYY-MM-DD' → "Martes, 23 de septiembre" (en el locale del perfil), para el
+ * sobretítulo de Resumen. La fecha es de calendario, así que se arma a mediodía
+ * UTC y se formatea EN UTC: ninguna zona la corre de día. La mayúscula inicial
+ * es porque es-* escribe el día en minúscula y acá abre la línea.
+ */
+export const fechaLarga = (iso: string, locale: string): string => {
+  const texto = new Intl.DateTimeFormat(locale, {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC',
+  }).format(new Date(`${iso}T12:00:00Z`))
+  return texto.charAt(0).toLocaleUpperCase(locale) + texto.slice(1)
+}
+
 // Los alias hoyGT/ahoraGT/mesActual se retiraron en la tarea 1.4.7: ya no
 // quedaba ningún sitio que asumiera Guatemala. Todo pasa por `useFechas()`, que
 // currifica estas funciones con la zona del perfil. Las dos excepciones, ambas

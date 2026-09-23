@@ -38,7 +38,7 @@ export default function Grafica6Meses({ resumen }: Props) {
 
   return (
     <div className="vidrio-panel rounded-tarjeta p-4">
-      <p className="text-textDim text-xs uppercase tracking-widest mb-3">Últimos 6 meses</p>
+      <p className="text-textDim text-[15px] font-semibold mb-3">Últimos 6 meses</p>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={datos} barCategoryGap="30%" barGap={2}>
           <XAxis dataKey="mes" tick={{ fill: colores.textDim, fontSize: 11 }} axisLine={false} tickLine={false} />

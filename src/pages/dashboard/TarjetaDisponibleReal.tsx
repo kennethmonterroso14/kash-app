@@ -9,7 +9,7 @@ interface Props {
 export default function TarjetaDisponibleReal({ datos, oculto }: Props) {
   return (
     <div className="vidrio-panel rounded-tarjeta p-4">
-      <p className="text-textDim text-xs uppercase tracking-widest mb-3">Disponible Real</p>
+      <p className="text-textDim text-[15px] font-semibold mb-3">Disponible real</p>
       <div className="space-y-1.5 text-sm">
         <div className="flex justify-between">
           <span className="text-textDim">Saldo en cuentas</span>

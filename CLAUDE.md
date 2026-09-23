@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (192 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (212 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -56,7 +56,9 @@ table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`v
    so a failing slice doesn't hide the others. Pages read `useSesion()` and never instantiate those
    hooks themselves. The month-scoped and page-specific tables keep their own hooks, instantiated
    by the page: `useTransacciones`, `usePresupuestos`, `useInversiones`, `useMetas`,
-   `usePagosRecurrentes`, `useResumen6Meses`.
+   `usePagosRecurrentes`, `useResumen6Meses`, and `useLimitesPresupuesto` — a **read-only** budget
+   query for Resumen's rings. Don't swap it for `usePresupuestos`: that one copies the previous
+   month's budgets into an empty month, so mounting it on Resumen would write on every month browsed.
 
    **A hook the provider mounts cannot call `useSesion()`** — it would consume the context that
    component provides. That is why `useTarjetas(userId, zonaHoraria)` takes the timezone as a

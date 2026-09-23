@@ -44,7 +44,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
         aria-label={oculto ? 'Mostrar saldos' : 'Ocultar saldos'}
         className="presionable w-full flex justify-between items-center mb-1"
       >
-        <p className="text-textDim text-xs uppercase tracking-widest">Patrimonio total</p>
+        <p className="text-textDim text-[15px] font-semibold">Patrimonio total</p>
         <div className="flex items-center gap-2">
           {oculto && (
             <span aria-hidden="true" className="text-textDim tracking-widest text-sm">••••••</span>
@@ -63,7 +63,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
         <>
           {/* Con la consulta fallida el total es 0, y mostrar ese 0 como un
               hecho es justo el defecto que se estaba corrigiendo. */}
-          <p className="text-3xl tabular-nums font-bold text-text tracking-display">
+          <p className="text-[40px] leading-[46px] tabular-nums font-bold text-text tracking-display">
             {error ? '—' : fmt(total)}
           </p>
           <div className="flex flex-wrap gap-2 mt-3">

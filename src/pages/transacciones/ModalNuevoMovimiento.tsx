@@ -3,8 +3,9 @@ import { motion } from 'motion/react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
+import SelectorCategoria from '../../components/SelectorCategoria'
 import { IconoAlerta } from '../../components/iconos'
-import { toCentavos } from '../../lib/finanzas'
+import { simboloMoneda, toCentavos } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
@@ -54,7 +55,7 @@ interface Props {
  * deuda de la tarjeta y no en una cuenta.
  */
 export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, onCerrar }: Props) {
-  const { cuentas, categoriasGasto, categoriasIngreso, resumenTCs, registrarCargo } = useSesion()
+  const { cuentas, categoriasGasto, categoriasIngreso, coloresCategorias, resumenTCs, registrarCargo, perfil } = useSesion()
   // Un <label> sin `htmlFor` no lo anuncia el lector de pantalla y tocarlo no
   // enfoca el campo. useId() da prefijos únicos por instancia del modal.
   const fmt = useMoneda()
@@ -146,14 +147,14 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
 
   return (
     <Hoja titulo="Nuevo movimiento" onCerrar={onCerrar}>
-      <div className="relative flex gap-1 bg-vidrio-relleno rounded-control p-1">
+      <div className="relative flex gap-1 bg-vidrio-relleno rounded-full p-1">
         {/* El indicador se desliza entre pestañas (§7): dice de dónde vino la
             selección. La posición sale de la aritmética y no del `layoutId` de
             Motion, que habría costado +37 KB gzip por medir lo que acá ya se
             sabe: las cuatro pestañas son `flex-1`, todas del mismo ancho. */}
         <motion.span
           aria-hidden="true"
-          className={`absolute top-1 bottom-1 left-1 rounded-chip ${FONDO_TAB[tipo]}`}
+          className={`absolute top-1 bottom-1 left-1 rounded-full ${FONDO_TAB[tipo]}`}
           style={{ width: posicionIndicador(TIPOS.indexOf(tipo), TIPOS.length).width }}
           animate={{ transform: posicionIndicador(TIPOS.indexOf(tipo), TIPOS.length).transform }}
           transition={reducido ? AL_INSTANTE : RESORTE_SEGMENTO}
@@ -164,7 +165,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
             onClick={() => cambiarTipo(t)}
             // 11px y px-1: con text-xs, "Transferencia" se salía del riel de
             // pestañas a 390px.
-            className={`presionable relative flex-1 min-w-0 px-1 py-2 rounded-chip text-[11px] font-medium ${
+            className={`presionable relative flex-1 min-w-0 px-1 py-2 rounded-full text-[11px] font-semibold ${
               tipo === t ? TEXTO_TAB[t] : 'text-textDim'
             }`}
           >
@@ -174,11 +175,23 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
       </div>
 
       <form onSubmit={enviar} className="space-y-3">
-        <Campo
-          etiqueta="Monto (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
-          value={cantidad} onChange={e => setCantidad(e.target.value)}
-          clase="text-xl tabular-nums"
-        />
+        {/* El monto es lo primero y lo más grande, como en Wallet o Apple
+            Cash: se lee de lejos y no hay que buscar el campo. */}
+        <label className="flex items-baseline justify-center gap-1 py-3">
+          <span className="sr-only">Monto</span>
+          <span aria-hidden="true" className="text-textDim text-[28px] font-semibold">
+            {simboloMoneda({ moneda: perfil.moneda, locale: perfil.locale })}
+          </span>
+          <input
+            type="number" inputMode="decimal" step="0.01" min="0.01" required placeholder="0.00"
+            value={cantidad} onChange={e => setCantidad(e.target.value)}
+            // El ancho sigue al texto (en `ch`) para que el conjunto quede
+            // centrado mientras se escribe, no un campo ancho con el número
+            // pegado a la izquierda.
+            style={{ width: `${Math.max(cantidad.length, 4) + 0.5}ch` }}
+            className="monto-grande bg-transparent text-text text-[52px] leading-[60px] font-bold tabular-nums tracking-display text-center placeholder:text-textDim/50 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+        </label>
 
         {tipo === 'transferencia' ? (
           <>
@@ -204,10 +217,11 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
               etiqueta="Descripción" required placeholder="¿En qué?"
               value={descripcion} onChange={e => setDescripcion(e.target.value)}
             />
-            <div className="grid grid-cols-2 gap-3">
-              <Campo etiqueta="Categoría" tipo="select" value={categoria} onChange={e => setCategoria(e.target.value)}>
-                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-              </Campo>
+            <SelectorCategoria
+              categorias={categorias} colores={coloresCategorias}
+              valor={categoria} onCambiar={setCategoria}
+            />
+            <div>
               {tipo === 'gasto_tc' ? (
                 <Campo etiqueta="Tarjeta" tipo="select" value={tcId} onChange={e => setTcId(e.target.value)}>
                   {resumenTCs.length === 0
@@ -241,7 +255,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
         <button
           type="submit"
           disabled={guardando || (tipo === 'transferencia' && transferDe === transferA)}
-          className={`presionable w-full font-semibold py-3 rounded-control disabled:opacity-50 ${CLASE_SUBMIT[tipo]}`}
+          className={`presionable w-full font-semibold h-12 rounded-full disabled:opacity-50 ${CLASE_SUBMIT[tipo]}`}
         >
           {guardando ? 'Guardando...'
             : tipo === 'transferencia' ? 'Transferir'

@@ -24,16 +24,17 @@ export default function SelectorMes({ mes, onCambiar }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <button onClick={() => mover(-1)} aria-label="Mes anterior" className="presionable text-textDim hover:text-text p-1">
+    // Una cápsula de vidrio, como los selectores de período de Salud y Bolsa.
+    <div className="inline-flex items-center gap-1 shrink-0 vidrio-chip rounded-full h-10 px-1">
+      <button onClick={() => mover(-1)} aria-label="Mes anterior" className="presionable grid place-items-center w-8 h-8 rounded-full text-textDim hover:text-text">
         <IconoChevron direccion="izq" size={18} />
       </button>
       {/* nowrap: "Septiembre 2026" se partía en dos renglones a 390px y
           descuadraba toda la fila del header. */}
-      <span className="text-text font-medium tracking-titulo whitespace-nowrap">
+      <span className="text-text text-[15px] font-semibold whitespace-nowrap px-1">
         {MESES[mesNum - 1]} {anio}
       </span>
-      <button onClick={() => mover(1)} aria-label="Mes siguiente" className="presionable text-textDim hover:text-text p-1">
+      <button onClick={() => mover(1)} aria-label="Mes siguiente" className="presionable grid place-items-center w-8 h-8 rounded-full text-textDim hover:text-text">
         <IconoChevron direccion="der" size={18} />
       </button>
     </div>

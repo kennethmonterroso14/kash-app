@@ -97,7 +97,7 @@ export default function TarjetaPresupuesto({
 
       {expandido && (
         <div id={`txns-${p.id}`} className="border-t border-perimetro mt-3 pt-3">
-          <p className="text-textDim text-xs uppercase tracking-wider mb-2">
+          <p className="text-textDim text-[13px] font-semibold mb-2">
             {propias.length} {propias.length === 1 ? 'transacción' : 'transacciones'}
           </p>
           {propias.length === 0 ? (
