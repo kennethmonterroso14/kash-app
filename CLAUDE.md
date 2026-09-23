@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (212 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (224 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -69,7 +69,9 @@ sections and modals as components under `src/pages/<pagina>/`. No page is over 3
 add/edit form of a given entity is **one** component, not two copies.
 
 **App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase email + password —
-`signInWithPassword` / `signUp`, *not* a magic link) →
+`signInWithPassword` / `signUp`, *not* a magic link — plus optional Google OAuth via
+`signInWithOAuth`, whose button only renders when `/auth/v1/settings` reports the provider enabled;
+setup in `docs/LOGIN_GOOGLE.md`) →
 `SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` has **no header**:
 a soft top scroll edge under the status bar, the global `AlertasBanner`, and a floating 5-item
 bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan) plus the `+` FAB. The nav icons
