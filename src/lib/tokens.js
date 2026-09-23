@@ -199,6 +199,31 @@ export const tracking = {
 }
 
 /**
+ * Los acentos que el usuario puede elegir en Ajustes (el `accent` y `accentAlt`
+ * de la paleta). `morado` son exactamente los valores de `temas`, así que sin
+ * elección la app se ve igual que siempre.
+ *
+ * Cada acento trae su versión para cada tema, no un solo color: el acento se
+ * usa como TEXTO sobre el fondo y como FONDO de botones con texto `bg`, así que
+ * en claro tiene que ser oscuro y en oscuro, claro. Todos pasan 4.5:1 (AA)
+ * contra el `bg` de su tema; lo verifica `acentos.test.ts`.
+ *
+ * Se aplican con `data-acento` en `<html>` (ver `lib/acento.ts`), que el plugin
+ * de `tailwind.config.js` convierte en variables — igual que los temas.
+ */
+export const acentos = [
+  { id: 'morado',   nombre: 'Morado',   oscuro: { accent: '#8b7bff', accentAlt: '#b3a7ff' }, claro: { accent: '#5b48d9', accentAlt: '#7c6af7' } },
+  { id: 'azul',     nombre: 'Azul',     oscuro: { accent: '#409cff', accentAlt: '#79baff' }, claro: { accent: '#0060c7', accentAlt: '#1f73ce' } },
+  { id: 'cian',     nombre: 'Cian',     oscuro: { accent: '#40c8e0', accentAlt: '#79d8e9' }, claro: { accent: '#00707f', accentAlt: '#1f818e' } },
+  { id: 'menta',    nombre: 'Menta',    oscuro: { accent: '#3dd9a8', accentAlt: '#77e4c2' }, claro: { accent: '#08704f', accentAlt: '#268164' } },
+  { id: 'amarillo', nombre: 'Amarillo', oscuro: { accent: '#ffd60a', accentAlt: '#ffe254' }, claro: { accent: '#7a5f00', accentAlt: '#8a721f' } },
+  { id: 'naranja',  nombre: 'Naranja',  oscuro: { accent: '#ff9f45', accentAlt: '#ffbc7d' }, claro: { accent: '#a8480a', accentAlt: '#b25e27' } },
+  { id: 'rosa',     nombre: 'Rosa',     oscuro: { accent: '#ff6fae', accentAlt: '#ff9ac6' }, claro: { accent: '#c01a5f', accentAlt: '#c83572' } },
+  { id: 'grafito',  nombre: 'Grafito',  oscuro: { accent: '#aeaeb8', accentAlt: '#c6c6cd' }, claro: { accent: '#55555f', accentAlt: '#696972' } },
+]
+export const ACENTO_DEFAULT = 'morado'
+
+/**
  * Colores que el USUARIO elige para sus cuentas y tarjetas. Es data, no
  * decoración: se guardan en la base y no deben cambiar si cambia el tema.
  */

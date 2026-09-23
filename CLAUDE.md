@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (224 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (254 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -209,6 +209,14 @@ commit per task.
   the theme. Anything that needs a **real** color in a prop (Recharts) calls `useColores()`, which
   returns the active palette and re-renders when the system theme changes — never import
   `temas`/`colores` for that, it would freeze the dark palette.
+- **The accent is the user's choice** (Ajustes → Color de acento): eight `acentos` in `tokens.js`,
+  each with a dark and a light value that pass AA against that theme's `bg` (`acentos.test.ts`
+  checks it, and that `profiles.acento`'s DB check lists the same ids). The plugin turns
+  `data-acento` on `<html>` into `--c-accent` / `--c-accentAlt`, so every `accent` class follows
+  it for free. `lib/acento.ts` owns the attribute: `iniciarAcento()` applies this device's last
+  choice before the first render (localStorage), the provider applies `profiles.acento` when the
+  profile loads, and `useColores()` includes it. The column is optional — without its migration
+  the provider re-reads the profile without it and the accent is per-device only.
 - **The background is a glow layer** (`body::before` in `index.css`: accent + `brillo2` radial
   gradients) so the glass has something to refract. **Never put `bg-bg` on a page or root
   container** — it paints over that layer and every card reads as flat grey. Content cards are

@@ -5,6 +5,7 @@ import TituloGrande from '../components/TituloGrande'
 import { IconoChevron, IconoEtiqueta, IconoRepetir } from '../components/iconos'
 import { useSesion } from '../context/sesion'
 import DialogoBorrarCuenta from './ajustes/DialogoBorrarCuenta'
+import SelectorAcento from './ajustes/SelectorAcento'
 import ModalPerfil from './ajustes/ModalPerfil'
 
 interface Props {
@@ -59,6 +60,8 @@ export default function AjustesPage({ onSignOut }: Props) {
         </div>
       </div>
 
+
+      <SelectorAcento />
 
       {/* Una lista agrupada, como Ajustes de iOS: filas en una sola tarjeta,
           separadas por un filete, con el icono en su cuadradito de color. */}

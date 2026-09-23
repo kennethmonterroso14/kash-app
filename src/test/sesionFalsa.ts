@@ -37,6 +37,8 @@ export function sesionFalsa(perfil: Partial<Perfil> = {}, errorPerfil: string | 
     refrescar: { perfil: nada, cuentas: nada, categorias: nada, tarjetas: nada, todo: nada },
     generacionTxns: 0,
     invalidarTxns: () => {},
+    actualizarCuenta:  noImplementado,
+    eliminarCuenta:    noImplementado,
     agregarCategoria:  noImplementado,
     eliminarCategoria: noImplementado,
     agregarTC:         noImplementado,

@@ -17,6 +17,9 @@ const conteo: Record<string, number> = {}
 let tablasQueFallan = new Set<string>()
 // Mensaje del fallo simulado, cuando el test necesita uno específico.
 let mensajeDeFallo: string | null = null
+// Falla SOLO la primera consulta a profiles, con este mensaje (la columna
+// opcional `acento` ausente: el provider relee sin ella).
+let primerFalloPerfil: string | null = null
 
 const filasPorTabla: Record<string, unknown[]> = {
   profiles: [{
@@ -40,7 +43,10 @@ vi.mock('../lib/supabase', () => {
   // al await-earlo o al llamar .then/.maybeSingle, como hace supabase-js.
   const hacerQuery = (tabla: string) => {
     conteo[tabla] = (conteo[tabla] ?? 0) + 1
-    const resultado = tablasQueFallan.has(tabla)
+    const fallaUnaVez = tabla === 'profiles' && primerFalloPerfil
+    const resultado = fallaUnaVez
+      ? (() => { const r = { data: null, error: { message: primerFalloPerfil as string } }; primerFalloPerfil = null; return r })()
+      : tablasQueFallan.has(tabla)
       ? { data: null, error: { message: mensajeDeFallo ?? `fallo simulado en ${tabla}` } }
       : { data: filasPorTabla[tabla] ?? [], error: null }
 
@@ -84,6 +90,8 @@ beforeEach(() => {
   for (const k of Object.keys(conteo)) delete conteo[k]
   tablasQueFallan = new Set()
   mensajeDeFallo = null
+  primerFalloPerfil = null
+  delete document.documentElement.dataset.acento
   filasPorTabla.profiles = [{
     nombre: 'Kenneth', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala',
     tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null,
@@ -165,6 +173,24 @@ describe('SesionProvider', () => {
     mensajeDeFallo = 'column profiles.zona_horaria does not exist'
     render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
     await waitFor(() => expect(screen.getByTestId('err-perfil')).toHaveTextContent('migración'))
+  })
+
+  it('sin la columna acento (migración sin correr) relee sin ella y el perfil carga igual', async () => {
+    primerFalloPerfil = 'column profiles.acento does not exist'
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
+    await waitFor(() => expect(screen.getByTestId('nombre')).toHaveTextContent('Kenneth'))
+    expect(screen.getByTestId('err-perfil')).toHaveTextContent('-')
+    expect(conteo.profiles).toBe(2)
+  })
+
+  it('el acento guardado en el perfil se aplica al cargar', async () => {
+    filasPorTabla.profiles = [{
+      nombre: 'Kenneth', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala',
+      tipo_cambio_usd: 775, tipo_cambio_actualizado_at: null, acento: 'menta',
+    }]
+    render(<SesionProvider userId="u1" email="k@test.gt"><Sonda /></SesionProvider>)
+    await waitFor(() => expect(document.documentElement.dataset.acento).toBe('menta'))
+    expect(conteo.profiles).toBe(1)
   })
 
   it('useSesion() fuera del provider lanza en lugar de devolver datos vacíos', () => {

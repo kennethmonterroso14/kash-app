@@ -1,5 +1,5 @@
 import {
-  temas, desenfoques, curvas, duraciones, radios, tracking, fuentes,
+  temas, acentos, desenfoques, curvas, duraciones, radios, tracking, fuentes,
 } from './src/lib/tokens.js'
 
 /** '#8b7bff' → '139 123 255', la forma que acepta `rgb(var(--x) / <alpha>)`. */
@@ -19,6 +19,9 @@ const variables = tema => ({
   ...Object.fromEntries(Object.entries(tema.sombras).map(([k, v]) => [`--s-${k}`, v])),
   ...Object.fromEntries(tema.brillos.map((v, i) => [`--brillo-${i + 1}`, String(v)])),
 })
+
+/** Las dos variables que cambia un acento, en canales como el resto. */
+const varsAcento = ({ accent, accentAlt }) => ({ '--c-accent': canales(accent), '--c-accentAlt': canales(accentAlt) })
 
 const claves = obj => Object.keys(obj)
 
@@ -55,10 +58,17 @@ export default {
   plugins: [
     // Las variables de los dos temas. Oscuro es el default; el claro entra con
     // la preferencia del sistema, igual que en las apps de Apple.
+    //
+    // Encima, el acento que eligió el usuario (`data-acento` en <html>, ver
+    // lib/acento.ts): solo pisa `--c-accent` y `--c-accentAlt`, y el selector
+    // con atributo gana por especificidad al `:root` pelado. El bloque claro de
+    // acentos va DENTRO de la media query y después, así gana en claro.
     ({ addBase }) => addBase({
       ':root': { ...variables(temas.oscuro), colorScheme: 'dark' },
+      ...Object.fromEntries(acentos.map(a => [`:root[data-acento="${a.id}"]`, varsAcento(a.oscuro)])),
       '@media (prefers-color-scheme: light)': {
         ':root': { ...variables(temas.claro), colorScheme: 'light' },
+        ...Object.fromEntries(acentos.map(a => [`:root[data-acento="${a.id}"]`, varsAcento(a.claro)])),
       },
     }),
   ],

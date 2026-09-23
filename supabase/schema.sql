@@ -121,6 +121,15 @@ alter table profiles
   add column if not exists locale       text not null default 'es-GT',
   add column if not exists zona_horaria text not null default 'America/Guatemala';
 
+-- Color de acento elegido en Ajustes (ids de `acentos` en src/lib/tokens.js).
+-- Migración 20260923000000_profiles_acento.sql.
+alter table profiles
+  add column if not exists acento text not null default 'morado';
+do $$ begin
+  alter table profiles add constraint profiles_acento_check
+    check (acento in ('morado', 'azul', 'cian', 'menta', 'amarillo', 'naranja', 'rosa', 'grafito'));
+exception when duplicate_object then null; end $$;
+
 -- ─── CUENTAS ──────────────────────────────────────────────────────────
 -- `saldo` lo mantiene el trigger trigger_saldo_transaccion (deltas, no SUM).
 -- Nunca escribirlo desde el cliente.

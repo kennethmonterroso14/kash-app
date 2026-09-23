@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { decidirBajaCuenta } from '../lib/bajaCuenta'
 
 export interface Cuenta {
   id: string
@@ -9,6 +10,24 @@ export interface Cuenta {
   color: string
   activa: boolean
 }
+
+/** Lo editable de una cuenta. El saldo NO: lo mueve el trigger (usar un ajuste). */
+export interface CambiosCuenta {
+  nombre: string
+  tipo: string
+  color: string
+}
+
+/**
+ * El resultado de pedir eliminar una cuenta. `bloqueada` no es un error: es la
+ * regla de `decidirBajaCuenta`, y la hoja le explica al usuario qué hacer.
+ */
+export type ResultadoBaja =
+  | { ok: 'borrada' | 'archivada' }
+  | { bloqueada: 'saldo' | 'pagos_fijos' }
+  | { error: string }
+
+const ERROR_GENERICO = 'No se pudo completar. Revisa tu conexión e intenta de nuevo.'
 
 export function useCuentas(userId: string | undefined) {
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
@@ -57,5 +76,54 @@ export function useCuentas(userId: string | undefined) {
 
   const totalPatrimonio = cuentas.reduce((sum, c) => sum + c.saldo, 0)
 
-  return { cuentas, loading, error, totalPatrimonio, recargar }
+  /** Devuelve el mensaje de error para mostrar, o null si salió bien. */
+  const actualizarCuenta = useCallback(async (id: string, cambios: CambiosCuenta): Promise<string | null> => {
+    if (!userId) return ERROR_GENERICO
+    const fila = { nombre: cambios.nombre.trim(), tipo: cambios.tipo, color: cambios.color }
+    const { error: e } = await supabase.from('cuentas').update(fila).eq('id', id).eq('user_id', userId)
+    if (e) return ERROR_GENERICO
+    setCuentas(prev => prev.map(c => (c.id === id ? { ...c, ...fila } : c)))
+    return null
+  }, [userId])
+
+  /**
+   * Borra la cuenta si no tiene historial, la archiva si lo tiene, o se niega
+   * con el motivo (ver `decidirBajaCuenta`). El saldo se lee de la base en el
+   * momento, no del estado local: si otra pestaña movió plata, el local miente.
+   */
+  const eliminarCuenta = useCallback(async (id: string): Promise<ResultadoBaja> => {
+    if (!userId) return { error: ERROR_GENERICO }
+    const [cuenta, movs, pagos, pagosActivos] = await Promise.all([
+      supabase.from('cuentas').select('saldo').eq('id', id).eq('user_id', userId).single(),
+      supabase.from('transacciones').select('id', { count: 'exact', head: true }).eq('cuenta_id', id),
+      supabase.from('pagos_recurrentes').select('id', { count: 'exact', head: true }).eq('cuenta_id', id),
+      supabase.from('pagos_recurrentes').select('id', { count: 'exact', head: true }).eq('cuenta_id', id).eq('activo', true),
+    ])
+    if (cuenta.error || movs.error || pagos.error || pagosActivos.error) return { error: ERROR_GENERICO }
+
+    const decision = decidirBajaCuenta({
+      saldo: cuenta.data.saldo,
+      movimientos: movs.count ?? 0,
+      pagosFijos: pagos.count ?? 0,
+      pagosFijosActivos: pagosActivos.count ?? 0,
+    })
+    if (decision.accion === 'bloquear') return { bloqueada: decision.motivo }
+
+    let hecho: 'borrada' | 'archivada' = decision.accion === 'borrar' ? 'borrada' : 'archivada'
+    if (decision.accion === 'borrar') {
+      const { error: e } = await supabase.from('cuentas').delete().eq('id', id).eq('user_id', userId)
+      // 23503 = foreign_key_violation: apareció un movimiento entre el conteo y
+      // el borrado. Se archiva en su lugar, que es lo que habría decidido.
+      if (e && e.code !== '23503') return { error: ERROR_GENERICO }
+      if (e) hecho = 'archivada'
+    }
+    if (hecho === 'archivada') {
+      const { error: e } = await supabase.from('cuentas').update({ activa: false }).eq('id', id).eq('user_id', userId)
+      if (e) return { error: ERROR_GENERICO }
+    }
+    setCuentas(prev => prev.filter(c => c.id !== id))
+    return { ok: hecho }
+  }, [userId])
+
+  return { cuentas, loading, error, totalPatrimonio, recargar, actualizarCuenta, eliminarCuenta }
 }
