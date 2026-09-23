@@ -5,7 +5,7 @@ interface Props {
   titulo: ReactNode
   /** Qué hacer al respecto, en una línea. */
   pista?: ReactNode
-  /** Emoji o glifo grande sobre el título. */
+  /** Un icono de `iconos.tsx` sobre el título; va en un círculo teñido del acento. */
   icono?: ReactNode
   /** El botón de la acción que llena el vacío. */
   children?: ReactNode
@@ -29,7 +29,11 @@ interface Props {
 export default function EstadoVacio({ titulo, pista, icono, children }: Props) {
   return (
     <div className="vidrio-panel rounded-tarjeta p-8 text-center space-y-3">
-      {icono && <p aria-hidden="true" className="text-3xl">{icono}</p>}
+      {icono && (
+        <div aria-hidden="true" className="mx-auto grid place-items-center w-14 h-14 rounded-full bg-accent/15 text-accent">
+          {icono}
+        </div>
+      )}
       <p className="text-text font-medium">{titulo}</p>
       {pista && <p className="text-textDim text-sm">{pista}</p>}
       {children}

@@ -177,7 +177,7 @@ export default function SetupPage({ user, onComplete }: Props) {
 
                 <button
                   type="submit"
-                  className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control"
+                  className="presionable w-full bg-accent text-bg font-semibold h-12 rounded-full"
                 >
                   Continuar
                 </button>
@@ -215,7 +215,7 @@ export default function SetupPage({ user, onComplete }: Props) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control disabled:opacity-50"
+                  className="presionable w-full bg-accent text-bg font-semibold h-12 rounded-full disabled:opacity-50"
                 >
                   {loading ? 'Creando...' : 'Empezar'}
                 </button>

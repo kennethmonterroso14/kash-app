@@ -25,7 +25,7 @@ const CLASES: Record<NonNullable<Props['variante']>, { base: string; reposo: str
     armado: 'bg-danger text-text',
   },
   bloque: {
-    base: 'w-full py-2 rounded-control text-xs',
+    base: 'w-full h-11 rounded-full text-[14px] font-semibold',
     reposo: 'text-danger/70 hover:text-danger',
     armado: 'bg-danger/10 text-danger font-semibold',
   },

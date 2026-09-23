@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import TituloGrande from '../components/TituloGrande'
+import { IconoChevron, IconoEtiqueta, IconoRepetir } from '../components/iconos'
 import { useSesion } from '../context/sesion'
 import DialogoBorrarCuenta from './ajustes/DialogoBorrarCuenta'
 import ModalPerfil from './ajustes/ModalPerfil'
@@ -29,9 +30,9 @@ export default function AjustesPage({ onSignOut }: Props) {
   const nombreVisible = nombre ?? email ?? 'Usuario'
 
   const AJUSTES = [
-    { to: '/ajustes/pagos',      icon: '🔁', label: 'Pagos Fijos',
+    { to: '/ajustes/pagos',      Icono: IconoRepetir,  label: 'Pagos Fijos',
       detalle: 'Se aplican solos cada mes' },
-    { to: '/ajustes/categorias', icon: '🏷️', label: 'Categorías',
+    { to: '/ajustes/categorias', Icono: IconoEtiqueta, label: 'Categorías',
       detalle: 'Las tuyas, además de las base' },
   ]
 
@@ -58,34 +59,35 @@ export default function AjustesPage({ onSignOut }: Props) {
         </div>
       </div>
 
-      <div className="border-t border-perimetro mb-6" />
 
-      <div className="flex flex-col gap-2 mb-6">
-        {AJUSTES.map(({ to, icon, label, detalle }) => (
-          <button
-            key={to}
-            onClick={() => navigate(to)}
-            className="presionable w-full flex items-center justify-between px-4 py-3 vidrio-panel rounded-panel gap-3"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-lg flex-shrink-0">{icon}</span>
-              <div className="text-left min-w-0">
-                <p className="text-text text-sm font-medium">{label}</p>
-                <p className="text-textDim text-xs tracking-micro truncate">{detalle}</p>
-              </div>
-            </div>
-            <span className="text-textDim text-sm flex-shrink-0">›</span>
-          </button>
+      {/* Una lista agrupada, como Ajustes de iOS: filas en una sola tarjeta,
+          separadas por un filete, con el icono en su cuadradito de color. */}
+      <ul className="vidrio-panel rounded-tarjeta px-4 mb-6">
+        {AJUSTES.map(({ to, Icono, label, detalle }) => (
+          <li key={to} className="border-t border-perimetro first:border-t-0">
+            <button
+              onClick={() => navigate(to)}
+              className="presionable w-full flex items-center gap-3 min-h-[60px] py-2 text-left"
+            >
+              <span aria-hidden="true" className="grid place-items-center w-8 h-8 rounded-[9px] bg-accent text-bg flex-shrink-0">
+                <Icono size={18} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-text text-[16px]">{label}</span>
+                <span className="block text-textDim text-[13px] truncate">{detalle}</span>
+              </span>
+              <IconoChevron direccion="der" size={16} className="text-textDim flex-shrink-0" />
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
 
-      <div className="border-t border-perimetro mb-6" />
 
       <div className="flex flex-col gap-3">
         {!confirmarSalida ? (
           <button
             onClick={() => setConfirmarSalida(true)}
-            className="presionable w-full py-3 rounded-control bg-danger/10 text-danger font-semibold text-sm"
+            className="presionable w-full h-12 rounded-full bg-danger/10 text-danger font-semibold text-sm"
           >
             Cerrar sesión
           </button>
@@ -93,7 +95,7 @@ export default function AjustesPage({ onSignOut }: Props) {
           <>
             <button
               onClick={onSignOut}
-              className="presionable w-full py-3 rounded-control bg-danger text-text font-semibold text-sm"
+              className="presionable w-full h-12 rounded-full bg-danger text-text font-semibold text-sm"
             >
               ¿Confirmar cierre de sesión?
             </button>
@@ -107,7 +109,7 @@ export default function AjustesPage({ onSignOut }: Props) {
         )}
       </div>
 
-      <div className="border-t border-perimetro mt-8 mb-5" />
+      <div className="mt-8 mb-5" />
 
       {/* Requisito de las dos tiendas: accesibles DESDE la app, no solo un
           enlace en la ficha de la tienda. */}
@@ -132,7 +134,7 @@ export default function AjustesPage({ onSignOut }: Props) {
       {/* Separado del cierre de sesión por su propia línea: son dos acciones
           de peso muy distinto y no deben leerse como una lista de opciones
           equivalentes. */}
-      <div className="border-t border-perimetro mt-5 mb-6" />
+      <div className="mt-5 mb-6" />
 
       <button
         type="button"

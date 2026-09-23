@@ -133,7 +133,7 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
         <button
           onClick={guardar}
           disabled={guardando}
-          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-1"
+          className="presionable w-full h-12 rounded-full bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-1"
         >
           {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar inversión'}
         </button>

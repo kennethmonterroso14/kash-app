@@ -1,7 +1,8 @@
 import { calcRendimientoAnualizado, usdToGTQ, type Inversion } from '../../lib/finanzas'
-import { INFLACION_ANUAL_REF } from '../../lib/constants'
+import { INFLACION_ANUAL_REF, fechaCorta } from '../../lib/constants'
 import { useMoneda } from '../../hooks/useMoneda'
-import { IconoEditar } from '../../components/iconos'
+import AvatarCategoria from '../../components/AvatarCategoria'
+import { IconoAlerta, IconoCheck, IconoEditar } from '../../components/iconos'
 
 interface Props {
   inv: Inversion
@@ -12,12 +13,12 @@ interface Props {
 }
 
 /**
- * Una inversión en la lista.
+ * Una inversión en la lista: avatar, nombre y plataforma; el valor actual en
+ * grande; capital, ganancia y rendimiento en celdas de relleno (igual que el
+ * panel de ciclo de Tarjetas); y abajo si le gana a la inflación.
  *
  * Las filas USD están guardadas en centavos de DÓLAR, no en la moneda del
- * perfil, así que se muestran en su moneda nativa y debajo la conversión. El
- * formateo de los montos USD iba a mano (`$${x / 100}.toFixed(2)`), que se
- * saltaba el separador de miles; ahora es `fmt(x, 'USD')`.
+ * perfil, así que se muestran en su moneda nativa y debajo la conversión.
  */
 export default function InversionTile({ inv, tipoCambioUSD, onEditar, onActualizar }: Props) {
   const fmt = useMoneda()
@@ -37,75 +38,76 @@ export default function InversionTile({ inv, tipoCambioUSD, onEditar, onActualiz
   const signo = (n: number) => (n >= 0 ? '+' : '')
 
   return (
-    <div className="vidrio-panel rounded-tarjeta p-4 space-y-2.5">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-text font-semibold text-sm truncate">{inv.nombre}</p>
-          {inv.plataforma && <p className="text-textDim text-xs truncate tracking-micro">{inv.plataforma}</p>}
+    <article aria-label={inv.nombre} className="vidrio-panel rounded-tarjeta p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <AvatarCategoria categoria={inv.nombre} color={esUSD ? 'rgb(var(--c-success))' : 'rgb(var(--c-accent))'} size={40} />
+        <div className="flex-1 min-w-0">
+          <p className="text-text text-[16px] font-semibold truncate">{inv.nombre}</p>
+          <p className="text-textDim text-[13px] truncate capitalize">
+            {[inv.plataforma, inv.tipo].filter(Boolean).join(' · ')}
+            {esUSD && <span className="ml-1.5 normal-case text-warning font-semibold">USD</span>}
+          </p>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-xs text-textDim bg-vidrio-relleno px-2 py-0.5 rounded-full whitespace-nowrap">{inv.tipo}</span>
-          {esUSD && (
-            <span className="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">USD</span>
-          )}
-          <button
-            onClick={onEditar}
-            className="presionable text-textDim hover:text-text text-sm ml-0.5"
-            aria-label={`Editar ${inv.nombre}`}
-            title="Editar inversión"
-          >
-            <IconoEditar size={15} />
-          </button>
-        </div>
+        <button
+          onClick={onEditar}
+          className="presionable grid place-items-center w-9 h-9 rounded-full bg-vidrio-relleno text-textDim hover:text-text flex-shrink-0"
+          aria-label={`Editar ${inv.nombre}`}
+          title="Editar inversión"
+        >
+          <IconoEditar size={16} />
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <p className="text-textDim tracking-micro">Capital</p>
-          <p className="text-text tabular-nums">{nativo(inv.monto_invertido)}</p>
-          {esUSD && <p className="text-textDim">~ {convertido(inv.monto_invertido)}</p>}
+      <div>
+        <p className="text-textDim text-[13px]">Valor actual</p>
+        <p className="text-text text-[26px] leading-8 font-bold tabular-nums tracking-titulo">{nativo(inv.valor_actual)}</p>
+        {esUSD && (
+          <p className="text-textDim text-[13px] tabular-nums">
+            ≈ {convertido(inv.valor_actual)} · ganancia ≈ {signo(gananciaConvertida)}{fmt(gananciaConvertida)}
+          </p>
+        )}
+      </div>
+
+      <dl className="grid grid-cols-3 gap-2 text-center">
+        <div className="bg-vidrio-relleno rounded-control py-2 px-1">
+          <dt className="text-textDim text-[12px]">Capital</dt>
+          <dd className="text-text text-[14px] font-semibold tabular-nums truncate">{nativo(inv.monto_invertido)}</dd>
         </div>
-        <div>
-          <p className="text-textDim tracking-micro">Valor actual</p>
-          <p className="text-text tabular-nums font-bold">{nativo(inv.valor_actual)}</p>
-          {esUSD && <p className="text-textDim">~ {convertido(inv.valor_actual)}</p>}
-        </div>
-        <div>
-          <p className="text-textDim tracking-micro">Ganancia</p>
-          <p className={`tabular-nums font-semibold ${gananciaNativa >= 0 ? 'text-success' : 'text-danger'}`}>
+        <div className="bg-vidrio-relleno rounded-control py-2 px-1">
+          <dt className="text-textDim text-[12px]">Ganancia</dt>
+          <dd className={`text-[14px] font-semibold tabular-nums truncate ${gananciaNativa >= 0 ? 'text-success' : 'text-danger'}`}>
             {signo(gananciaNativa)}{nativo(gananciaNativa)}
+          </dd>
+        </div>
+        <div className="bg-vidrio-relleno rounded-control py-2 px-1">
+          <dt className="text-textDim text-[12px]">Anual</dt>
+          <dd className={`text-[14px] font-semibold tabular-nums ${superaInflacion ? 'text-success' : 'text-warning'}`}>
+            {signo(rendimiento)}{rendimiento.toFixed(1)}%
+          </dd>
+        </div>
+      </dl>
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p
+            title={`Inflación de referencia: ~${INFLACION_ANUAL_REF}% anual`}
+            className={`text-[13px] font-medium flex items-center gap-1 whitespace-nowrap ${superaInflacion ? 'text-success' : 'text-warning'}`}
+          >
+            {superaInflacion
+              ? <><IconoCheck size={14} className="shrink-0" /> Supera la inflación</>
+              : <><IconoAlerta size={14} className="shrink-0" /> Por debajo de la inflación</>}
           </p>
-          {esUSD && (
-            <p className={`text-xs ${gananciaConvertida >= 0 ? 'text-success/70' : 'text-danger/70'}`}>
-              ~ {signo(gananciaConvertida)}{fmt(gananciaConvertida)}
-            </p>
+          {inv.fecha_ultimo_update && (
+            <p className="text-textDim text-[12px]">Actualizado el {fechaCorta(inv.fecha_ultimo_update)}</p>
           )}
         </div>
-        <div>
-          <p className="text-textDim tracking-micro">Anualizado</p>
-          <p className={`tabular-nums font-semibold ${rendimiento >= INFLACION_ANUAL_REF ? 'text-success' : 'text-warning'}`}>
-            {signo(rendimiento)}{rendimiento.toFixed(1)}% / año
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 pt-0.5">
-        <p className={`text-xs ${superaInflacion ? 'text-success' : 'text-warning'}`}>
-          {superaInflacion
-            ? `✅ Supera inflación (~${INFLACION_ANUAL_REF}%)`
-            : '⚠️ Por debajo de inflación'}
-        </p>
         <button
           onClick={onActualizar}
-          className="presionable text-xs px-3 py-1.5 rounded-control bg-accent/10 text-accent hover:bg-accent/20 flex-shrink-0"
+          className="presionable h-9 px-3.5 rounded-full bg-accent/15 text-accent text-[14px] font-semibold flex-shrink-0"
         >
           Actualizar valor
         </button>
       </div>
-
-      {inv.fecha_ultimo_update && (
-        <p className="text-textDim text-xs tracking-micro">Actualizado: {inv.fecha_ultimo_update}</p>
-      )}
-    </div>
+    </article>
   )
 }

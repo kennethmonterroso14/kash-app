@@ -82,7 +82,7 @@ export default function DialogoBorrarCuenta({ email, onCerrar, onBorrada }: Prop
           type="button"
           onClick={onCerrar}
           disabled={borrando}
-          className="presionable flex-1 py-3 rounded-control bg-vidrio-relleno text-textDim text-sm font-semibold hover:text-text disabled:opacity-50"
+          className="presionable flex-1 h-12 rounded-full bg-vidrio-relleno text-textDim text-sm font-semibold hover:text-text disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -90,7 +90,7 @@ export default function DialogoBorrarCuenta({ email, onCerrar, onBorrada }: Prop
           type="button"
           onClick={() => void borrar()}
           disabled={!coincide || borrando}
-          className="presionable flex-1 py-3 rounded-control bg-danger text-text text-sm font-semibold disabled:opacity-50"
+          className="presionable flex-1 h-12 rounded-full bg-danger text-text text-sm font-semibold disabled:opacity-50"
         >
           {borrando ? 'Borrando...' : 'Borrar cuenta'}
         </button>

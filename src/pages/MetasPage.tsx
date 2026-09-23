@@ -39,7 +39,7 @@ export default function MetasPage() {
           el suyo y se veían dos "+ Nueva meta" en la misma pantalla. */}
       {metas.length > 0 && (
         <div className="flex items-center justify-end mb-5">
-          {botonNueva('text-sm px-4 py-2 rounded-control')}
+          {botonNueva('text-sm px-4 py-2 rounded-full')}
         </div>
       )}
 
@@ -58,7 +58,7 @@ export default function MetasPage() {
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {!cargando && !error && metas.length === 0 && (
         <EstadoVacio titulo="No tienes metas de ahorro activas">
-          {botonNueva('px-6 py-3 rounded-control')}
+          {botonNueva('px-6 h-12 rounded-full')}
         </EstadoVacio>
       )}
 

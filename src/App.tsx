@@ -94,7 +94,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control"
+            className="presionable w-full bg-accent text-bg font-semibold h-12 rounded-full"
           >
             Reintentar
           </button>

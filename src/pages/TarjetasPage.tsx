@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import TituloGrande from '../components/TituloGrande'
-import { IconoMas } from '../components/iconos'
+import { IconoMas, IconoTarjetas } from '../components/iconos'
+import EstadoVacio from '../components/EstadoVacio'
 import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
@@ -76,11 +77,11 @@ export default function TarjetasPage() {
 
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {!errores.tarjetas && resumenTCs.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">💳</p>
-          <p className="text-textDim text-sm">No tienes tarjetas registradas</p>
-          <p className="text-textDim text-xs mt-1">Agrega tu primera TC para empezar</p>
-        </div>
+        <EstadoVacio
+          icono={<IconoTarjetas size={26} />}
+          titulo="No tienes tarjetas registradas"
+          pista="Agrega tu primera tarjeta con el + de arriba."
+        />
       )}
 
       <div className="flex flex-col gap-4">

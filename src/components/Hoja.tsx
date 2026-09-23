@@ -129,7 +129,7 @@ export default function Hoja({ titulo, onCerrar, children }: Props) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={`${id}-titulo`}
-            className="relative vidrio-hoja w-full max-w-lg rounded-t-hoja pt-2 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4 max-h-[92dvh] overflow-y-auto overscroll-contain"
+            className="relative vidrio-hoja w-full max-w-lg rounded-t-hoja pt-2 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4 max-h-[92dvh] overflow-y-auto overflow-x-hidden overscroll-contain"
             style={{ y }}
             // Con movimiento reducido la hoja aparece donde va a quedarse: se
             // mantiene el fundido del contenedor, que es el que dice que algo

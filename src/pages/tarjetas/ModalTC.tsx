@@ -146,7 +146,7 @@ export default function ModalTC({ tc, onCerrar }: Props) {
         <button
           onClick={guardar}
           disabled={guardando}
-          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-2"
+          className="presionable w-full h-12 rounded-full bg-accent text-bg font-semibold text-sm disabled:opacity-50 mt-2"
         >
           {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Agregar tarjeta'}
         </button>
