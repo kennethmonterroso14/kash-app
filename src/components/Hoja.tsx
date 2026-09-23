@@ -9,6 +9,7 @@ import {
 } from 'motion/react'
 import { useCerrarConEscape } from '../hooks/useCerrarConEscape'
 import { descartaHoja, DUR, RESORTE_HOJA, SALIDA, useMenosMovimiento } from '../lib/movimiento'
+import { IconoCerrar } from './iconos'
 
 interface Props {
   titulo: ReactNode
@@ -164,7 +165,18 @@ export default function Hoja({ titulo, onCerrar, children }: Props) {
                 >
                   {titulo}
                 </h2>
-                <button onClick={cerrar} aria-label="Cerrar" className="presionable text-textDim text-xl shrink-0">×</button>
+                {/* 44×44: el mínimo táctil de la HIG. Antes era el glifo × pelado,
+                    13×28 px medidos — un dedo que no le acertaba caía en el título,
+                    que arranca el arrastre, y la hoja "no cerraba". El -mr-3 deja
+                    el icono alineado al borde del contenido y regala el sobrante
+                    del área al padding de la hoja. */}
+                <button
+                  onClick={cerrar}
+                  aria-label="Cerrar"
+                  className="presionable grid place-items-center w-11 h-11 -mr-3 rounded-full text-textDim shrink-0"
+                >
+                  <IconoCerrar size={20} />
+                </button>
               </div>
             </div>
             {children}
