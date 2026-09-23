@@ -20,7 +20,7 @@ export default function TarjetasTC({ resumenTCs }: Props) {
       */}
       <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 touch-pan-y overscroll-x-contain">
         {resumenTCs.map(({ tc, resumen }) => (
-          <div key={tc.id} className="bg-surface rounded-panel p-3 flex-shrink-0 w-44 space-y-2">
+          <div key={tc.id} className="vidrio-panel rounded-panel p-3 flex-shrink-0 w-44 space-y-2">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tc.color }} />
               <p className="text-text text-xs font-semibold truncate">{tc.nombre}</p>
@@ -29,7 +29,7 @@ export default function TarjetasTC({ resumenTCs }: Props) {
               <p className="text-textDim text-xs tracking-micro">Disponible</p>
               <p className="tabular-nums text-sm text-text font-semibold">{fmt(resumen.disponible)}</p>
             </div>
-            <div className="h-1 bg-bg rounded-full overflow-hidden">
+            <div className="h-1 bg-vidrio-relleno rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${
                   resumen.estado === 'critico' ? 'bg-danger'

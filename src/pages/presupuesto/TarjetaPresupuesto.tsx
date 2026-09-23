@@ -1,7 +1,7 @@
 import BotonConfirmar from '../../components/BotonConfirmar'
 import { IconoEditar, IconoChevron } from '../../components/iconos'
 import { calcEstadoPresupuesto, esGastoComputable } from '../../lib/finanzas'
-import { colores } from '../../lib/tokens'
+import { useColores } from '../../hooks/useColores'
 import { useMoneda } from '../../hooks/useMoneda'
 import type { Presupuesto } from '../../hooks/usePresupuestos'
 import type { Transaccion } from '../../hooks/useTransacciones'
@@ -19,6 +19,7 @@ interface Props {
 export default function TarjetaPresupuesto({
   presupuesto: p, txns, expandido, onExpandir, onEditar, onBorrar,
 }: Props) {
+  const colores = useColores()
   const fmt = useMoneda()
 
   // Mismo criterio que el total del mes: `gasto_tc` cuenta (un gasto con
@@ -38,7 +39,7 @@ export default function TarjetaPresupuesto({
     : 'text-success'
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4">
+    <div className="vidrio-panel rounded-tarjeta p-4">
       <div className="flex justify-between items-center mb-2 gap-2">
         {/*
           La tarjeta es un div normal, NO un role="button". Con ese rol el
@@ -79,7 +80,7 @@ export default function TarjetaPresupuesto({
         </div>
       </div>
 
-      <div aria-hidden="true" className="h-2 bg-bg rounded-full overflow-hidden mb-2">
+      <div aria-hidden="true" className="h-2 bg-vidrio-relleno rounded-full overflow-hidden mb-2">
         <div
           className="h-full rounded-full transition-all duration-normal ease-salida"
           style={{ width: `${Math.min(pct, 100)}%`, background: colorBarra }}

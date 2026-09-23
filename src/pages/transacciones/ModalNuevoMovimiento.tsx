@@ -146,7 +146,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
 
   return (
     <Hoja titulo="Nuevo movimiento" onCerrar={onCerrar}>
-      <div className="relative flex gap-1 bg-bg rounded-control p-1">
+      <div className="relative flex gap-1 bg-vidrio-relleno rounded-control p-1">
         {/* El indicador se desliza entre pestañas (§7): dice de dónde vino la
             selección. La posición sale de la aritmética y no del `layoutId` de
             Motion, que habría costado +37 KB gzip por medir lo que acá ya se

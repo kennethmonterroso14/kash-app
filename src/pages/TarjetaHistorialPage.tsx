@@ -116,7 +116,7 @@ export default function TarjetaHistorialPage() {
         {ciclos.map(ciclo => {
           const badge = ESTADO_BADGE[ciclo.estado] ?? ESTADO_BADGE['cerrado']
           return (
-            <div key={ciclo.id} className="bg-surface rounded-tarjeta p-4">
+            <div key={ciclo.id} className="vidrio-panel rounded-tarjeta p-4">
               {/* Encabezado del ciclo */}
               <div className="flex justify-between items-start mb-3">
                 <div>
@@ -143,19 +143,19 @@ export default function TarjetaHistorialPage() {
 
               {/* Métricas del ciclo */}
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="bg-bg rounded-control p-2.5 text-center">
+                <div className="bg-vidrio-relleno rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Cargos</p>
                   <p className="text-danger tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_cargos)}
                   </p>
                 </div>
-                <div className="bg-bg rounded-control p-2.5 text-center">
+                <div className="bg-vidrio-relleno rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Pagos</p>
                   <p className="text-success tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_pagos)}
                   </p>
                 </div>
-                <div className="bg-bg rounded-control p-2.5 text-center">
+                <div className="bg-vidrio-relleno rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Saldo</p>
                   <p className={`tabular-nums font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
                     {fmt(ciclo.saldo_final)}

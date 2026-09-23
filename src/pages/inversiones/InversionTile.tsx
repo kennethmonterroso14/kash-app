@@ -37,14 +37,14 @@ export default function InversionTile({ inv, tipoCambioUSD, onEditar, onActualiz
   const signo = (n: number) => (n >= 0 ? '+' : '')
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4 space-y-2.5">
+    <div className="vidrio-panel rounded-tarjeta p-4 space-y-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-text font-semibold text-sm truncate">{inv.nombre}</p>
           {inv.plataforma && <p className="text-textDim text-xs truncate tracking-micro">{inv.plataforma}</p>}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-xs text-textDim bg-surface2 px-2 py-0.5 rounded-full whitespace-nowrap">{inv.tipo}</span>
+          <span className="text-xs text-textDim bg-vidrio-relleno px-2 py-0.5 rounded-full whitespace-nowrap">{inv.tipo}</span>
           {esUSD && (
             <span className="text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">USD</span>
           )}

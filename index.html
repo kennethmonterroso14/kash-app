@@ -5,11 +5,6 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- Solo los dos pesos que aparecen en el primer paint (400 del cuerpo y
-         600 de los títulos y montos). Precargar los cuatro competiría con el
-         JS por ancho de banda para nada: 500 y 700 se usan más abajo. -->
-    <link rel="preload" href="/fuentes/poppins-400-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fuentes/poppins-600-latin.woff2" as="font" type="font/woff2" crossorigin />
     <!--
       viewport-fit=cover deja que la página pase por debajo del notch y del
       indicador de home; sin él los `env(safe-area-inset-*)` de index.css valen
@@ -23,8 +18,11 @@
     <!-- La barra de estado toma su color de acá. El valor es el del cromo
          (el header translúcido sobre el fondo), no el color de marca. -->
     <!-- Igual a `colores.bg` de src/lib/tokens.js. Acá no se puede importar. -->
-    <meta name="theme-color" content="#06070a" />
-    <meta name="color-scheme" content="dark" />
+    <!-- La barra de estado y el chrome del navegador toman el color del tema
+         activo (mobile-native §10): uno por esquema, igual que el fondo. -->
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05060a" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eceef5" />
+    <meta name="color-scheme" content="dark light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Vorta</title>

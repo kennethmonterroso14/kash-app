@@ -8,7 +8,7 @@ interface Props {
 
 export default function TarjetaDisponibleReal({ datos, oculto }: Props) {
   return (
-    <div className="bg-surface rounded-tarjeta p-4">
+    <div className="vidrio-panel rounded-tarjeta p-4">
       <p className="text-textDim text-xs uppercase tracking-widest mb-3">Disponible Real</p>
       <div className="space-y-1.5 text-sm">
         <div className="flex justify-between">

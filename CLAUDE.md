@@ -70,7 +70,7 @@ add/edit form of a given entity is **one** component, not two copies.
 `signInWithPassword` / `signUp`, *not* a magic link) →
 `SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` is the header +
 global `AlertasBanner` + 5-item bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan;
-the nav icons are drawn SVGs in `src/components/iconos.tsx`, not glyphs — Poppins doesn't carry
+the nav icons are drawn SVGs in `src/components/iconos.tsx`, not glyphs — no UI font carries
 them). Patrimonio (Cuentas · Inversiones) and Plan (Presupuesto · Metas · Proyecciones) are tab
 rails via `SeccionConPestanas`. There is no `PerfilPage`: configuration (Pagos Fijos, Categorías,
 Metas edit, profile) lives behind the header gear at `/ajustes` (`AjustesPage`).
@@ -186,14 +186,26 @@ commit per task.
 - **UI strings, identifiers, DB columns and most comments are Spanish**; keep new code consistent
   rather than mixing in English column names.
 - **Tailwind semantic tokens only** — every token comes from `src/lib/tokens.js` (the single
-  source: `tailwind.config.js` imports it, and so do the Recharts props that need real colors).
-  Colors: `bg`, `surface`, `surface2`, `accent`, `accentAlt`, `success`, `danger`, `warning`,
-  `text`, `textDim`. Also `rounded-{chip,control,panel,tarjeta,hoja}`,
+  source: `tailwind.config.js` imports it). Colors: `bg`, `surface`, `surface2`, `accent`,
+  `accentAlt`, `success`, `danger`, `warning`, `text`, `textDim`. Also `rounded-{chip,control,panel,tarjeta,hoja}`,
   `tracking-{display,titulo,base,micro}`, `duration-{presion,rapida,normal,lenta}`,
   `ease-{salida,entrada,estandar}`, `border-{canto,perimetro}`, `shadow-{chip,panel,chrome,hoja}`.
   No raw hex in `className`. Raw hex is fine for chart/category colors that come from data.
   There is deliberately **no `muted` color**: it was a #3a3f4d grey used as text at ~1.5:1
   contrast on 238 sites. Dim text is `textDim`; hairlines are `border-perimetro`.
+- **Two themes, following the system** (`prefers-color-scheme`; dark is the default). `tokens.js`
+  exports `temas.{oscuro,claro}`, each a full palette — not an inversion — plus materials, glass
+  borders, shadows and the background glow intensities. A plugin in `tailwind.config.js` dumps each
+  theme to CSS variables (`--c-*` as RGB channels so `bg-accent/15` still works, `--m-*`, `--b-*`,
+  `--s-*`, `--brillo-*`) and every class points at the variables, so components never branch on
+  the theme. Anything that needs a **real** color in a prop (Recharts) calls `useColores()`, which
+  returns the active palette and re-renders when the system theme changes — never import
+  `temas`/`colores` for that, it would freeze the dark palette.
+- **The background is a glow layer** (`body::before` in `index.css`: accent + `brillo2` radial
+  gradients) so the glass has something to refract. **Never put `bg-bg` on a page or root
+  container** — it paints over that layer and every card reads as flat grey. Content cards are
+  `vidrio-panel`; controls, tracks and secondary buttons inside glass use `bg-vidrio-relleno`
+  (iOS's tertiary fill, translucent) rather than an opaque `bg-bg`/`bg-surface2`.
 - **The design language is Apple's**, and the rules live in the repo: `.claude/skills/apple-design`
   (materials, motion, typography) and `.claude/skills/mobile-native` (the platform layer, which
   matters twice over because this ships inside a Capacitor WebView). They are vendored upstream —
@@ -208,15 +220,14 @@ commit per task.
   `button`/`a`/`[role=button]` on press globally (it replaces the tap highlight that was removed);
   add `.presionable` for the scale on top, for large targets. The global
   `-webkit-tap-highlight-color: transparent` means a control with neither gives no feedback at all.
-- **One typeface, Poppins, everywhere** (`font-sans`, `font-display` and — via a nearly-unused
-  `font-mono` — all map through `fuentes` in `src/lib/tokens.js`). It is **self-hosted** under
-  `public/fuentes/` (latin subset, weights 400/500/600/700), declared with `@font-face` in
-  `index.css` and precached by the SW; there is no Google-Fonts `@import` any more (that was a
-  third-party request the privacy policy forbids). `font-display` still exists as a token (points at
-  Poppins) so a separate title face is a one-line change. **Amounts use `tabular-nums`, not
-  `font-mono`** — a no-op on Poppins (no `tnum`) that arms the one-line Outfit fallback documented in
-  `tokens.js`. Poppins lacks the glyphs the app used as icons, so those are SVGs in
-  `src/components/iconos.tsx`; `font-mono` survives only for the ErrorBoundary's technical dump.
+- **One typeface: the system's, i.e. SF Pro on Apple devices** (`font-sans`, `font-display` and a
+  nearly-unused `font-mono` all map through `fuentes` in `src/lib/tokens.js`, starting with
+  `-apple-system`). Nothing is downloaded or precached — there are no `@font-face` blocks and no
+  third-party font request (the privacy policy forbids one). Other platforms fall back to their own
+  UI font (Segoe UI, Roboto). `font-display` still exists as a token so a separate title face is a
+  one-line change. **Amounts use `tabular-nums`, not `font-mono`** — SF Pro has `tnum`, so columns
+  of figures line up. Icons are SVGs in `src/components/iconos.tsx`, not glyphs; `font-mono`
+  survives only for the ErrorBoundary's technical dump.
 - **The PWA updates itself, but never with a sheet open.** `registerType: 'prompt'` +
   `injectRegister: false` in `vite.config.ts`; `src/registrarSW.ts` registers through
   `virtual:pwa-register`, re-checks for a new `sw.js` on `visibilitychange` (iOS resumes a

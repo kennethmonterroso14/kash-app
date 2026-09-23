@@ -64,7 +64,7 @@ export default function Layout({ children, userId }: Props) {
     end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh">
       {/*
         Header FLOTANTE: vidrio nuevo, fijo, con el contenido pasando por
         debajo. Es `fixed` (no `sticky`) para que la cápsula de abajo y él

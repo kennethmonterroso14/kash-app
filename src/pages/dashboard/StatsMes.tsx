@@ -15,15 +15,15 @@ export default function StatsMes({ stats }: Props) {
   return (
     <>
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-surface rounded-tarjeta p-4">
+        <div className="vidrio-panel rounded-tarjeta p-4">
           <p className="text-textDim text-xs mb-1 tracking-micro">Ingresos</p>
           <p className="text-success tabular-nums font-semibold text-sm">{fmt(stats.ingresos)}</p>
         </div>
-        <div className="bg-surface rounded-tarjeta p-4">
+        <div className="vidrio-panel rounded-tarjeta p-4">
           <p className="text-textDim text-xs mb-1 tracking-micro">Gastos</p>
           <p className="text-danger tabular-nums font-semibold text-sm">{fmt(stats.gastos)}</p>
         </div>
-        <div className="bg-surface rounded-tarjeta p-4">
+        <div className="vidrio-panel rounded-tarjeta p-4">
           <p className="text-textDim text-xs mb-1 tracking-micro">Neto</p>
           <p className={`tabular-nums font-semibold text-sm ${stats.neto >= 0 ? 'text-success' : 'text-danger'}`}>
             {fmt(stats.neto)}
@@ -33,14 +33,14 @@ export default function StatsMes({ stats }: Props) {
 
       {/* Sin ingresos el porcentaje de ahorro no significa nada. */}
       {stats.ingresos > 0 && (
-        <div className="bg-surface rounded-tarjeta p-4">
+        <div className="vidrio-panel rounded-tarjeta p-4">
           <div className="flex justify-between mb-2">
             <span className="text-textDim text-sm">Tasa de ahorro</span>
             <span className={`tabular-nums font-semibold text-sm ${llegaALaMeta ? 'text-success' : 'text-danger'}`}>
               {stats.pctAhorro}%
             </span>
           </div>
-          <div aria-hidden="true" className="h-2 bg-bg rounded-full overflow-hidden">
+          <div aria-hidden="true" className="h-2 bg-vidrio-relleno rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-normal ease-salida ${llegaALaMeta ? 'bg-success' : 'bg-danger'}`}
               style={{ width: `${Math.min(stats.pctAhorro, 100)}%` }}

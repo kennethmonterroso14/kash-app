@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { colores } from '../../lib/tokens'
+import { useColores } from '../../hooks/useColores'
 import { useMoneda } from '../../hooks/useMoneda'
 
 interface Props {
@@ -22,6 +22,7 @@ const Etiqueta = ({ active, payload, label, fmt }: any) => {
 }
 
 export default function Grafica6Meses({ resumen }: Props) {
+  const colores = useColores()
   const fmt = useMoneda()
 
   // Recharts necesita el eje en unidades, no en centavos; los centavos vuelven
@@ -36,7 +37,7 @@ export default function Grafica6Meses({ resumen }: Props) {
   if (!datos.some(r => r.Ingresos > 0 || r.Gastos > 0)) return null
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4">
+    <div className="vidrio-panel rounded-tarjeta p-4">
       <p className="text-textDim text-xs uppercase tracking-widest mb-3">Últimos 6 meses</p>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={datos} barCategoryGap="30%" barGap={2}>

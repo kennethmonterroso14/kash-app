@@ -19,12 +19,9 @@ export default defineConfig({
       // El registro lo hace `src/registrarSW.ts` (módulo virtual, con chequeo
       // de actualizaciones). El `registerSW.js` inyectado solo registraba.
       injectRegister: false,
-      // Los defaults de Workbox precachean js/css/html/ico/png/svg — **no
-      // woff2**. Sin esto la fuente se sirve del propio origen pero NO queda
-      // disponible sin señal, que era la mitad del motivo de self-hostearla.
-      // Verificado: sin `woff2` acá, `dist/sw.js` no menciona ningún .woff2.
+      // Sin fuentes propias que precachear: la app usa SF Pro, la del sistema.
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
       // `icons.svg` se fue: era un sprite de iconos de redes sociales de la
       // plantilla de Vite, sin un solo uso en `src/`, y estaba precacheándose.

@@ -47,7 +47,7 @@ export default function ModalPago({ tc, onCerrar }: Props) {
 
   return (
     <Hoja titulo={`Pagar — ${tc.nombre}`} onCerrar={onCerrar}>
-      <div className="bg-bg rounded-control p-3 space-y-1.5">
+      <div className="bg-vidrio-relleno rounded-control p-3 space-y-1.5">
         <div className="flex justify-between text-xs">
           <span className="text-textDim">Deuda vencida (pagar ya)</span>
           <span className={`tabular-nums ${tc.deuda_ciclo_anterior > 0 ? 'text-danger' : 'text-textDim'}`}>

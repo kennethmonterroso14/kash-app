@@ -50,7 +50,7 @@ export default function SeccionConPestanas({ pestanas }: Props) {
           cada página conserve su propio `max-w-lg px-4` y no se dupliquen los
           16px de gutter. */}
       <div className="max-w-lg mx-auto px-4 pt-5">
-        <div className="relative flex gap-1 bg-surface rounded-control p-1">
+        <div className="relative flex gap-1 vidrio-panel rounded-control p-1">
           {/* Una sola píldora que se mueve, no una por pestaña: es la que se
               desliza, y las pestañas solo cambian de color de texto. */}
           {activa >= 0 && (

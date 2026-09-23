@@ -30,7 +30,7 @@ export default function TarjetaTile({
     resumen.estado === 'alerta'  ? 'bg-warning' : 'bg-success'
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4 space-y-3">
+    <div className="vidrio-panel rounded-tarjeta p-4 space-y-3">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: tc.color }} />
@@ -64,7 +64,7 @@ export default function TarjetaTile({
         <p className="text-text tabular-nums font-bold text-2xl tracking-titulo">{fmt(resumen.disponible)}</p>
       </div>
 
-      <div className="h-1.5 bg-bg rounded-full overflow-hidden">
+      <div className="h-1.5 bg-vidrio-relleno rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full ${claseBarra} transition-all duration-normal ease-salida`}
           style={{ width: `${Math.min(resumen.pct_uso, 100)}%` }}
@@ -106,14 +106,14 @@ export default function TarjetaTile({
         </button>
         <button
           onClick={onPago}
-          className="presionable flex-1 py-2 rounded-control bg-surface2 text-text text-xs font-semibold"
+          className="presionable flex-1 py-2 rounded-control bg-vidrio-relleno text-text text-xs font-semibold"
         >
           Pagar TC
         </button>
         <button
           onClick={onCerrarCiclo}
           disabled={tc.deuda_actual === 0}
-          className="presionable flex-1 py-2 rounded-control bg-surface2 text-textDim text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          className="presionable flex-1 py-2 rounded-control bg-vidrio-relleno text-textDim text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Cerrar ciclo
         </button>

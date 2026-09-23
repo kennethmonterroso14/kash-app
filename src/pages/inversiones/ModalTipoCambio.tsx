@@ -55,7 +55,7 @@ export default function ModalTipoCambio({
 
   return (
     <Hoja titulo="Tipo de cambio USD" onCerrar={onCerrar}>
-      <div className="bg-bg rounded-control p-3">
+      <div className="bg-vidrio-relleno rounded-control p-3">
         <p className="text-textDim text-xs tracking-micro">Tipo de cambio actual</p>
         <p className="text-text tabular-nums">Q{(tipoCambioUSD / 100).toFixed(2)} por USD</p>
         <p className={`text-xs mt-0.5 ${desactualizado ? 'text-warning' : 'text-textDim'}`}>
@@ -77,7 +77,7 @@ export default function ModalTipoCambio({
         <button
           onClick={desdeAPI}
           disabled={consultando || guardando}
-          className="presionable w-full py-3 rounded-control bg-surface2 text-text text-sm disabled:opacity-50"
+          className="presionable w-full py-3 rounded-control bg-vidrio-relleno text-text text-sm disabled:opacity-50"
         >
           {consultando ? 'Consultando...' : '📡 Obtener tipo actual (API)'}
         </button>

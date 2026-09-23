@@ -64,7 +64,7 @@ export default function App() {
 
   if (loading || (user && hasSetup === null)) {
     return (
-      <div className="min-h-dvh bg-bg flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <p className="text-accent font-display text-lg animate-pulse">Vorta</p>
       </div>
     )
@@ -85,8 +85,8 @@ export default function App() {
 
   if (hasSetup === 'error') {
     return (
-      <div className="min-h-dvh bg-bg flex items-center justify-center px-4">
-        <div className="bg-surface rounded-tarjeta p-6 max-w-sm text-center space-y-3">
+      <div className="min-h-dvh flex items-center justify-center px-4">
+        <div className="vidrio-panel rounded-tarjeta p-6 max-w-sm text-center space-y-3">
           <p className="text-text font-semibold">No se pudo cargar tu perfil</p>
           <p className="text-textDim text-sm">
             Revisa tu conexión e intenta de nuevo. No se hizo ningún cambio en tus datos.

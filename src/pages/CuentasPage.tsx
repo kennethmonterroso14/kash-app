@@ -17,7 +17,7 @@ export default function CuentasPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-      <div className="bg-surface rounded-tarjeta p-5 flex justify-between items-start gap-2">
+      <div className="vidrio-panel rounded-tarjeta p-5 flex justify-between items-start gap-2">
         <div className="min-w-0">
           <p className="text-textDim text-xs uppercase tracking-widest mb-1">Patrimonio total</p>
           {/* Con la consulta fallida el total es 0, y mostrar ese 0 como un
@@ -58,7 +58,7 @@ export default function CuentasPage() {
 
       <div className="grid grid-cols-2 gap-3">
         {cuentas.map(c => (
-          <div key={c.id} className="bg-surface rounded-tarjeta p-4">
+          <div key={c.id} className="vidrio-panel rounded-tarjeta p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.color }} />
               <span className="text-textDim text-xs capitalize tracking-micro">{c.tipo}</span>

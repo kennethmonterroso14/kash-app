@@ -57,7 +57,7 @@ export default function GraficaCategorias({ porCategoria, coloresCategorias }: P
   if (datos.length === 0) return null
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4">
+    <div className="vidrio-panel rounded-tarjeta p-4">
       <p className="text-textDim text-xs uppercase tracking-widest mb-3">Gastos por categoría</p>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>

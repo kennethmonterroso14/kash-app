@@ -94,11 +94,11 @@ export default function ModalInversion({ inv, agregar, actualizar, onCerrar }: P
             />
           </div>
           {editando ? (
-            <div className="flex items-center px-4 py-3 bg-surface2 border border-canto rounded-control text-textDim text-sm font-medium">
+            <div className="flex items-center px-4 py-3 bg-vidrio-relleno border border-canto rounded-control text-textDim text-sm font-medium">
               {moneda}
             </div>
           ) : (
-            <div className="flex bg-bg border border-canto rounded-control overflow-hidden">
+            <div className="flex bg-vidrio-relleno border border-canto rounded-control overflow-hidden">
               {(['GTQ', 'USD'] as const).map(m => (
                 <button
                   key={m}

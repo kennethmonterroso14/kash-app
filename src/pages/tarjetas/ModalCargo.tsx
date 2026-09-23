@@ -61,7 +61,7 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
   return (
     <Hoja titulo={`Cargo — ${tc.nombre}`} onCerrar={onCerrar}>
       {disponibleTras !== null && (
-        <div className="bg-bg rounded-control p-3">
+        <div className="bg-vidrio-relleno rounded-control p-3">
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible tras este cargo</p>
           <p className={`tabular-nums font-bold text-lg ${disponibleTras >= 0 ? 'text-success' : 'text-danger'}`}>
             {fmt(Math.max(0, disponibleTras))}
@@ -98,7 +98,7 @@ export default function ModalCargo({ tc, onCerrar }: Props) {
                 key={c}
                 onClick={() => setCat(c)}
                 className={`presionable px-3 py-1.5 rounded-chip text-xs ${
-                  cat === c ? 'bg-accent text-bg font-semibold' : 'bg-bg text-textDim hover:text-text'
+                  cat === c ? 'bg-accent text-bg font-semibold' : 'bg-vidrio-relleno text-textDim hover:text-text'
                 }`}
               >
                 {c}

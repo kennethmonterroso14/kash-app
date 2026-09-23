@@ -36,7 +36,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
   const fmt = useMoneda()
 
   return (
-    <div className="bg-surface rounded-tarjeta p-5">
+    <div className="vidrio-panel rounded-tarjeta p-5">
       <button
         type="button"
         onClick={onAlternar}
@@ -68,7 +68,7 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
           </p>
           <div className="flex flex-wrap gap-2 mt-3">
             {cuentas.map(c => (
-              <div key={c.id} className="flex items-center gap-1.5 bg-bg rounded-chip px-2 py-1">
+              <div key={c.id} className="flex items-center gap-1.5 bg-vidrio-relleno rounded-chip px-2 py-1">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
                 <span className="text-xs text-textDim">{c.nombre}</span>
                 <span className="text-xs tabular-nums text-text">{fmt(c.saldo)}</span>

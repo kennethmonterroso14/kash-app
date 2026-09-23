@@ -39,7 +39,7 @@ export default function BudgetPage() {
   if (errorLectura) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
-        <div className="bg-surface rounded-tarjeta p-6 text-center space-y-3">
+        <div className="vidrio-panel rounded-tarjeta p-6 text-center space-y-3">
           <p className="text-text font-semibold">No se pudieron cargar tus presupuestos</p>
           <p className="text-textDim text-sm">{errorLectura}</p>
           {/* Reintenta la consulta, no recarga la app: con el hook en su lugar

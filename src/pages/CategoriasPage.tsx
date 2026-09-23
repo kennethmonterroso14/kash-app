@@ -118,7 +118,7 @@ export default function CategoriasPage() {
 
         {/* Add form */}
         {showAdd && (
-          <div className="bg-surface rounded-2xl p-4 mb-3">
+          <div className="vidrio-panel rounded-2xl p-4 mb-3">
             <div className="flex flex-col gap-3">
               <Campo
                 etiqueta="Nombre" placeholder="ej. Médico, Educación…" maxLength={50}
@@ -161,7 +161,7 @@ export default function CategoriasPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {custom.map((cat: CategoriaUsuario) => (
-              <div key={cat.id} className="bg-surface rounded-xl px-4 py-3 flex items-center justify-between">
+              <div key={cat.id} className="vidrio-panel rounded-xl px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span
                     className="w-3 h-3 rounded-full flex-shrink-0"
@@ -209,7 +209,7 @@ export default function CategoriasPage() {
           {[...CATEGORIAS_GASTO, ...CATEGORIAS_INGRESO.filter(c => !CATEGORIAS_GASTO.includes(c))].map(c => (
             <span
               key={c}
-              className="text-xs text-textDim bg-surface px-3 py-1 rounded-full"
+              className="text-xs text-textDim vidrio-panel px-3 py-1 rounded-full"
             >
               {c}
             </span>

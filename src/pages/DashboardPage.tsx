@@ -94,7 +94,7 @@ export default function DashboardPage() {
 
           {loading && <p className="text-textDim text-center text-sm">Cargando...</p>}
           {!loading && txns.length === 0 && (
-            <div className="bg-surface rounded-tarjeta p-6 text-center">
+            <div className="vidrio-panel rounded-tarjeta p-6 text-center">
               <p className="text-textDim text-sm">Sin movimientos en {etiquetaMes}</p>
               <p className="text-textDim text-xs mt-1">Agrega el primero con el botón +</p>
             </div>

@@ -43,7 +43,7 @@ export default function MetasPage() {
         </div>
       )}
 
-      <div className="bg-surface rounded-tarjeta px-4 py-4 mb-5">
+      <div className="vidrio-panel rounded-tarjeta px-4 py-4 mb-5">
         <Campo
           etiqueta="Ahorro mensual estimado (Q)" tipo="number" min="1" step="100"
           value={ahorroQ} onChange={e => setAhorroQ(e.target.value)}
