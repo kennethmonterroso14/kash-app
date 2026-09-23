@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (188 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (192 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -217,6 +217,13 @@ commit per task.
   `font-mono`** — a no-op on Poppins (no `tnum`) that arms the one-line Outfit fallback documented in
   `tokens.js`. Poppins lacks the glyphs the app used as icons, so those are SVGs in
   `src/components/iconos.tsx`; `font-mono` survives only for the ErrorBoundary's technical dump.
+- **The PWA updates itself, but never with a sheet open.** `registerType: 'prompt'` +
+  `injectRegister: false` in `vite.config.ts`; `src/registrarSW.ts` registers through
+  `virtual:pwa-register`, re-checks for a new `sw.js` on `visibilitychange` (iOS resumes a
+  home-screen PWA from memory without navigating, so nothing else would check) and applies it via
+  `crearAplicador` in `lib/actualizacion.ts`, which waits while any `[role="dialog"]` is open —
+  a reload would drop what the user is typing. Do **not** switch back to `autoUpdate` or the bare
+  injected `registerSW.js`: that is how a deployed fix never reached an installed phone.
 - **Destructive actions are 2-tap**, not `window.confirm`: a `pendingDelete` state holds the row id
   and the button relabels to "Confirmar". Transaction deletes additionally show an undo toast backed
   by `restoreTxn`.

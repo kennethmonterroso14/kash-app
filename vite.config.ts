@@ -10,7 +10,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // `prompt` y no `autoUpdate`: la versión nueva queda esperando y la
+      // activa `src/registrarSW.ts` en un momento seguro (nunca con una hoja
+      // abierta). Con `autoUpdate` el SW nuevo toma el control apenas se
+      // instala, pero la página sigue corriendo el JS viejo hasta la próxima
+      // carga — que en una PWA de iOS puede no llegar en días.
+      registerType: 'prompt',
+      // El registro lo hace `src/registrarSW.ts` (módulo virtual, con chequeo
+      // de actualizaciones). El `registerSW.js` inyectado solo registraba.
+      injectRegister: false,
       // Los defaults de Workbox precachean js/css/html/ico/png/svg — **no
       // woff2**. Sin esto la fuente se sirve del propio origen pero NO queda
       // disponible sin señal, que era la mitad del motivo de self-hostearla.
