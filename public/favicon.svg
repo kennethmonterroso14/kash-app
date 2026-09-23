@@ -1,17 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vorta">
   <!--
-    La marca de Vorta. Un trazo que baja y vuelve a subir más alto de donde
-    arrancó: se lee como la V del nombre y como una línea de valor que cae y se
-    recupera, que es de lo que trata la app.
+    La marca de Vorta: una línea de valor que baja y vuelve a subir más alto de
+    donde arrancó, rematada con una flecha. Se lee como la V del nombre y como
+    finanzas que crecen, que es de lo que trata la app.
 
-    Reemplaza el rayo de la plantilla de Vite. Geometría a propósito: un solo
-    trazo, un solo color, remates redondeados. A 16px sigue siendo legible
-    porque no hay detalle que perder.
+    Trazo grueso (84 sobre 512) a propósito: la versión anterior (58) se leía
+    como un check ✓ y se afinaba a tamaño de pantalla de inicio. La flecha es
+    la que la separa de un check.
 
     Sin fondo: este archivo es el favicon y el glifo suelto. Los PNG de tienda
-    se generan de `marca.svg`, que sí trae el fondo y el área segura.
+    se generan de `marca.svg`, que sí trae el fondo.
   -->
-  <path d="M 150 196 L 256 334 L 362 122"
-        fill="none" stroke="#7c6af7" stroke-width="58"
-        stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="trazo" gradientUnits="userSpaceOnUse" x1="120" y1="384" x2="417" y2="123">
+      <stop offset="0" stop-color="#6d5ce8"/>
+      <stop offset="1" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8.5 2.5)">
+    <path d="M 120 208 L 226 342 L 336 202"
+          fill="none" stroke="url(#trazo)" stroke-width="84"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 287 138 L 391 131 L 409 234 Z"
+          fill="#c4b5fd" stroke="#c4b5fd" stroke-width="16" stroke-linejoin="round"/>
+  </g>
 </svg>

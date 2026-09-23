@@ -1,15 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vorta">
   <!--
-    Fuente de los PNG de tienda. `scripts/generar-iconos.mjs` la rasteriza.
-    Igual al favicon pero con fondo: un ícono de app no puede ser transparente
-    en iOS, y Android lo recorta.
+    Fuente de los PNG de tienda y del apple-touch-icon. `scripts/generar-iconos.mjs`
+    la rasteriza. Igual al favicon pero con fondo: un ícono de app no puede ser
+    transparente en iOS.
 
-    El glifo ocupa el 55% del lienzo, centrado. Los recortes de Android
-    (círculo, squircle, etc.) se quedan con el 80% central, así que todo lo que
-    importa tiene que caber ahí — y cabe con margen.
+    El glifo está centrado y ocupa ~66% del lienzo; su punto más lejano queda a
+    189 px del centro, dentro del círculo de 205 que respetan los recortes de
+    Android.
   -->
   <rect width="512" height="512" fill="#12141a"/>
-  <path d="M 150 196 L 256 334 L 362 122"
-        fill="none" stroke="#7c6af7" stroke-width="58"
-        stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="trazo" gradientUnits="userSpaceOnUse" x1="120" y1="384" x2="417" y2="123">
+      <stop offset="0" stop-color="#6d5ce8"/>
+      <stop offset="1" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8.5 2.5)">
+    <path d="M 120 208 L 226 342 L 336 202"
+          fill="none" stroke="url(#trazo)" stroke-width="84"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 287 138 L 391 131 L 409 234 Z"
+          fill="#c4b5fd" stroke="#c4b5fd" stroke-width="16" stroke-linejoin="round"/>
+  </g>
 </svg>

@@ -27,6 +27,8 @@ import { dirname, join } from 'node:path'
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const SALIDAS = [
+  // 180×180 es el tamaño nativo del ícono de pantalla de inicio en iPhone.
+  { svg: 'marca.svg',          png: 'apple-touch-icon.png', lado: 180 },
   { svg: 'marca.svg',          png: 'pwa-192x192.png', lado: 192 },
   { svg: 'marca.svg',          png: 'pwa-512x512.png', lado: 512 },
   { svg: 'marca-maskable.svg', png: 'pwa-maskable-512x512.png', lado: 512 },
