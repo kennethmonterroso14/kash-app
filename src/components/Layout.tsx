@@ -82,7 +82,7 @@ export default function Layout({ children, userId }: Props) {
         un respiro, todo más la safe area. Un solo lugar para todas las páginas.
       */}
       <main className="pt-[env(safe-area-inset-top,0px)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
-        {/* Alertas globales: full-bleed, dentro del flujo, así que scrollean con
+        {/* Alertas globales: una tarjeta de vidrio dentro del flujo, así que scrollean con
             el contenido y aparecer/desaparecer no descuadra ninguna capa fija. */}
         <AlertasBanner userId={userId} />
         {children}

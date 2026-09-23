@@ -223,3 +223,8 @@ export function IconoDocumento(p: Props) {
 export function IconoRecargar(p: Props) {
   return <Base {...p}><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v4.5h-4.5" /></Base>
 }
+
+/** Reloj: un plazo que se acerca (cierre de ciclo). */
+export function IconoReloj(p: Props) {
+  return <Base {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Base>
+}
