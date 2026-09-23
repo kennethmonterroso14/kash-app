@@ -68,12 +68,16 @@ add/edit form of a given entity is **one** component, not two copies.
 
 **App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase email + password —
 `signInWithPassword` / `signUp`, *not* a magic link) →
-`SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` is the header +
-global `AlertasBanner` + 5-item bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan;
-the nav icons are drawn SVGs in `src/components/iconos.tsx`, not glyphs — no UI font carries
-them). Patrimonio (Cuentas · Inversiones) and Plan (Presupuesto · Metas · Proyecciones) are tab
-rails via `SeccionConPestanas`. There is no `PerfilPage`: configuration (Pagos Fijos, Categorías,
-Metas edit, profile) lives behind the header gear at `/ajustes` (`AjustesPage`).
+`SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` has **no header**:
+a soft top scroll edge under the status bar, the global `AlertasBanner`, and a floating 5-item
+bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan) plus the `+` FAB. The nav icons
+are drawn SVGs in `src/components/iconos.tsx`, not glyphs — no UI font carries them. Each screen
+names itself with **`TituloGrande`** (34pt large title, optional subtitle, a trailing round action
+from `CLASE_BOTON_TITULO`, and an iOS-style back link for second-level screens); it is the page's
+only `<h1>`. Patrimonio (Cuentas · Inversiones) and Plan (Presupuesto · Metas · Proyecciones) are
+a large title plus a glass segmented control via `SeccionConPestanas titulo=…`. There is no
+`PerfilPage`: configuration (Pagos Fijos, Categorías, Metas edit, profile) lives behind the gear in
+Resumen's title, at `/ajustes` (`AjustesPage`).
 
 ## Data model rules
 

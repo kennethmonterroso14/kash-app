@@ -11,7 +11,7 @@ export interface PaletaColores {
   textDim: string
   brillo2: string
 }
-type Materiales = { chip: string; panel: string; chrome: string; flotante: string; hoja: string; scrim: string; relleno: string }
+type Materiales = { chip: string; panel: string; chrome: string; flotante: string; hoja: string; scrim: string; relleno: string; segmento: string }
 type Sombras = { chip: string; panel: string; chrome: string; flotante: string; hoja: string }
 export interface Tema {
   colores: PaletaColores

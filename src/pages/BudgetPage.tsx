@@ -75,7 +75,7 @@ export default function BudgetPage() {
   )
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-3">
       <div className="flex items-center justify-between mb-2 gap-2">
         <SelectorMes mes={mes} onCambiar={setMes} />
         {/* Solo si hay presupuestos: con la lista vacía el estado vacío ya trae

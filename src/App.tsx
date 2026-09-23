@@ -124,13 +124,13 @@ export default function App() {
           <Route path="/tarjetas" element={<TarjetasPage />} />
           <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage />} />
 
-          <Route path="/patrimonio" element={<SeccionConPestanas pestanas={PESTANAS_PATRIMONIO} />}>
+          <Route path="/patrimonio" element={<SeccionConPestanas titulo="Patrimonio" pestanas={PESTANAS_PATRIMONIO} />}>
             <Route index element={<Navigate to="/patrimonio/cuentas" replace />} />
             <Route path="cuentas" element={<CuentasPage />} />
             <Route path="inversiones" element={<InversionesPage />} />
           </Route>
 
-          <Route path="/plan" element={<SeccionConPestanas pestanas={PESTANAS_PLAN} />}>
+          <Route path="/plan" element={<SeccionConPestanas titulo="Plan" pestanas={PESTANAS_PLAN} />}>
             <Route index element={<Navigate to="/plan/presupuesto" replace />} />
             <Route path="presupuesto" element={<BudgetPage />} />
             <Route path="metas" element={<MetasPage />} />

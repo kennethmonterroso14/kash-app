@@ -5,13 +5,13 @@ interface Props {
 }
 
 /**
- * Iconos dibujados, no glifos. Poppins no trae ◈ ≡ ▭ ◎ ◧ (los cinco del nav),
+ * Iconos dibujados, no glifos. Ninguna fuente de UI trae ◈ ≡ ▭ ◎ ◧ (los cinco del nav),
  * así que un glifo dejaba esos símbolos a merced de la fuente de último recurso
  * del navegador — otro tamaño, otro peso, y distinto en cada plataforma. Un
  * trazo propio es cromo: hereda `currentColor`, así que el destino activo se
  * pinta con `text-accent` sin tocar el icono, y mide igual en iOS, Android y web.
  *
- * Mismo lenguaje que el engranaje del header (`Layout.tsx`): trazo 1.7, sin
+ * Mismo lenguaje en todos (el engranaje de Ajustes incluido): trazo 1.7, sin
  * relleno, puntas y uniones redondeadas, caja de 24. Van `aria-hidden` porque
  * el `<Link>` que los envuelve ya lleva la etiqueta textual.
  */
@@ -135,4 +135,24 @@ export function IconoCheck(p: Props) {
 /** Más: el botón de nuevo movimiento (FAB). */
 export function IconoMas(p: Props) {
   return <Base {...p}><path d="M12 5v14M5 12h14" /></Base>
+}
+
+/** Ajustes: el engranaje. Vive en el título de Resumen desde que no hay header. */
+export function IconoAjustes(p: Props) {
+  return (
+    <Base {...p}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </Base>
+  )
+}
+
+/** Exportar: la flecha que baja a la bandeja. */
+export function IconoExportar(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" />
+      <path d="M5 19h14" />
+    </Base>
+  )
 }

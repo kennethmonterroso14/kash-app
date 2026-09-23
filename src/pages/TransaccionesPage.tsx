@@ -6,6 +6,9 @@ import { MESES } from '../lib/constants'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
 import SelectorMes from '../components/SelectorMes'
+import TituloGrande from '../components/TituloGrande'
+import { IconoExportar } from '../components/iconos'
+import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import FiltrosTxn, { type Filtros } from './transacciones/FiltrosTxn'
 import FilaTxn from './transacciones/FilaTxn'
 import ModalNuevoMovimiento from './transacciones/ModalNuevoMovimiento'
@@ -87,20 +90,25 @@ export default function TransaccionesPage() {
   const etiquetaMes = `${MESES[mesNum - 1]} ${anio}`
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-5">
-        <SelectorMes mes={mes} onCambiar={setMes} />
-        <div className="flex gap-2 flex-shrink-0">
-          {/* Solo el icono: con la etiqueta "CSV" la fila no cabía a 390px. */}
+    <div className="max-w-lg mx-auto px-4 pb-6">
+      <TituloGrande
+        titulo="Movimientos"
+        accion={
           <button
+            type="button"
             onClick={exportar}
             disabled={filtrados.length === 0}
             aria-label="Exportar a CSV"
             title="Exportar a CSV"
-            className="presionable text-textDim text-sm px-3 py-2 rounded-control border border-canto hover:text-text disabled:opacity-30"
+            className={CLASE_BOTON_TITULO}
           >
-            ↓
+            <IconoExportar size={20} />
           </button>
+        }
+      />
+      <div className="flex items-center justify-between mt-3 mb-5">
+        <SelectorMes mes={mes} onCambiar={setMes} />
+        <div className="flex gap-2 flex-shrink-0">
           <button
             type="button"
             onClick={() => setMostrarAlta(true)}

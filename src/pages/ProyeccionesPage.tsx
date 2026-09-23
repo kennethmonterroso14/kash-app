@@ -149,7 +149,7 @@ export default function ProyeccionesPage() {
 
   return (
     <div className="text-text">
-      <div className="max-w-lg mx-auto px-4 pt-8 space-y-5">
+      <div className="max-w-lg mx-auto px-4 pt-4 space-y-5">
 
         {/* Header */}
         <div>

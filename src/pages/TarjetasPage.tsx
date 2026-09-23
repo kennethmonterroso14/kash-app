@@ -2,6 +2,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
+import TituloGrande from '../components/TituloGrande'
+import { IconoMas } from '../components/iconos'
+import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
 import TarjetaTile from './tarjetas/TarjetaTile'
@@ -44,22 +47,27 @@ export default function TarjetasPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-text font-display font-bold text-xl tracking-titulo">Tarjetas de Crédito</h1>
-          {totalDeuda > 0 && (
-            <p className="text-danger text-xs mt-0.5">
+    <div className="max-w-lg mx-auto px-4 pb-6">
+      <div className="mb-5">
+        <TituloGrande
+          titulo="Tarjetas"
+          subtitulo={totalDeuda > 0 && (
+            <span className="text-danger">
               Deuda total: <span className="tabular-nums">{fmt(totalDeuda)}</span>
-            </p>
+            </span>
           )}
-        </div>
-        <button
-          onClick={() => abrir('nueva_tc')}
-          className="presionable bg-accent text-bg px-4 py-2 rounded-control text-sm font-semibold"
-        >
-          + Nueva TC
-        </button>
+          accion={
+            <button
+              type="button"
+              onClick={() => abrir('nueva_tc')}
+              aria-label="Nueva tarjeta"
+              title="Nueva tarjeta"
+              className={CLASE_BOTON_TITULO}
+            >
+              <IconoMas size={20} />
+            </button>
+          }
+        />
       </div>
 
       {errores.tarjetas && (

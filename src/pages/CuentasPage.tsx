@@ -16,7 +16,7 @@ export default function CuentasPage() {
   const [ajustando, setAjustando] = useState<{ id: string; nombre: string } | null>(null)
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-4">
       <div className="vidrio-panel rounded-tarjeta p-5 flex justify-between items-start gap-2">
         <div className="min-w-0">
           <p className="text-textDim text-xs uppercase tracking-widest mb-1">Patrimonio total</p>

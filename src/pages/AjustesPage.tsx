@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
+import TituloGrande from '../components/TituloGrande'
 import { useSesion } from '../context/sesion'
 import DialogoBorrarCuenta from './ajustes/DialogoBorrarCuenta'
 import ModalPerfil from './ajustes/ModalPerfil'
@@ -35,8 +36,9 @@ export default function AjustesPage({ onSignOut }: Props) {
   ]
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <div className="flex flex-col items-center gap-3 mt-4 mb-8">
+    <div className="max-w-lg mx-auto px-4 pb-6">
+      <TituloGrande titulo="Ajustes" />
+      <div className="flex flex-col items-center gap-3 mt-6 mb-8">
         <div className="w-16 h-16 rounded-full vidrio-panel flex items-center justify-center">
           <span className="text-accent text-2xl font-bold">{inicial}</span>
         </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import AlertasBanner from './AlertasBanner'
 import BotonNuevoMovimiento from './BotonNuevoMovimiento'
 import ModalNuevoMovimiento from '../pages/transacciones/ModalNuevoMovimiento'
@@ -17,8 +17,8 @@ interface Props {
 
 /**
  * Cinco destinos, cada uno una pregunta (tarea 3.1). La configuración NO está
- * acá: vive detrás del engranaje del header, porque es configuración y no un
- * lugar al que se va.
+ * acá: vive detrás del engranaje del título de Resumen, porque es configuración
+ * y no un lugar al que se va.
  *
  * `end` solo en Resumen: las otras tienen subrutas (`/patrimonio/cuentas`,
  * `/tarjetas/:id/historial`) y sin eso la pestaña activa se apagaría al entrar
@@ -36,7 +36,6 @@ const NAV = [
 ]
 
 export default function Layout({ children, userId }: Props) {
-  const navigate = useNavigate()
   const { pathname } = useLocation()
 
   // La barra se encoge al bajar y vuelve entera al subir (iOS 26). Se apaga con
@@ -66,42 +65,24 @@ export default function Layout({ children, userId }: Props) {
   return (
     <div className="min-h-dvh">
       {/*
-        Header FLOTANTE: vidrio nuevo, fijo, con el contenido pasando por
-        debajo. Es `fixed` (no `sticky`) para que la cápsula de abajo y él
-        compartan lenguaje —dos capas de vidrio suspendidas sobre el contenido—;
-        el `main` compensa con padding arriba y abajo.
+        Sin header: el nombre de cada pantalla es su título grande, que es
+        contenido y scrollea con ella (TituloGrande). Arriba solo queda el
+        borde de scroll de iOS 26 — un fundido al color del fondo bajo la barra
+        de estado, para que lo que pasa por debajo del reloj no se lea encima
+        de él. Es tinta, no vidrio: una capa fija más de material competiría
+        con la barra de abajo.
       */}
-      <header className="fixed top-0 inset-x-0 z-30 vidrio-flotante segura-arriba">
-        <div className="px-4 py-3 flex justify-between items-center">
-          <span className="text-accent font-display font-bold text-xl tracking-titulo">Vorta</span>
-          <button
-            onClick={() => navigate('/ajustes')}
-            aria-label="Ajustes"
-            title="Ajustes"
-            className="presionable text-textDim hover:text-text p-1 rounded-chip"
-          >
-            {/* Engranaje dibujado y no un emoji: el emoji cambia de forma y de
-                color según la plataforma, y este es cromo, no contenido. */}
-            <svg
-              aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="1.6"
-              strokeLinecap="round" strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-        </div>
-      </header>
+      <div
+        aria-hidden="true"
+        className="fixed top-0 inset-x-0 z-30 h-[calc(env(safe-area-inset-top,0px)+1rem)] pointer-events-none bg-gradient-to-b from-bg via-bg/80 to-transparent"
+      />
 
       {/*
-        Padding arriba = alto del header + safe area; abajo = alto de la barra
-        flotante (cápsula/FAB ~56) + su separación del borde + un respiro, todo
-        más la safe area. Un solo lugar para las 13 páginas y el riel de pestañas
-        (SeccionConPestanas), que es el elemento más alto en las rutas con
-        pestañas: derivarlo por página dejaría a esas cinco metidas bajo el header.
+        Padding arriba = la safe area (el título trae su propio aire); abajo =
+        alto de la barra flotante (cápsula/FAB ~56) + su separación del borde +
+        un respiro, todo más la safe area. Un solo lugar para todas las páginas.
       */}
-      <main className="pt-[calc(3.25rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
+      <main className="pt-[env(safe-area-inset-top,0px)] pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
         {/* Alertas globales: full-bleed, dentro del flujo, así que scrollean con
             el contenido y aparecer/desaparecer no descuadra ninguna capa fija. */}
         <AlertasBanner userId={userId} />

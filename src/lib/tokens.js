@@ -59,6 +59,8 @@ export const temas = {
       // Relleno de controles dentro del vidrio (campos, rieles, barras): el
       // tertiarySystemFill de iOS. Sin desenfoque — no es una capa, es tinta.
       relleno:  'rgba(118, 118, 128, 0.24)',
+      // La píldora del control segmentado: un vidrio más claro que su riel.
+      segmento: 'rgba(255, 255, 255, 0.16)',
     },
     bordesVidrio: {
       canto:     'rgba(255, 255, 255, 0.18)',
@@ -95,6 +97,7 @@ export const temas = {
       hoja:     'rgba(247, 247, 251, 0.88)',
       scrim:    'rgba(20, 20, 40, 0.22)',
       relleno:  'rgba(118, 118, 128, 0.12)',
+      segmento: 'rgba(255, 255, 255, 0.96)',
     },
     bordesVidrio: {
       canto:     'rgba(255, 255, 255, 0.95)',

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { useResumen6Meses } from '../hooks/useResumen6Meses'
@@ -8,6 +9,9 @@ import { MESES } from '../lib/constants'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
 import SelectorMes from '../components/SelectorMes'
+import TituloGrande from '../components/TituloGrande'
+import { IconoAjustes } from '../components/iconos'
+import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import TarjetaPatrimonio from './dashboard/TarjetaPatrimonio'
 import TarjetaDisponibleReal from './dashboard/TarjetaDisponibleReal'
 import TarjetasTC from './dashboard/TarjetasTC'
@@ -45,7 +49,16 @@ export default function DashboardPage() {
   const etiquetaMes = `${MESES[mesNum - 1]} ${anio}`
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-lg mx-auto px-4 pb-6 space-y-5">
+      <TituloGrande
+        titulo="Resumen"
+        accion={
+          <Link to="/ajustes" aria-label="Ajustes" title="Ajustes" className={CLASE_BOTON_TITULO}>
+            <IconoAjustes size={20} />
+          </Link>
+        }
+      />
+
       <TarjetaPatrimonio
         total={totalPatrimonio}
         cuentas={cuentas}

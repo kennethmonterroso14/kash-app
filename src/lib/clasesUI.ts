@@ -12,3 +12,11 @@
 export const CLASE_INPUT =
   'bg-vidrio-relleno border border-canto rounded-control px-4 py-3 text-text text-sm ' +
   'placeholder:text-textDim focus:outline-none focus:border-accent'
+
+/**
+ * El botón redondo de vidrio que acompaña al título grande (Ajustes, exportar,
+ * nuevo): 44 pt de blanco táctil, el mínimo de la HIG.
+ */
+export const CLASE_BOTON_TITULO =
+  'presionable grid place-items-center w-11 h-11 rounded-full vidrio-chip text-text ' +
+  'disabled:opacity-30'
