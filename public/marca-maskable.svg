@@ -1,15 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vorta">
   <!--
-    La variante `maskable` de Android. NO es el mismo archivo que `marca.svg`:
-    Android recorta el ícono a la forma del launcher y se queda con el 80%
-    central, así que el glifo va más chico para que ningún recorte lo muerda.
-    El manifest anterior declaraba el MISMO PNG con purpose "any maskable", que
-    es justo el error que hace que el ícono salga cortado en algunos teléfonos.
-
-    El fondo llena el lienzo completo: es lo que Android recorta.
+    Variante `maskable` de Android: el launcher recorta a su forma y se queda con
+    el 80% central, así que el glifo va al 84% de `marca.svg` (punto más lejano a
+    ~159 px del centro, con margen de sobra). El fondo llena todo el lienzo.
   -->
   <rect width="512" height="512" fill="#12141a"/>
-  <path d="M 182 226 L 256 322 L 330 174"
-        fill="none" stroke="#7c6af7" stroke-width="42"
-        stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="trazo" gradientUnits="userSpaceOnUse" x1="120" y1="384" x2="417" y2="123">
+      <stop offset="0" stop-color="#6d5ce8"/>
+      <stop offset="1" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(256 256) scale(0.84) translate(-256 -256) translate(8.5 2.5)">
+    <path d="M 120 208 L 226 342 L 336 202"
+          fill="none" stroke="url(#trazo)" stroke-width="84"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 287 138 L 391 131 L 409 234 Z"
+          fill="#c4b5fd" stroke="#c4b5fd" stroke-width="16" stroke-linejoin="round"/>
+  </g>
 </svg>

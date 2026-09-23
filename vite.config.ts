@@ -28,7 +28,7 @@ export default defineConfig({
       },
       // `icons.svg` se fue: era un sprite de iconos de redes sociales de la
       // plantilla de Vite, sin un solo uso en `src/`, y estaba precacheándose.
-      includeAssets: ['favicon.svg', 'marca.svg', 'marca-maskable.svg'],
+      includeAssets: ['favicon.svg', 'marca.svg', 'marca-maskable.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Vorta — Finanzas Personales',
         short_name: 'Vorta',
