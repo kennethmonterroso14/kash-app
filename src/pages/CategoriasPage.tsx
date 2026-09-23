@@ -1,10 +1,10 @@
 // src/pages/CategoriasPage.tsx
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
+import TituloGrande from '../components/TituloGrande'
 import EstadoVacio from '../components/EstadoVacio'
 import Campo from '../components/Campo'
-import { IconoChevron, IconoCerrar } from '../components/iconos'
+import { IconoCerrar } from '../components/iconos'
 import { type CategoriaUsuario } from '../hooks/useCategorias'
 import { useSesion } from '../context/sesion'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from '../lib/constants'
@@ -25,7 +25,6 @@ const TIPO_COLOR: Record<Tipo, string> = {
 }
 
 export default function CategoriasPage() {
-  const navigate = useNavigate()
   // Datos del contexto de sesión: ya cargados una vez en el provider, no se
   // vuelve a consultar categorias_usuario al entrar a esta página.
   const {
@@ -84,20 +83,13 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate('/ajustes')}
-          aria-label="Volver a Ajustes"
-          className="presionable text-accent px-1"
-        >
-          <IconoChevron direccion="izq" size={22} />
-        </button>
-        <div>
-          <h1 className="text-text font-display font-bold text-xl tracking-titulo">Categorías</h1>
-          <p className="text-textDim text-xs">Personaliza tus categorías de gastos</p>
-        </div>
+    <div className="max-w-lg mx-auto px-4 pb-6">
+      <div className="mb-6">
+        <TituloGrande
+          titulo="Categorías"
+          subtitulo="Personaliza tus categorías de gastos"
+          volver={{ a: '/ajustes', etiqueta: 'Ajustes' }}
+        />
       </div>
 
       {error && (
@@ -118,7 +110,7 @@ export default function CategoriasPage() {
 
         {/* Add form */}
         {showAdd && (
-          <div className="bg-surface rounded-2xl p-4 mb-3">
+          <div className="vidrio-panel rounded-2xl p-4 mb-3">
             <div className="flex flex-col gap-3">
               <Campo
                 etiqueta="Nombre" placeholder="ej. Médico, Educación…" maxLength={50}
@@ -161,7 +153,7 @@ export default function CategoriasPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {custom.map((cat: CategoriaUsuario) => (
-              <div key={cat.id} className="bg-surface rounded-xl px-4 py-3 flex items-center justify-between">
+              <div key={cat.id} className="vidrio-panel rounded-xl px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span
                     className="w-3 h-3 rounded-full flex-shrink-0"
@@ -209,7 +201,7 @@ export default function CategoriasPage() {
           {[...CATEGORIAS_GASTO, ...CATEGORIAS_INGRESO.filter(c => !CATEGORIAS_GASTO.includes(c))].map(c => (
             <span
               key={c}
-              className="text-xs text-textDim bg-surface px-3 py-1 rounded-full"
+              className="text-xs text-textDim vidrio-panel px-3 py-1 rounded-full"
             >
               {c}
             </span>

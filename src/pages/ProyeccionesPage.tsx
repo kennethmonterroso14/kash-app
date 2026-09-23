@@ -12,7 +12,7 @@ import { proyectarPatrimonio, toCentavos } from '../lib/finanzas'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
 import Campo from '../components/Campo'
-import { colores } from '../lib/tokens'
+import { useColores } from '../hooks/useColores'
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -79,6 +79,7 @@ function CustomTooltip({ active, payload, fmt }: TooltipProps) {
 // ─── Page ────────────────────────────────────────────────────
 
 export default function ProyeccionesPage() {
+  const colores = useColores()
   const gradientId = useId()
   const { totalPatrimonio, cargando, error: errores } = useSesion()
   const fmt = useMoneda()
@@ -147,8 +148,8 @@ export default function ProyeccionesPage() {
   // ─── Render ──────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-bg text-text pb-24">
-      <div className="max-w-lg mx-auto px-4 pt-8 space-y-5">
+    <div className="text-text">
+      <div className="max-w-lg mx-auto px-4 pt-4 space-y-5">
 
         {/* Header */}
         <div>
@@ -169,7 +170,7 @@ export default function ProyeccionesPage() {
         </div>
 
         {/* Inputs */}
-        <div className="bg-surface rounded-2xl p-4 space-y-4">
+        <div className="vidrio-panel rounded-2xl p-4 space-y-4">
 
           <Campo
             etiqueta="Ahorro mensual (Q)" tipo="number" min={0} step={100}
@@ -187,7 +188,7 @@ export default function ProyeccionesPage() {
               el <p> no es un <label> porque no hay a qué apuntar. */}
           <div>
             <p className="text-textDim text-xs mb-1 tracking-micro">Horizonte</p>
-            <div className="flex bg-bg rounded-xl p-1 gap-1">
+            <div className="flex bg-vidrio-relleno rounded-xl p-1 gap-1">
               {HORIZONTE_OPTIONS.map((opt, i) => (
                 <button
                   key={opt.meses}
@@ -206,8 +207,8 @@ export default function ProyeccionesPage() {
         </div>
 
         {/* Chart */}
-        <div className="bg-surface rounded-2xl p-4">
-          <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-4">
+        <div className="vidrio-panel rounded-2xl p-4">
+          <h2 className="text-textDim text-[15px] font-semibold mb-4">
             Crecimiento proyectado
           </h2>
           {chartData.length > 0 ? (
@@ -254,12 +255,12 @@ export default function ProyeccionesPage() {
         {/* Milestone summary cards */}
         {milestones.length > 0 && (
           <div>
-            <h2 className="text-sm font-semibold text-textDim uppercase tracking-wider mb-3">
+            <h2 className="text-textDim text-[15px] font-semibold mb-3">
               Metas proyectadas
             </h2>
             <div className="grid grid-cols-3 gap-3">
               {milestones.map(m => (
-                <div key={m.label} className="bg-surface rounded-2xl p-4 flex flex-col gap-1">
+                <div key={m.label} className="vidrio-panel rounded-2xl p-4 flex flex-col gap-1">
                   <span className="text-xs text-textDim">{m.label}</span>
                   <span className="text-sm font-bold text-text leading-tight">
                     {fmt(m.patrimonio)}

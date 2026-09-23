@@ -37,7 +37,7 @@ export default function TarjetaMeta({
   })()
 
   return (
-    <div className="bg-surface rounded-tarjeta px-4 py-4 space-y-3">
+    <div className="vidrio-panel rounded-tarjeta px-4 py-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-text font-medium min-w-0 truncate">{meta.nombre}</p>
         <div className="flex gap-2 flex-shrink-0">
@@ -57,7 +57,7 @@ export default function TarjetaMeta({
         </div>
       </div>
 
-      <div aria-hidden="true" className="w-full bg-bg rounded-full h-2">
+      <div aria-hidden="true" className="w-full bg-vidrio-relleno rounded-full h-2">
         <div className="bg-success h-2 rounded-full transition-all duration-normal ease-salida" style={{ width: `${pct}%` }} />
       </div>
 

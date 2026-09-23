@@ -64,7 +64,7 @@ export default function App() {
 
   if (loading || (user && hasSetup === null)) {
     return (
-      <div className="min-h-dvh bg-bg flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <p className="text-accent font-display text-lg animate-pulse">Vorta</p>
       </div>
     )
@@ -85,8 +85,8 @@ export default function App() {
 
   if (hasSetup === 'error') {
     return (
-      <div className="min-h-dvh bg-bg flex items-center justify-center px-4">
-        <div className="bg-surface rounded-tarjeta p-6 max-w-sm text-center space-y-3">
+      <div className="min-h-dvh flex items-center justify-center px-4">
+        <div className="vidrio-panel rounded-tarjeta p-6 max-w-sm text-center space-y-3">
           <p className="text-text font-semibold">No se pudo cargar tu perfil</p>
           <p className="text-textDim text-sm">
             Revisa tu conexión e intenta de nuevo. No se hizo ningún cambio en tus datos.
@@ -124,13 +124,13 @@ export default function App() {
           <Route path="/tarjetas" element={<TarjetasPage />} />
           <Route path="/tarjetas/:id/historial" element={<TarjetaHistorialPage />} />
 
-          <Route path="/patrimonio" element={<SeccionConPestanas pestanas={PESTANAS_PATRIMONIO} />}>
+          <Route path="/patrimonio" element={<SeccionConPestanas titulo="Patrimonio" pestanas={PESTANAS_PATRIMONIO} />}>
             <Route index element={<Navigate to="/patrimonio/cuentas" replace />} />
             <Route path="cuentas" element={<CuentasPage />} />
             <Route path="inversiones" element={<InversionesPage />} />
           </Route>
 
-          <Route path="/plan" element={<SeccionConPestanas pestanas={PESTANAS_PLAN} />}>
+          <Route path="/plan" element={<SeccionConPestanas titulo="Plan" pestanas={PESTANAS_PLAN} />}>
             <Route index element={<Navigate to="/plan/presupuesto" replace />} />
             <Route path="presupuesto" element={<BudgetPage />} />
             <Route path="metas" element={<MetasPage />} />

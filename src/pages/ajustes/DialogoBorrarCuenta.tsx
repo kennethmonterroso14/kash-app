@@ -82,7 +82,7 @@ export default function DialogoBorrarCuenta({ email, onCerrar, onBorrada }: Prop
           type="button"
           onClick={onCerrar}
           disabled={borrando}
-          className="presionable flex-1 py-3 rounded-control bg-bg text-textDim text-sm font-semibold hover:text-text disabled:opacity-50"
+          className="presionable flex-1 py-3 rounded-control bg-vidrio-relleno text-textDim text-sm font-semibold hover:text-text disabled:opacity-50"
         >
           Cancelar
         </button>

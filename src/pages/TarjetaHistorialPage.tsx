@@ -1,8 +1,9 @@
 // src/pages/TarjetaHistorialPage.tsx
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import Hoja from '../components/Hoja'
+import TituloGrande from '../components/TituloGrande'
 import { IconoChevron } from '../components/iconos'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
 import { useMoneda } from '../hooks/useMoneda'
@@ -35,7 +36,6 @@ function formatPeriodo(inicio: string, cierre: string): string {
 export default function TarjetaHistorialPage() {
   const fmt = useMoneda()
   const { id: tarjetaId = '' } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const { userId, tarjetas, perfil } = useSesion()
   const { ciclos, loading, error, fetchTransaccionesCiclo } = useCiclosTC(userId, tarjetaId)
 
@@ -80,23 +80,14 @@ export default function TarjetaHistorialPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
+    <div className="max-w-lg mx-auto px-4 pb-6">
 
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate('/tarjetas')}
-          aria-label="Volver a Tarjetas"
-          className="presionable text-accent hover:opacity-80 transition-opacity"
-        >
-          <IconoChevron direccion="izq" size={22} />
-        </button>
-        <div>
-          <h1 className="text-text font-display font-bold text-xl">
-            {tc?.nombre ?? 'Historial'}
-          </h1>
-          <p className="text-textDim text-xs">Estados de cuenta</p>
-        </div>
+      <div className="mb-6">
+        <TituloGrande
+          titulo={tc?.nombre ?? 'Historial'}
+          subtitulo="Estados de cuenta"
+          volver={{ a: '/tarjetas', etiqueta: 'Tarjetas' }}
+        />
       </div>
 
       {error && (
@@ -116,7 +107,7 @@ export default function TarjetaHistorialPage() {
         {ciclos.map(ciclo => {
           const badge = ESTADO_BADGE[ciclo.estado] ?? ESTADO_BADGE['cerrado']
           return (
-            <div key={ciclo.id} className="bg-surface rounded-tarjeta p-4">
+            <div key={ciclo.id} className="vidrio-panel rounded-tarjeta p-4">
               {/* Encabezado del ciclo */}
               <div className="flex justify-between items-start mb-3">
                 <div>
@@ -143,19 +134,19 @@ export default function TarjetaHistorialPage() {
 
               {/* Métricas del ciclo */}
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="bg-bg rounded-control p-2.5 text-center">
+                <div className="bg-vidrio-relleno rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Cargos</p>
                   <p className="text-danger tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_cargos)}
                   </p>
                 </div>
-                <div className="bg-bg rounded-control p-2.5 text-center">
+                <div className="bg-vidrio-relleno rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Pagos</p>
                   <p className="text-success tabular-nums font-semibold text-xs">
                     {fmt(ciclo.total_pagos)}
                   </p>
                 </div>
-                <div className="bg-bg rounded-control p-2.5 text-center">
+                <div className="bg-vidrio-relleno rounded-control p-2.5 text-center">
                   <p className="text-textDim text-xs mb-0.5">Saldo</p>
                   <p className={`tabular-nums font-semibold text-xs ${ciclo.saldo_final > 0 ? 'text-warning' : 'text-text'}`}>
                     {fmt(ciclo.saldo_final)}

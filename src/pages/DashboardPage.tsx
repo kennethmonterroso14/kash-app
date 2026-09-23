@@ -1,13 +1,20 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { useTransacciones } from '../hooks/useTransacciones'
 import { useResumen6Meses } from '../hooks/useResumen6Meses'
 import { useInversiones } from '../hooks/useInversiones'
-import { calcEstadisticasMes, calcDisponibleReal, calcPatrimonioNeto } from '../lib/finanzas'
-import { MESES } from '../lib/constants'
+import { useLimitesPresupuesto } from '../hooks/useLimitesPresupuesto'
+import {
+  calcEstadisticasMes, calcDisponibleReal, calcPatrimonioNeto, calcAnillosPresupuesto, calcProximoPagoTC,
+} from '../lib/finanzas'
+import { MESES, fechaLarga, diasRestantesMes } from '../lib/constants'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
 import SelectorMes from '../components/SelectorMes'
+import TituloGrande from '../components/TituloGrande'
+import { IconoAjustes } from '../components/iconos'
+import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import TarjetaPatrimonio from './dashboard/TarjetaPatrimonio'
 import TarjetaDisponibleReal from './dashboard/TarjetaDisponibleReal'
 import TarjetasTC from './dashboard/TarjetasTC'
@@ -15,6 +22,9 @@ import TarjetaPatrimonioNeto from './dashboard/TarjetaPatrimonioNeto'
 import StatsMes from './dashboard/StatsMes'
 import GraficaCategorias from './dashboard/GraficaCategorias'
 import Grafica6Meses from './dashboard/Grafica6Meses'
+import AnillosPresupuesto from './dashboard/AnillosPresupuesto'
+import ProximoPago from './dashboard/ProximoPago'
+import UltimosMovimientos from './dashboard/UltimosMovimientos'
 
 export default function DashboardPage() {
   const {
@@ -28,6 +38,7 @@ export default function DashboardPage() {
   const { txns, loading, error: errorTxns } = useTransacciones(userId, mes)
   const { data: resumen6 } = useResumen6Meses(userId)
   const { resumen: resumenInv, error: errorInv } = useInversiones(userId)
+  const { limites, error: errorLimites } = useLimitesPresupuesto(userId, mes)
   const errorCuentas = errores.cuentas
 
   const stats = useMemo(() => calcEstadisticasMes(txns), [txns])
@@ -41,11 +52,34 @@ export default function DashboardPage() {
     [totalPatrimonio, resumenInv.valor_total, tarjetas],
   )
 
+  const anillos = useMemo(
+    () => calcAnillosPresupuesto(limites, stats.porCategoria),
+    [limites, stats.porCategoria],
+  )
+  const proximoPago = calcProximoPagoTC(resumenTCs)
+
+  const hoy = fechas.hoy()
+  const esMesActual = mes === hoy.slice(0, 7)
+  const quedan = diasRestantesMes(hoy)
+  const pistaPresupuesto = !esMesActual ? undefined
+    : quedan === 0 ? 'Último día del mes'
+    : `Quedan ${quedan} ${quedan === 1 ? 'día' : 'días'} del mes`
+
   const [anio, mesNum] = mes.split('-').map(Number)
   const etiquetaMes = `${MESES[mesNum - 1]} ${anio}`
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-lg mx-auto px-4 pb-6 space-y-5">
+      <TituloGrande
+        titulo="Resumen"
+        sobretitulo={fechaLarga(hoy, perfil.locale)}
+        accion={
+          <Link to="/ajustes" aria-label="Ajustes" title="Ajustes" className={CLASE_BOTON_TITULO}>
+            <IconoAjustes size={20} />
+          </Link>
+        }
+      />
+
       <TarjetaPatrimonio
         total={totalPatrimonio}
         cuentas={cuentas}
@@ -59,6 +93,8 @@ export default function DashboardPage() {
         saldo 0 fantasma, calcDisponibleReal inventa una insolvencia y
         calcPatrimonioNeto un neto negativo. Era una clase entera de bug.
       */}
+      {proximoPago && <ProximoPago tc={proximoPago.tc} resumen={proximoPago.resumen} />}
+
       {tarjetas.length > 0 && !errorCuentas && (
         <TarjetaDisponibleReal datos={disponibleReal} oculto={oculto} />
       )}
@@ -89,12 +125,18 @@ export default function DashboardPage() {
       ) : (
         <>
           <StatsMes stats={stats} />
+          {/* Con la consulta de límites caída, la sección se calla: un anillo
+              vacío afirmaría "no tenés presupuestos", que no se sabe. */}
+          {!loading && !errorLimites && anillos.length > 0 && (
+            <AnillosPresupuesto anillos={anillos} coloresCategorias={coloresCategorias} pista={pistaPresupuesto} />
+          )}
+          <UltimosMovimientos txns={txns} coloresCategorias={coloresCategorias} />
           <GraficaCategorias porCategoria={stats.porCategoria} coloresCategorias={coloresCategorias} />
           <Grafica6Meses resumen={resumen6} />
 
           {loading && <p className="text-textDim text-center text-sm">Cargando...</p>}
           {!loading && txns.length === 0 && (
-            <div className="bg-surface rounded-tarjeta p-6 text-center">
+            <div className="vidrio-panel rounded-tarjeta p-6 text-center">
               <p className="text-textDim text-sm">Sin movimientos en {etiquetaMes}</p>
               <p className="text-textDim text-xs mt-1">Agrega el primero con el botón +</p>
             </div>

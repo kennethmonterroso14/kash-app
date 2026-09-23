@@ -1,72 +1,3 @@
-/* ──────────────────────────────────────────────────────────────────────
-   POPPINS, SERVIDA DESDE EL PROPIO ORIGEN.
-
-   Antes acá había un `@import url('https://fonts.googleapis.com/…')` para
-   Outfit. Se fue por tres motivos, en orden de importancia:
-
-   1. Era una petición a un TERCERO en cada carga. La política de privacidad
-      de la app afirma que la única llamada externa es la del tipo de cambio;
-      con ese @import esa frase era falsa. Ahora es verdad.
-   2. Un `@import` en CSS SERIALIZA dos viajes de red antes del primer paint:
-      hay que bajar y parsear el CSS de Google para recién enterarse de la URL
-      del .woff2. Desde el propio origen es un solo viaje, y el service worker
-      lo precachea.
-   3. No funcionaba sin señal. El WebView de Capacitor se abre offline.
-
-   Solo el subconjunto LATINO y solo los cuatro pesos que la app usa de verdad
-   (400, 500, 600, 700 — contados: 0 usos de font-light, font-extrabold y
-   font-black). 7.8 KB cada uno, 31 KB en total.
-
-   `swap` y no `block`: con la fuente precacheada y precargada llega antes del
-   primer paint en la práctica, y si no llega, texto legible con la del sistema
-   es mejor que texto invisible.
-
-   OJO con el `unicode-range`: cubre Latin-1 más puntuación general. Poppins NO
-   trae los símbolos que la app usaba como iconos (← → ✕ ✎ ⚠ ✓ ▴ ▾ ↻ ↩ ◈ ▭ ◎ ◧ ≡).
-   Todos pasaron a ser SVG en src/components/iconos.tsx, salvo los que sí caen en
-   este rango (× ↑ ↓) y los emoji de verdad (💳 📈 🏷️ …), que el sistema dibuja.
-   ────────────────────────────────────────────────────────────────────── */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fuentes/poppins-400-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fuentes/poppins-500-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fuentes/poppins-600-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fuentes/poppins-700-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -96,6 +27,24 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Los brillos de color detrás de toda la app. El Liquid Glass necesita algo
+     detrás para tener qué refractar: sobre negro plano el vidrio se lee como un
+     gris. Es una capa FIJA (no scrollea), así el vidrio que pasa por encima va
+     tomando el color de a poco, como en iOS 26. El primer y tercer halo son el
+     acento; el segundo, `brillo2`. Intensidad por tema en tokens.js. Ningún
+     contenedor de página debe llevar `bg-bg`, o tapa esta capa. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(520px 420px at 6% 2%, rgb(var(--c-accent) / var(--brillo-1)), transparent 72%),
+      radial-gradient(500px 480px at 104% 46%, rgb(var(--c-brillo2) / var(--brillo-2)), transparent 72%),
+      radial-gradient(460px 380px at 16% 100%, rgb(var(--c-accent) / var(--brillo-3)), transparent 72%);
+  }
+
   /* 16px es el mínimo: por debajo, Safari en iOS hace zoom al enfocar el input
      y NO vuelve al salir. La solución NO es `user-scalable=no`. */
   input, textarea, select { font-size: 16px; }
@@ -108,6 +57,9 @@
    respeta y solo en táctil se fuerza el piso. */
 @media (pointer: coarse) {
   input, textarea, select { font-size: 16px !important; }
+  /* Salvo el monto grande de la hoja de nuevo movimiento, que está MUY por
+     encima del piso: sin esta excepción el piso lo bajaba a 16px. */
+  input.monto-grande { font-size: 52px !important; }
 }
 
 @layer base {
@@ -142,34 +94,34 @@
 @layer components {
   /* Liviano: elementos interactivos. Llama la atención sin separar regiones. */
   .vidrio-chip {
-    @apply bg-vidrio-chip backdrop-blur-chip backdrop-saturate-150
+    @apply bg-vidrio-chip backdrop-blur-chip backdrop-saturate-180
            border border-perimetro shadow-chip;
   }
 
   /* Medio: tarjetas y paneles de contenido. */
   .vidrio-panel {
-    @apply bg-vidrio-panel backdrop-blur-panel backdrop-saturate-150
+    @apply bg-vidrio-panel backdrop-blur-panel backdrop-saturate-180
            border border-perimetro shadow-panel;
   }
 
   /* Pesado: cromo estructural (header, nav). Sin borde de perímetro: el canto
      se pone aparte con `.canto-*` del lado que da al contenido. */
   .vidrio-chrome {
-    @apply bg-vidrio-chrome backdrop-blur-chrome backdrop-saturate-150;
+    @apply bg-vidrio-chrome backdrop-blur-chrome backdrop-saturate-180;
   }
 
   /* Cromo FLOTANTE: la cápsula del nav, el FAB y el header. Flota con `bg`
      alrededor, así que sí lleva borde en todo el perímetro (el canto de vidrio)
-     y sombra en las cuatro direcciones. `saturate-150` sube un punto porque el
+     y sombra en las cuatro direcciones. `saturate-180` sube la saturación porque el
      material más claro deja pasar más color de lo que scrollea debajo. */
   .vidrio-flotante {
-    @apply bg-vidrio-flotante backdrop-blur-flotante backdrop-saturate-150
+    @apply bg-vidrio-flotante backdrop-blur-flotante backdrop-saturate-180
            border border-canto shadow-flotante;
   }
 
   /* El más pesado: hojas y modales, que van sobre un scrim. */
   .vidrio-hoja {
-    @apply bg-vidrio-hoja backdrop-blur-hoja backdrop-saturate-150
+    @apply bg-vidrio-hoja backdrop-blur-hoja backdrop-saturate-180
            border border-perimetro shadow-hoja;
   }
 
@@ -192,11 +144,11 @@
   }
   .borde-scroll-abajo::after {
     top: 100%;
-    background: linear-gradient(to bottom, theme('colors.vidrio.chrome'), transparent);
+    background: linear-gradient(to bottom, var(--m-chrome), transparent);
   }
   .borde-scroll-arriba::after {
     bottom: 100%;
-    background: linear-gradient(to top, theme('colors.vidrio.chrome'), transparent);
+    background: linear-gradient(to top, var(--m-chrome), transparent);
   }
 
   /* Feedback de presión. Va en el `:active` (no en el `click`) porque un
@@ -231,12 +183,12 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .vidrio-chip  { background-color: theme('colors.surface2'); }
-  .vidrio-panel { background-color: theme('colors.surface'); }
-  .vidrio-chrome, .vidrio-hoja { background-color: theme('colors.surface'); }
+  .vidrio-chip  { background-color: rgb(var(--c-surface2)); }
+  .vidrio-panel { background-color: rgb(var(--c-surface)); }
+  .vidrio-chrome, .vidrio-hoja { background-color: rgb(var(--c-surface)); }
   /* Flotante opaco: `surface2` (su tono claro) para que siga leyéndose despegado. */
-  .vidrio-flotante { background-color: theme('colors.surface2'); }
-  .scrim { background-color: theme('colors.bg'); }
+  .vidrio-flotante { background-color: rgb(var(--c-surface2)); }
+  .scrim { background-color: rgb(var(--c-bg)); }
   .borde-scroll-abajo::after, .borde-scroll-arriba::after { display: none; }
   .borde-scroll-abajo { @apply canto-inferior; }
   .borde-scroll-arriba { @apply canto-superior; }
@@ -252,10 +204,10 @@
     -webkit-backdrop-filter: none;
   }
   .vidrio-chip, .vidrio-panel, .vidrio-chrome, .vidrio-flotante, .vidrio-hoja {
-    background-color: theme('colors.bg');
-    border: 1px solid theme('colors.textDim');
+    background-color: rgb(var(--c-bg));
+    border: 1px solid rgb(var(--c-textDim));
   }
-  .scrim { background-color: theme('colors.bg'); }
+  .scrim { background-color: rgb(var(--c-bg)); }
 }
 
 /* Movimiento reducido: la escala se cambia por opacidad, que no desplaza nada. */

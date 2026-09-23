@@ -55,6 +55,15 @@ function formateador(locale: string, moneda: string): Intl.NumberFormat | null {
  *   formatMoneda(123456, { moneda: 'USD', locale: 'en-US' })  → "$1,234.56"
  *   formatMoneda(123456, { moneda: 'EUR', locale: 'de-DE' })  → "1.234,56 €"
  */
+/**
+ * El símbolo de la moneda del perfil ("Q", "$", "€"), para el prefijo del campo
+ * de monto. Sale del mismo formateador que `formatMoneda`, así que dice lo que
+ * dicen los montos; con un código que ICU no conoce, el código mismo.
+ */
+export function simboloMoneda({ moneda, locale }: OpcionesMoneda): string {
+  return formateador(locale, moneda)?.formatToParts(0).find(p => p.type === 'currency')?.value ?? moneda
+}
+
 export function formatMoneda(centavos: number, { moneda, locale }: OpcionesMoneda): string {
   if (!Number.isInteger(centavos)) {
     throw new Error(`formatMoneda espera un entero (centavos). Recibió: ${centavos}`)
@@ -167,6 +176,32 @@ export function calcEstadisticasMes(
   return { ingresos, gastos, neto, pctAhorro, porCategoria }
 }
 
+/**
+ * Agrupa movimientos por día para la lista de Movimientos, conservando el orden
+ * en que llegan (la lista ya viene por fecha descendente) y con el neto del día
+ * en centavos. El neto usa la misma regla que el total del mes: un `pago_tc`
+ * no es gasto (mueve deuda) y un `ajuste` tampoco es ingreso ni gasto, así que
+ * el neto solo suma ingresos y resta lo que `esGastoComputable` cuenta.
+ */
+export function agruparPorDia<T extends { fecha: string; tipo: Transaccion['tipo']; cantidad: number }>(
+  txns: T[],
+): { fecha: string; txns: T[]; neto: number }[] {
+  const grupos: { fecha: string; txns: T[]; neto: number }[] = []
+  const porFecha = new Map<string, { fecha: string; txns: T[]; neto: number }>()
+  for (const t of txns) {
+    let g = porFecha.get(t.fecha)
+    if (!g) {
+      g = { fecha: t.fecha, txns: [], neto: 0 }
+      porFecha.set(t.fecha, g)
+      grupos.push(g)
+    }
+    g.txns.push(t)
+    if (t.tipo === 'ingreso') g.neto += t.cantidad
+    else if (esGastoComputable(t.tipo)) g.neto -= Math.abs(t.cantidad)
+  }
+  return grupos
+}
+
 // ─── PROYECCIONES ─────────────────────────────────────────────
 
 /**
@@ -258,6 +293,37 @@ export function calcEstadoPresupuesto(
   return { pct, estado, restante }
 }
 
+export interface AnilloPresupuesto {
+  categoria: string
+  gastado: number   // centavos
+  limite: number    // centavos
+  pct: number
+  estado: EstadoPresupuesto
+}
+
+/**
+ * Los anillos de Resumen: los `n` presupuestos más cerca (o más pasados) de su
+ * límite. `porCategoria` es el de `calcEstadisticasMes`, así que el gasto que
+ * cuenta es el mismo que en el total del mes y en Presupuestos
+ * (`esGastoComputable`). Un límite no positivo se salta en lugar de lanzar: un
+ * presupuesto mal cargado no debe tumbar el Resumen entero.
+ */
+export function calcAnillosPresupuesto(
+  presupuestos: { categoria: string; monto_limite: number }[],
+  porCategoria: Record<string, number>,
+  n = 3,
+): AnilloPresupuesto[] {
+  return presupuestos
+    .filter(p => p.monto_limite > 0)
+    .map(p => {
+      const gastado = porCategoria[p.categoria] ?? 0
+      const { pct, estado } = calcEstadoPresupuesto(gastado, p.monto_limite)
+      return { categoria: p.categoria, gastado, limite: p.monto_limite, pct, estado }
+    })
+    .sort((a, b) => b.pct - a.pct || a.categoria.localeCompare(b.categoria))
+    .slice(0, n)
+}
+
 // ─── TARJETAS DE CRÉDITO ─────────────────────────────────────
 
 export interface TarjetaCredito {
@@ -283,6 +349,20 @@ export interface ResumenTC {
   dias_para_pago: number
   proximo_cierre: Date
   proximo_pago: Date
+}
+
+/**
+ * La tarjeta con el pago más cercano que TODAVÍA debe algo del ciclo cerrado
+ * (`deuda_ciclo_anterior > 0`), para la fila "próximo pago" de Resumen. La
+ * deuda del ciclo abierto no cuenta: no vence en este pago. Sin nada que pagar
+ * devuelve null.
+ */
+export function calcProximoPagoTC<T extends { tc: TarjetaCredito; resumen: ResumenTC }>(
+  resumenTCs: T[],
+): T | null {
+  return resumenTCs
+    .filter(r => r.tc.deuda_ciclo_anterior > 0)
+    .reduce<T | null>((min, r) => (!min || r.resumen.dias_para_pago < min.resumen.dias_para_pago ? r : min), null)
 }
 
 export interface DisponibleReal {

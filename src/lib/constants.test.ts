@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { hoyEn, ahoraEn, mesActualEn, diaEn, zonaValida, ZONA_GT } from './constants'
+import { hoyEn, ahoraEn, mesActualEn, diaEn, zonaValida, ZONA_GT, fechaLarga, fechaCorta, diasRestantesMes, etiquetaDia } from './constants'
 
 /**
  * Lo que importa acá no es el formato: es que la fecha que se GUARDA salga de
@@ -109,5 +109,50 @@ describe('diaEn', () => {
   it('lanza con una zona inválida en lugar de caer a una por defecto', () => {
     // Igual que `hoyEn`: un fallback silencioso mostraría un día que no es.
     expect(() => diaEn('2026-09-21T03:00:00Z', 'Nada/Inventado')).toThrow()
+  })
+})
+
+describe('fechaLarga', () => {
+  it('arma el día de la semana, el día y el mes en el locale, con mayúscula inicial', () => {
+    expect(fechaLarga('2026-09-22', 'es-GT')).toBe('Martes, 22 de septiembre')
+  })
+
+  it('no corre el día en ninguna zona del navegador (la fecha es de calendario)', () => {
+    // El 1 de enero, que con un corrimiento de horas caería en el 31 de dic.
+    expect(fechaLarga('2026-01-01', 'es-GT')).toMatch(/^Jueves, 1 de enero$/)
+  })
+
+  it('respeta el locale del perfil', () => {
+    expect(fechaLarga('2026-09-22', 'en-US')).toBe('Tuesday, September 22')
+  })
+})
+
+describe('fechaCorta', () => {
+  it('"16 sep", sin ceros a la izquierda y sin mover el día', () => {
+    expect(fechaCorta('2026-09-16')).toBe('16 sep')
+    expect(fechaCorta('2026-01-01')).toBe('1 ene')
+  })
+})
+
+describe('diasRestantesMes', () => {
+  it('cuenta los días después de hoy, con el largo real de cada mes', () => {
+    expect(diasRestantesMes('2026-09-23')).toBe(7)
+    expect(diasRestantesMes('2026-09-30')).toBe(0)
+    expect(diasRestantesMes('2026-01-01')).toBe(30)
+    expect(diasRestantesMes('2028-02-01')).toBe(28)   // bisiesto
+    expect(diasRestantesMes('2026-02-01')).toBe(27)
+  })
+})
+
+describe('etiquetaDia', () => {
+  it('Hoy, Ayer y si no la fecha larga', () => {
+    expect(etiquetaDia('2026-09-23', '2026-09-23', 'es-GT')).toBe('Hoy')
+    expect(etiquetaDia('2026-09-22', '2026-09-23', 'es-GT')).toBe('Ayer')
+    expect(etiquetaDia('2026-09-21', '2026-09-23', 'es-GT')).toBe('Lunes, 21 de septiembre')
+  })
+
+  it('"Ayer" cruza el mes y el año', () => {
+    expect(etiquetaDia('2025-12-31', '2026-01-01', 'es-GT')).toBe('Ayer')
+    expect(etiquetaDia('2026-02-28', '2026-03-01', 'es-GT')).toBe('Ayer')
   })
 })

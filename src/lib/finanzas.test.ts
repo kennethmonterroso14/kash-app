@@ -7,6 +7,11 @@ import {
   calcFechasCiclo,
   calcAlertasTC,
   calcResumenTC,
+  calcAnillosPresupuesto,
+  calcProximoPagoTC,
+  agruparPorDia,
+  simboloMoneda,
+  type ResumenTC,
   type Inversion,
   type InversionHistorial,
   formatMoneda,
@@ -521,5 +526,112 @@ describe('calcFechasCiclo — invariantes exhaustivas', () => {
       }
     }
     expect(fallos.slice(0, 5)).toEqual([])
+  })
+})
+
+describe('calcAnillosPresupuesto', () => {
+  const pres = [
+    { categoria: 'Comida', monto_limite: 100000 },
+    { categoria: 'Transporte', monto_limite: 50000 },
+    { categoria: 'Ocio', monto_limite: 20000 },
+    { categoria: 'Salud', monto_limite: 40000 },
+  ]
+  const gasto = { Comida: 72000, Transporte: 10000, Ocio: 30000 }
+
+  it('ordena por % usado, de más a menos, y se queda con n', () => {
+    const r = calcAnillosPresupuesto(pres, gasto, 3)
+    expect(r.map(a => a.categoria)).toEqual(['Ocio', 'Comida', 'Transporte'])
+    expect(r[0]).toEqual({ categoria: 'Ocio', gastado: 30000, limite: 20000, pct: 150, estado: 'excedido' })
+    expect(r[1]).toMatchObject({ pct: 72, estado: 'ok' })
+  })
+
+  it('una categoría sin gasto cuenta 0 %, no se omite', () => {
+    const r = calcAnillosPresupuesto(pres, gasto, 4)
+    expect(r[3]).toEqual({ categoria: 'Salud', gastado: 0, limite: 40000, pct: 0, estado: 'ok' })
+  })
+
+  it('a igual %, desempata por nombre para que el orden no baile', () => {
+    const r = calcAnillosPresupuesto(
+      [{ categoria: 'B', monto_limite: 100 }, { categoria: 'A', monto_limite: 100 }], {}, 2,
+    )
+    expect(r.map(a => a.categoria)).toEqual(['A', 'B'])
+  })
+
+  it('salta un límite no positivo en lugar de lanzar', () => {
+    const r = calcAnillosPresupuesto([{ categoria: 'X', monto_limite: 0 }, ...pres], gasto)
+    expect(r.map(a => a.categoria)).not.toContain('X')
+    expect(r).toHaveLength(3)
+  })
+
+  it('sin presupuestos devuelve vacío', () => {
+    expect(calcAnillosPresupuesto([], gasto)).toEqual([])
+  })
+})
+
+describe('calcProximoPagoTC', () => {
+  const tc = (id: string, anterior: number) => ({ id, deuda_ciclo_anterior: anterior }) as TarjetaCredito
+  const res = (dias: number) => ({ dias_para_pago: dias }) as ResumenTC
+
+  it('elige la de pago más cercano entre las que deben del ciclo cerrado', () => {
+    const r = calcProximoPagoTC([
+      { tc: tc('a', 5000), resumen: res(12) },
+      { tc: tc('b', 0), resumen: res(1) },        // no debe nada vencido: no cuenta
+      { tc: tc('c', 800), resumen: res(4) },
+    ])
+    expect(r?.tc.id).toBe('c')
+  })
+
+  it('sin deuda vencida en ninguna devuelve null', () => {
+    expect(calcProximoPagoTC([{ tc: tc('a', 0), resumen: res(3) }])).toBeNull()
+    expect(calcProximoPagoTC([])).toBeNull()
+  })
+
+  it('a igual distancia se queda con la primera, para que no salte', () => {
+    const r = calcProximoPagoTC([
+      { tc: tc('a', 1), resumen: res(5) },
+      { tc: tc('b', 1), resumen: res(5) },
+    ])
+    expect(r?.tc.id).toBe('a')
+  })
+})
+
+describe('agruparPorDia', () => {
+  type T = Parameters<typeof agruparPorDia>[0][number] & { id: string }
+  const t = (id: string, fecha: string, tipo: T['tipo'], cantidad: number): T => ({ id, fecha, tipo, cantidad })
+
+  it('agrupa por fecha conservando el orden de llegada', () => {
+    const g = agruparPorDia([
+      t('a', '2026-09-23', 'gasto', -100), t('b', '2026-09-23', 'ingreso', 500),
+      t('c', '2026-09-21', 'gasto', -50),
+    ])
+    expect(g.map(x => x.fecha)).toEqual(['2026-09-23', '2026-09-21'])
+    expect(g[0].txns.map(x => x.id)).toEqual(['a', 'b'])
+    expect(g[0].neto).toBe(400)
+    expect(g[1].neto).toBe(-50)
+  })
+
+  it('el gasto con tarjeta resta; el pago de tarjeta y los ajustes no mueven el neto', () => {
+    const g = agruparPorDia([
+      t('a', '2026-09-23', 'gasto_tc', -300),
+      t('b', '2026-09-23', 'pago_tc', -1000),
+      t('c', '2026-09-23', 'ajuste', 2000),
+    ])
+    expect(g[0].neto).toBe(-300)
+  })
+
+  it('sin movimientos no hay grupos', () => {
+    expect(agruparPorDia([])).toEqual([])
+  })
+})
+
+describe('simboloMoneda', () => {
+  it('el símbolo corto del locale, igual que en los montos', () => {
+    expect(simboloMoneda({ moneda: 'GTQ', locale: 'es-GT' })).toBe('Q')
+    expect(simboloMoneda({ moneda: 'USD', locale: 'es-GT' })).toBe('$')
+    expect(simboloMoneda({ moneda: 'EUR', locale: 'de-DE' })).toBe('€')
+  })
+
+  it('con un código inválido devuelve el código en lugar de lanzar', () => {
+    expect(simboloMoneda({ moneda: 'XXXX', locale: 'es-GT' })).toBe('XXXX')
   })
 })

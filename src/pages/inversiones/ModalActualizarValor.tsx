@@ -57,7 +57,7 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
 
   return (
     <Hoja titulo={`Actualizar — ${inv.nombre}`} onCerrar={onCerrar}>
-      <div className="bg-bg rounded-control p-3">
+      <div className="bg-vidrio-relleno rounded-control p-3">
         <p className="text-textDim text-xs tracking-micro">Valor anterior</p>
         <p className="text-text tabular-nums">
           {esUSD ? fmt(inv.valor_actual, 'USD') : fmt(inv.valor_actual)}

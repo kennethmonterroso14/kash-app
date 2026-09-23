@@ -24,8 +24,8 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children
 
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <div className="bg-surface rounded-2xl p-6 max-w-sm space-y-3">
+      <div className="min-h-dvh flex items-center justify-center px-4">
+        <div className="vidrio-panel rounded-2xl p-6 max-w-sm space-y-3">
           <p className="text-text font-semibold">Algo salió mal</p>
           <p className="text-textDim text-sm">
             La pantalla no se pudo mostrar. Tus datos no se modificaron.

@@ -31,7 +31,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+    <div className="min-h-dvh flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo / título */}
         <div className="text-center mb-8">
@@ -39,9 +39,9 @@ export default function LoginPage() {
           <p className="text-textDim text-sm mt-1">Finanzas personales · Guatemala</p>
         </div>
 
-        <div className="bg-surface rounded-2xl p-6">
+        <div className="vidrio-panel rounded-2xl p-6">
           {/* Tabs */}
-          <div className="flex gap-1 bg-bg rounded-xl p-1 mb-6">
+          <div className="flex gap-1 bg-vidrio-relleno rounded-xl p-1 mb-6">
             {(['login', 'register'] as const).map(m => (
               <button
                 key={m}

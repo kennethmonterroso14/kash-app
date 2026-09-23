@@ -3,7 +3,7 @@ import {
 } from 'recharts'
 import type { ResumenPortafolio as Resumen } from '../../lib/finanzas'
 import { INFLACION_ANUAL_REF } from '../../lib/constants'
-import { colores } from '../../lib/tokens'
+import { useColores } from '../../hooks/useColores'
 import { useMoneda } from '../../hooks/useMoneda'
 
 interface Props {
@@ -14,11 +14,12 @@ interface Props {
 
 /** Las cuatro cifras del portafolio más la evolución. Todo en moneda del perfil. */
 export default function ResumenPortafolio({ resumen, evolucion }: Props) {
+  const colores = useColores()
   const fmt = useMoneda()
   const signo = (n: number) => (n >= 0 ? '+' : '')
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4 mb-4 space-y-3">
+    <div className="vidrio-panel rounded-tarjeta p-4 mb-4 space-y-3">
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <p className="text-textDim text-xs mb-0.5 tracking-micro">Capital invertido</p>

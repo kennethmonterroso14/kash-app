@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (192 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (212 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -56,7 +56,9 @@ table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`v
    so a failing slice doesn't hide the others. Pages read `useSesion()` and never instantiate those
    hooks themselves. The month-scoped and page-specific tables keep their own hooks, instantiated
    by the page: `useTransacciones`, `usePresupuestos`, `useInversiones`, `useMetas`,
-   `usePagosRecurrentes`, `useResumen6Meses`.
+   `usePagosRecurrentes`, `useResumen6Meses`, and `useLimitesPresupuesto` — a **read-only** budget
+   query for Resumen's rings. Don't swap it for `usePresupuestos`: that one copies the previous
+   month's budgets into an empty month, so mounting it on Resumen would write on every month browsed.
 
    **A hook the provider mounts cannot call `useSesion()`** — it would consume the context that
    component provides. That is why `useTarjetas(userId, zonaHoraria)` takes the timezone as a
@@ -68,12 +70,16 @@ add/edit form of a given entity is **one** component, not two copies.
 
 **App shell** (`App.tsx`): `useAuth` → loading splash → `LoginPage` (Supabase email + password —
 `signInWithPassword` / `signUp`, *not* a magic link) →
-`SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` is the header +
-global `AlertasBanner` + 5-item bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan;
-the nav icons are drawn SVGs in `src/components/iconos.tsx`, not glyphs — Poppins doesn't carry
-them). Patrimonio (Cuentas · Inversiones) and Plan (Presupuesto · Metas · Proyecciones) are tab
-rails via `SeccionConPestanas`. There is no `PerfilPage`: configuration (Pagos Fijos, Categorías,
-Metas edit, profile) lives behind the header gear at `/ajustes` (`AjustesPage`).
+`SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` has **no header**:
+a soft top scroll edge under the status bar, the global `AlertasBanner`, and a floating 5-item
+bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan) plus the `+` FAB. The nav icons
+are drawn SVGs in `src/components/iconos.tsx`, not glyphs — no UI font carries them. Each screen
+names itself with **`TituloGrande`** (34pt large title, optional subtitle, a trailing round action
+from `CLASE_BOTON_TITULO`, and an iOS-style back link for second-level screens); it is the page's
+only `<h1>`. Patrimonio (Cuentas · Inversiones) and Plan (Presupuesto · Metas · Proyecciones) are
+a large title plus a glass segmented control via `SeccionConPestanas titulo=…`. There is no
+`PerfilPage`: configuration (Pagos Fijos, Categorías, Metas edit, profile) lives behind the gear in
+Resumen's title, at `/ajustes` (`AjustesPage`).
 
 ## Data model rules
 
@@ -186,14 +192,26 @@ commit per task.
 - **UI strings, identifiers, DB columns and most comments are Spanish**; keep new code consistent
   rather than mixing in English column names.
 - **Tailwind semantic tokens only** — every token comes from `src/lib/tokens.js` (the single
-  source: `tailwind.config.js` imports it, and so do the Recharts props that need real colors).
-  Colors: `bg`, `surface`, `surface2`, `accent`, `accentAlt`, `success`, `danger`, `warning`,
-  `text`, `textDim`. Also `rounded-{chip,control,panel,tarjeta,hoja}`,
+  source: `tailwind.config.js` imports it). Colors: `bg`, `surface`, `surface2`, `accent`,
+  `accentAlt`, `success`, `danger`, `warning`, `text`, `textDim`. Also `rounded-{chip,control,panel,tarjeta,hoja}`,
   `tracking-{display,titulo,base,micro}`, `duration-{presion,rapida,normal,lenta}`,
   `ease-{salida,entrada,estandar}`, `border-{canto,perimetro}`, `shadow-{chip,panel,chrome,hoja}`.
   No raw hex in `className`. Raw hex is fine for chart/category colors that come from data.
   There is deliberately **no `muted` color**: it was a #3a3f4d grey used as text at ~1.5:1
   contrast on 238 sites. Dim text is `textDim`; hairlines are `border-perimetro`.
+- **Two themes, following the system** (`prefers-color-scheme`; dark is the default). `tokens.js`
+  exports `temas.{oscuro,claro}`, each a full palette — not an inversion — plus materials, glass
+  borders, shadows and the background glow intensities. A plugin in `tailwind.config.js` dumps each
+  theme to CSS variables (`--c-*` as RGB channels so `bg-accent/15` still works, `--m-*`, `--b-*`,
+  `--s-*`, `--brillo-*`) and every class points at the variables, so components never branch on
+  the theme. Anything that needs a **real** color in a prop (Recharts) calls `useColores()`, which
+  returns the active palette and re-renders when the system theme changes — never import
+  `temas`/`colores` for that, it would freeze the dark palette.
+- **The background is a glow layer** (`body::before` in `index.css`: accent + `brillo2` radial
+  gradients) so the glass has something to refract. **Never put `bg-bg` on a page or root
+  container** — it paints over that layer and every card reads as flat grey. Content cards are
+  `vidrio-panel`; controls, tracks and secondary buttons inside glass use `bg-vidrio-relleno`
+  (iOS's tertiary fill, translucent) rather than an opaque `bg-bg`/`bg-surface2`.
 - **The design language is Apple's**, and the rules live in the repo: `.claude/skills/apple-design`
   (materials, motion, typography) and `.claude/skills/mobile-native` (the platform layer, which
   matters twice over because this ships inside a Capacitor WebView). They are vendored upstream —
@@ -208,15 +226,14 @@ commit per task.
   `button`/`a`/`[role=button]` on press globally (it replaces the tap highlight that was removed);
   add `.presionable` for the scale on top, for large targets. The global
   `-webkit-tap-highlight-color: transparent` means a control with neither gives no feedback at all.
-- **One typeface, Poppins, everywhere** (`font-sans`, `font-display` and — via a nearly-unused
-  `font-mono` — all map through `fuentes` in `src/lib/tokens.js`). It is **self-hosted** under
-  `public/fuentes/` (latin subset, weights 400/500/600/700), declared with `@font-face` in
-  `index.css` and precached by the SW; there is no Google-Fonts `@import` any more (that was a
-  third-party request the privacy policy forbids). `font-display` still exists as a token (points at
-  Poppins) so a separate title face is a one-line change. **Amounts use `tabular-nums`, not
-  `font-mono`** — a no-op on Poppins (no `tnum`) that arms the one-line Outfit fallback documented in
-  `tokens.js`. Poppins lacks the glyphs the app used as icons, so those are SVGs in
-  `src/components/iconos.tsx`; `font-mono` survives only for the ErrorBoundary's technical dump.
+- **One typeface: the system's, i.e. SF Pro on Apple devices** (`font-sans`, `font-display` and a
+  nearly-unused `font-mono` all map through `fuentes` in `src/lib/tokens.js`, starting with
+  `-apple-system`). Nothing is downloaded or precached — there are no `@font-face` blocks and no
+  third-party font request (the privacy policy forbids one). Other platforms fall back to their own
+  UI font (Segoe UI, Roboto). `font-display` still exists as a token so a separate title face is a
+  one-line change. **Amounts use `tabular-nums`, not `font-mono`** — SF Pro has `tnum`, so columns
+  of figures line up. Icons are SVGs in `src/components/iconos.tsx`, not glyphs; `font-mono`
+  survives only for the ErrorBoundary's technical dump.
 - **The PWA updates itself, but never with a sheet open.** `registerType: 'prompt'` +
   `injectRegister: false` in `vite.config.ts`; `src/registrarSW.ts` registers through
   `virtual:pwa-register`, re-checks for a new `sw.js` on `visibilitychange` (iOS resumes a

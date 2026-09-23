@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
-import { IconoChevron } from '../components/iconos'
+import TituloGrande from '../components/TituloGrande'
+import { IconoMas } from '../components/iconos'
+import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import { usePagosRecurrentes, type PagoRecurrente } from '../hooks/usePagosRecurrentes'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
@@ -11,7 +12,6 @@ import ModalPagoFijo, { type CamposPago } from './pagos/ModalPagoFijo'
 
 
 export default function PagosRecurrentesPage() {
-  const navigate = useNavigate()
   const { userId, cuentas } = useSesion()
   const fechas = useFechas()
   const { pagos, loading, error, addPago, updatePago, deletePago } = usePagosRecurrentes(userId)
@@ -68,24 +68,28 @@ export default function PagosRecurrentesPage() {
   )
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
-      <div className="flex items-center justify-between mb-2 gap-2">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Se llega desde Ajustes y no hay riel ni nav que la marque, así que
-              la pantalla tiene que decir cómo salir. */}
-          <button
-            onClick={() => navigate('/ajustes')}
-            aria-label="Volver a Ajustes"
-            className="presionable text-accent px-1 flex-shrink-0"
-          >
-            <IconoChevron direccion="izq" size={22} />
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-text font-semibold text-lg tracking-titulo">Pagos Fijos</h1>
-            <p className="text-textDim text-xs mt-0.5 tracking-micro">Se aplican automáticamente cada mes</p>
-          </div>
-        </div>
-        {botonAgregar('+ Agregar', 'text-sm px-4 py-2 rounded-control flex-shrink-0')}
+    <div className="max-w-lg mx-auto px-4 pb-6 space-y-3">
+      {/* Se llega desde Ajustes y no hay riel ni nav que la marque, así que
+          la pantalla tiene que decir cómo salir: el enlace de vuelta. */}
+      <div className="mb-2">
+        <TituloGrande
+          titulo="Pagos fijos"
+          subtitulo="Se aplican automáticamente cada mes"
+          volver={{ a: '/ajustes', etiqueta: 'Ajustes' }}
+          // Con la lista vacía el estado vacío ya trae su botón: dos "agregar"
+          // en la misma pantalla es uno de más.
+          accion={pagos.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMostrarAlta(true)}
+              aria-label="Agregar pago fijo"
+              title="Agregar pago fijo"
+              className={CLASE_BOTON_TITULO}
+            >
+              <IconoMas size={20} />
+            </button>
+          )}
+        />
       </div>
 
       {error && (

@@ -1,4 +1,4 @@
-export declare const colores: {
+export interface PaletaColores {
   bg: string
   surface: string
   surface2: string
@@ -9,18 +9,20 @@ export declare const colores: {
   warning: string
   text: string
   textDim: string
+  brillo2: string
 }
-export declare const materiales: {
-  chip: string
-  panel: string
-  chrome: string
-  flotante: string
-  hoja: string
-  scrim: string
+type Materiales = { chip: string; panel: string; chrome: string; flotante: string; hoja: string; scrim: string; relleno: string; segmento: string }
+type Sombras = { chip: string; panel: string; chrome: string; flotante: string; hoja: string }
+export interface Tema {
+  colores: PaletaColores
+  brillos: [number, number, number]
+  materiales: Materiales
+  bordesVidrio: { canto: string; perimetro: string }
+  sombras: Sombras
 }
+export declare const temas: { oscuro: Tema; claro: Tema }
+export declare const colores: PaletaColores
 export declare const desenfoques: { chip: string; panel: string; chrome: string; flotante: string; hoja: string }
-export declare const bordesVidrio: { canto: string; perimetro: string }
-export declare const sombras: { chip: string; panel: string; chrome: string; flotante: string; hoja: string }
 export declare const fuentes: { principal: string[]; mono: string[] }
 export type PuntosBezier = [number, number, number, number]
 export declare const curvasBezier: { salida: PuntosBezier; entrada: PuntosBezier; estandar: PuntosBezier }

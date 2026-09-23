@@ -12,7 +12,14 @@ interface Props {
   onHistorial: () => void
 }
 
-/** Una tarjeta en la lista: disponible, uso, deuda por bucket y acciones. */
+/**
+ * Una tarjeta como en Wallet: la cara de la tarjeta en su color (nombre, banco,
+ * últimos 4 y disponible) y, debajo, el panel de vidrio del ciclo con la deuda
+ * por bucket y las acciones.
+ *
+ * El texto de la cara es siempre blanco sobre el color que eligió el usuario;
+ * un velo oscuro en diagonal garantiza el contraste aunque elija un color claro.
+ */
 export default function TarjetaTile({
   tc, resumen, onEditar, onCargo, onPago, onCerrarCiclo, onHistorial,
 }: Props) {
@@ -21,109 +28,118 @@ export default function TarjetaTile({
   // Clases LITERALES y no `bg-${estado}`: el JIT de Tailwind busca los nombres
   // como texto en el fuente, así que una clase armada por interpolación no se
   // genera nunca y el color simplemente no aparece.
-  const clasesChip =
-    resumen.estado === 'critico' ? 'bg-danger/10 text-danger' :
-    resumen.estado === 'alerta'  ? 'bg-warning/10 text-warning' :
-                                   'bg-success/10 text-success'
   const claseBarra =
     resumen.estado === 'critico' ? 'bg-danger' :
     resumen.estado === 'alerta'  ? 'bg-warning' : 'bg-success'
+  const claseUso =
+    resumen.estado === 'critico' ? 'text-danger' :
+    resumen.estado === 'alerta'  ? 'text-warning' : 'text-success'
 
   return (
-    <div className="bg-surface rounded-tarjeta p-4 space-y-3">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: tc.color }} />
-          <div>
-            <p className="text-text font-semibold text-sm">{tc.nombre}</p>
-            {(tc.banco || tc.ultimos_4) && (
-              <p className="text-textDim text-xs tracking-micro">
-                {tc.banco}{tc.ultimos_4 ? ` ••••${tc.ultimos_4}` : ''}
-              </p>
-            )}
+    <article aria-label={tc.nombre} className="space-y-2.5">
+      {/* La cara de la tarjeta. */}
+      <div
+        className="relative overflow-hidden rounded-tarjeta aspect-[1.7] p-5 flex flex-col justify-between text-white shadow-panel"
+        style={{
+          background: `linear-gradient(135deg, ${tc.color}, color-mix(in srgb, ${tc.color} 45%, #0b0b12))`,
+        }}
+      >
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/35" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[17px] font-semibold truncate">{tc.nombre}</p>
+            {tc.banco && <p className="text-[13px] text-white/75 truncate">{tc.banco}</p>}
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* whitespace-nowrap: con un nombre largo el chip se partía en dos
-              renglones y quedaba como un óvalo alto. */}
-          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${clasesChip}`}>
-            {resumen.pct_uso}% usado
-          </span>
           <button
+            type="button"
             onClick={onEditar}
-            className="presionable text-textDim hover:text-text text-sm leading-none px-1"
+            aria-label={`Editar ${tc.nombre}`}
             title="Editar tarjeta"
+            className="presionable grid place-items-center w-9 h-9 -mr-1.5 -mt-1.5 rounded-full bg-white/15 text-white"
           >
-            <IconoEditar size={15} />
+            <IconoEditar size={16} />
           </button>
         </div>
-      </div>
-
-      <div>
-        <p className="text-textDim text-xs mb-0.5 tracking-micro">Disponible</p>
-        <p className="text-text tabular-nums font-bold text-2xl tracking-titulo">{fmt(resumen.disponible)}</p>
-      </div>
-
-      <div className="h-1.5 bg-bg rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full ${claseBarra} transition-all duration-normal ease-salida`}
-          style={{ width: `${Math.min(resumen.pct_uso, 100)}%` }}
-        />
-      </div>
-
-      <div className="flex justify-between text-xs">
-        <span className="text-textDim">
-          Ciclo actual: <span className="text-text tabular-nums">{fmt(tc.deuda_actual)}</span>
-        </span>
-        <span className="text-textDim">
-          Límite: <span className="text-text tabular-nums">{fmt(tc.limite_credito)}</span>
-        </span>
-      </div>
-
-      {tc.deuda_ciclo_anterior > 0 && (
-        <div className="bg-danger/10 border border-danger/20 rounded-control p-3">
-          <p className="text-danger text-xs font-semibold flex items-start gap-1">
-            <IconoAlerta size={14} className="shrink-0 mt-0.5" />
-            <span>Pagar {fmt(tc.deuda_ciclo_anterior)} antes del día {tc.dia_pago}</span>
-          </p>
-          <p className="text-danger/70 text-xs mt-0.5">
-            {resumen.dias_para_pago} días restantes para el pago
-          </p>
+        <div className="relative">
+          <p className="text-[13px] text-white/75">Disponible</p>
+          <p className="text-[30px] leading-9 font-bold tabular-nums tracking-display">{fmt(resumen.disponible)}</p>
+          <div className="flex items-center justify-between mt-1 text-[13px] text-white/80 tabular-nums">
+            <span>{tc.ultimos_4 ? `•••• ${tc.ultimos_4}` : ''}</span>
+            <span>Límite {fmt(tc.limite_credito)}</span>
+          </div>
         </div>
-      )}
-
-      <div className="flex gap-4 text-xs text-textDim">
-        <span>Cierre en <span className="text-text">{resumen.dias_para_cierre}d</span></span>
-        <span>Pago en <span className="text-text">{resumen.dias_para_pago}d</span></span>
       </div>
 
-      <div className="flex gap-2 pt-1">
+      {/* El panel del ciclo. */}
+      <div className="vidrio-panel rounded-tarjeta p-4 space-y-3">
+        <div>
+          <div className="flex justify-between text-[13px] mb-1.5">
+            <span className="text-textDim">Uso del límite</span>
+            <span className={`font-semibold tabular-nums ${claseUso}`}>{resumen.pct_uso}%</span>
+          </div>
+          <div aria-hidden="true" className="h-1.5 bg-vidrio-relleno rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${claseBarra} transition-all duration-normal ease-salida`}
+              style={{ width: `${Math.min(resumen.pct_uso, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        <dl className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-vidrio-relleno rounded-control py-2">
+            <dt className="text-textDim text-[12px]">Ciclo actual</dt>
+            <dd className="text-text text-[14px] font-semibold tabular-nums">{fmt(tc.deuda_actual)}</dd>
+          </div>
+          <div className="bg-vidrio-relleno rounded-control py-2">
+            <dt className="text-textDim text-[12px]">Cierre</dt>
+            <dd className="text-text text-[14px] font-semibold">en {resumen.dias_para_cierre}d</dd>
+          </div>
+          <div className="bg-vidrio-relleno rounded-control py-2">
+            <dt className="text-textDim text-[12px]">Pago</dt>
+            <dd className="text-text text-[14px] font-semibold">en {resumen.dias_para_pago}d</dd>
+          </div>
+        </dl>
+
+        {tc.deuda_ciclo_anterior > 0 && (
+          <div className="bg-danger/10 border border-danger/20 rounded-control p-3">
+            <p className="text-danger text-[13px] font-semibold flex items-start gap-1">
+              <IconoAlerta size={14} className="shrink-0 mt-0.5" />
+              <span>Pagar {fmt(tc.deuda_ciclo_anterior)} antes del día {tc.dia_pago}</span>
+            </p>
+            <p className="text-danger/80 text-[12px] mt-0.5">
+              {resumen.dias_para_pago} días restantes para el pago
+            </p>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={onCargo}
+            className="presionable flex-1 h-10 rounded-full bg-accent/15 text-accent text-[14px] font-semibold"
+          >
+            + Cargo
+          </button>
+          <button
+            onClick={onPago}
+            className="presionable flex-1 h-10 rounded-full bg-vidrio-relleno text-text text-[14px] font-semibold"
+          >
+            Pagar
+          </button>
+          <button
+            onClick={onCerrarCiclo}
+            disabled={tc.deuda_actual === 0}
+            className="presionable flex-1 h-10 rounded-full bg-vidrio-relleno text-textDim text-[14px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Cerrar ciclo
+          </button>
+        </div>
         <button
-          onClick={onCargo}
-          className="presionable flex-1 py-2 rounded-control bg-accent/10 text-accent text-xs font-semibold hover:bg-accent/20"
+          onClick={onHistorial}
+          className="presionable w-full flex items-center justify-between text-[15px] text-text pt-1"
         >
-          + Cargo
-        </button>
-        <button
-          onClick={onPago}
-          className="presionable flex-1 py-2 rounded-control bg-surface2 text-text text-xs font-semibold"
-        >
-          Pagar TC
-        </button>
-        <button
-          onClick={onCerrarCiclo}
-          disabled={tc.deuda_actual === 0}
-          className="presionable flex-1 py-2 rounded-control bg-surface2 text-textDim text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Cerrar ciclo
+          Estados de cuenta <IconoChevron direccion="der" size={16} className="text-textDim" />
         </button>
       </div>
-      <button
-        onClick={onHistorial}
-        className="presionable text-xs text-textDim hover:text-text py-1 inline-flex items-center gap-1"
-      >
-        Ver historial <IconoChevron direccion="der" size={13} />
-      </button>
-    </div>
+    </article>
   )
 }

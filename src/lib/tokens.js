@@ -15,132 +15,141 @@
  * tamaño (§15). Si vas a cambiar un número acá, leé la sección primero.
  */
 
-/** Paleta base. Los semánticos de estado son los system colors de iOS en oscuro. */
-export const colores = {
-  bg:        '#06070a',
-  surface:   '#12141a',
-  surface2:  '#1b1e26',
-  accent:    '#7c6af7',
-  accentAlt: '#a78bfa',
-  success:   '#30d158',
-  danger:    '#ff453a',
-  warning:   '#ff9f0a',
-  text:      '#f2f3f7',
-  textDim:   '#9aa0b0',
+/**
+ * Los dos temas. La app sigue al del sistema (`prefers-color-scheme`), como las
+ * de Apple. Cada tema es una paleta completa, no una inversión: en claro el
+ * acento, el éxito, el aviso y el peligro se oscurecen para llegar a 4.5:1 sobre
+ * blanco, y en oscuro el acento se aclara para que el texto oscuro encima (los
+ * botones son `bg-accent text-bg`) también pase.
+ *
+ * Los componentes NO leen esto directo: `tailwind.config.js` lo vuelca a
+ * variables CSS (`--c-*` colores, `--m-*` materiales, `--b-*` bordes, `--s-*`
+ * sombras) en `:root` y en la media query de claro, y las clases apuntan a las
+ * variables. Así el mismo `bg-accent/15` sirve a los dos temas sin tocar ni un
+ * componente. Lo que necesita un color REAL en una prop (las gráficas de
+ * Recharts) usa `useColores()`, que devuelve la paleta del tema activo.
+ *
+ * `brillo2` es el segundo color de los halos del fondo (el primero es el acento):
+ * el Liquid Glass necesita color detrás para tener qué refractar.
+ */
+export const temas = {
+  oscuro: {
+    colores: {
+      bg:        '#05060a',
+      surface:   '#15161d',
+      surface2:  '#20212b',
+      accent:    '#8b7bff',
+      accentAlt: '#b3a7ff',
+      success:   '#32d74b',
+      danger:    '#ff453a',
+      warning:   '#ff9f0a',
+      text:      '#f5f5f7',
+      textDim:   '#a3a3b0',
+      brillo2:   '#2f6bff',
+    },
+    /** Intensidad de los tres halos del fondo. */
+    brillos: [0.44, 0.32, 0.26],
+    materiales: {
+      chip:     'rgba(255, 255, 255, 0.07)',
+      panel:    'rgba(255, 255, 255, 0.075)',
+      chrome:   'rgba(22, 22, 30, 0.62)',
+      flotante: 'rgba(34, 34, 44, 0.58)',
+      hoja:     'rgba(26, 26, 34, 0.80)',
+      scrim:    'rgba(0, 0, 0, 0.45)',
+      // Relleno de controles dentro del vidrio (campos, rieles, barras): el
+      // tertiarySystemFill de iOS. Sin desenfoque — no es una capa, es tinta.
+      relleno:  'rgba(118, 118, 128, 0.24)',
+      // La píldora del control segmentado: un vidrio más claro que su riel.
+      segmento: 'rgba(255, 255, 255, 0.16)',
+    },
+    bordesVidrio: {
+      canto:     'rgba(255, 255, 255, 0.18)',
+      perimetro: 'rgba(255, 255, 255, 0.12)',
+    },
+    sombras: {
+      chip:     '0 1px 2px rgba(0, 0, 0, 0.30)',
+      panel:    '0 14px 34px -12px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.10)',
+      chrome:   '0 -10px 32px -12px rgba(0, 0, 0, 0.70)',
+      flotante: '0 12px 36px -10px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.14)',
+      hoja:     '0 24px 64px -16px rgba(0, 0, 0, 0.80)',
+    },
+  },
+  claro: {
+    colores: {
+      bg:        '#eceef5',
+      surface:   '#ffffff',
+      surface2:  '#f2f2f7',
+      accent:    '#5b48d9',
+      accentAlt: '#7c6af7',
+      success:   '#17803a',
+      danger:    '#d92d20',
+      warning:   '#b35c00',
+      text:      '#111114',
+      textDim:   '#5d5d69',
+      brillo2:   '#7aa8ff',
+    },
+    brillos: [0.30, 0.22, 0.18],
+    materiales: {
+      chip:     'rgba(255, 255, 255, 0.55)',
+      panel:    'rgba(255, 255, 255, 0.58)',
+      chrome:   'rgba(255, 255, 255, 0.72)',
+      flotante: 'rgba(255, 255, 255, 0.72)',
+      hoja:     'rgba(247, 247, 251, 0.88)',
+      scrim:    'rgba(20, 20, 40, 0.22)',
+      relleno:  'rgba(118, 118, 128, 0.12)',
+      segmento: 'rgba(255, 255, 255, 0.96)',
+    },
+    bordesVidrio: {
+      canto:     'rgba(255, 255, 255, 0.95)',
+      perimetro: 'rgba(255, 255, 255, 0.80)',
+    },
+    sombras: {
+      chip:     '0 1px 2px rgba(38, 38, 90, 0.10)',
+      panel:    '0 10px 30px -12px rgba(38, 38, 90, 0.18), inset 0 1px 0 rgba(255, 255, 255, 1)',
+      chrome:   '0 -8px 24px -12px rgba(38, 38, 90, 0.16)',
+      flotante: '0 12px 32px -10px rgba(38, 38, 90, 0.24), inset 0 1px 0 rgba(255, 255, 255, 1)',
+      hoja:     '0 24px 64px -16px rgba(38, 38, 90, 0.28)',
+    },
+  },
 }
 
 /**
- * Materiales translúcidos (apple-design §12).
- *
- * Son capas que dejan pasar el contenido de abajo, no fondos opacos: el peso
- * del material codifica jerarquía. `chip` es el más liviano y va en cosas
- * interactivas; `chrome` es el más pesado y separa regiones estructurales
- * (header, nav). REGLA: nunca apilar un material liviano sobre otro liviano —
- * la legibilidad se cae.
- *
- * El desenfoque va aparte porque Tailwind los expone en escalas distintas
- * (`bg-*` y `backdrop-blur-*`), pero se usan de a pares: ver las utilidades
- * `.vidrio-*` en index.css, que son la única forma en que estos entran a la UI.
+ * La paleta oscura como valores fijos, para lo que no puede seguir al tema: el
+ * manifest de la PWA (`theme_color`, `background_color`) se escribe una vez en
+ * el build. Todo lo que se pinta en pantalla va por las variables o `useColores()`.
  */
-export const materiales = {
-  chip:   'rgba(27, 30, 38, 0.44)',
-  panel:  'rgba(18, 20, 26, 0.62)',
-  chrome: 'rgba(12, 14, 19, 0.72)',
-  hoja:   'rgba(18, 20, 26, 0.84)',
-  /**
-   * Cromo FLOTANTE: la cápsula del nav, el FAB y el header. A diferencia de
-   * `chrome` (que va pegado a un borde, con el contenido detrás), este flota
-   * con `bg` alrededor, así que tiene que LEERSE como una capa despegada. Por
-   * eso es más claro y más opaco que `chrome`: `chrome` compuesto sobre `bg`
-   * (#06070a) da ~#0a0c10 —invisible como píldora suelta— y este da un gris
-   * netamente más alto. Sigue siendo translúcido: el contenido que scrollea por
-   * debajo se ve difuminado, que es el punto del vidrio.
-   */
-  flotante: 'rgba(32, 35, 46, 0.72)',
-  /** Scrim de una tarea modal: oscurece para enfocar (§12 "dim to focus"). */
-  scrim:  'rgba(3, 4, 6, 0.55)',
-}
+export const colores = temas.oscuro.colores
 
-/** Radio del desenfoque por material. Superficie más grande = material más grueso. */
+/**
+ * Radio del desenfoque por material. Superficie más grande = material más grueso.
+ * Las utilidades `.vidrio-*` de index.css los combinan con su material; ver
+ * apple-design §12: nunca apilar un material liviano sobre otro liviano.
+ */
 export const desenfoques = {
   chip:     '12px',
-  panel:    '20px',
+  panel:    '24px',
   chrome:   '28px',
   flotante: '30px',
   hoja:     '40px',
 }
 
 /**
- * Bordes del material: el de arriba es más claro porque es la luz pegando en
- * el canto del vidrio. No son bordes de 1px sólidos de separación — eso es lo
- * que §12 pide reemplazar por el material y el degradado de borde de scroll.
- */
-export const bordesVidrio = {
-  canto:     'rgba(242, 243, 247, 0.14)',
-  perimetro: 'rgba(242, 243, 247, 0.08)',
-}
-
-/** Sombras. Más grande la superficie, más profunda la sombra (§12). */
-export const sombras = {
-  chip:   '0 1px 2px rgba(0, 0, 0, 0.30)',
-  panel:  '0 8px 24px -8px rgba(0, 0, 0, 0.55)',
-  /** El nav flota sobre el contenido, así que su sombra va hacia arriba. */
-  chrome: '0 -10px 32px -12px rgba(0, 0, 0, 0.70)',
-  /**
-   * Píldora flotante (cápsula del nav y FAB): sombra en las cuatro direcciones
-   * para despegarla del fondo por todos lados. En el header, que es full-bleed,
-   * las sombras laterales quedan fuera de pantalla y se lee como una sombra
-   * hacia abajo. La segunda capa, corta y cerrada, le da el borde de contacto.
-   */
-  flotante: '0 12px 36px -10px rgba(0, 0, 0, 0.72), 0 2px 10px -6px rgba(0, 0, 0, 0.55)',
-  hoja:   '0 24px 64px -16px rgba(0, 0, 0, 0.80)',
-}
-
-/**
- * Curvas. `salida` es la de entrada de elementos (empieza rápido y frena), y
- * `entrada` es su inversa exacta, para que una transición reversible vuelva
- * por el mismo camino (§7 "mirror the easing").
- */
-/**
- * Los cuatro puntos de control, que es la forma que necesita Motion (`ease`
- * quiere el arreglo, no la cadena `cubic-bezier(...)`). Las cadenas de `curvas`
- * salen de acá: si el número vive en dos lugares, un día dejan de coincidir.
- */
-/**
- * Las familias tipográficas. Un solo lugar: `tailwind.config.js` las lee y
- * `index.css` declara los `@font-face` que las respaldan.
+ * La familia tipográfica: SF Pro, la del sistema. En un iPhone es la de las apps
+ * de Apple, pesa 0 KB (no se descarga nada) y trae cifras tabulares, así que
+ * `tabular-nums` en los montos alinea las columnas de verdad. Reemplaza a
+ * Poppins, que no tenía `tnum` (los montos bailaban ~23 px) y costaba 31 KB.
+ * Fuera de Apple cae a la fuente del sistema de cada plataforma.
  *
- * Poppins va en TODO el texto, incluidos los montos — decisión del dueño del
- * proyecto, tomada con la medición a la vista. Los montos NO usan ya `font-mono`
- * (eso los dejaba en una pila monoespaciada, no en Poppins): usan `tabular-nums`.
- * Lo que se cede está medido y conviene tenerlo escrito acá, porque es lo que
- * hay que releer si algún día se revisa:
- *
- * - **Poppins no tiene cifras tabulares** (su GSUB no trae la feature `tnum`),
- *   así que sobre ella `tabular-nums` es un no-op. Ocho de los diez dígitos
- *   miden entre 575 y 635 unidades, pero el `1` mide **320** — la mitad. Medido
- *   en el navegador: una columna de cuatro montos se dispersa **23px**. Con
- *   Poppins los montos bailan; se aceptó a cambio de una sola familia.
- * - Por eso los montos llevan `tabular-nums` aunque hoy no haga nada: **arma el
- *   plan B**. La alternativa, si el baile molesta en el teléfono, es **Outfit**
- *   (misma familia geométrica, ya estuvo en el repo, y SÍ trae `tnum`): con ella
- *   la dispersión de esa columna es **0px**. El cambio es **una línea** —
- *   `principal` acá abajo pasa a `['Outfit', ...]` — y `tabular-nums`, que ya
- *   está puesto en cada monto, empieza a alinear solo. No hay que tocar 65
- *   sitios.
- *
- * El `mono` se queda declarado, pero ya casi no se usa: solo el volcado técnico
- * de error del ErrorBoundary, donde monoespaciado es lo correcto.
+ * `mono` queda solo para el volcado técnico del ErrorBoundary.
  */
 const PILA_SISTEMA = [
-  '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Segoe UI', 'Roboto',
-  'system-ui', 'sans-serif',
+  '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'SF Pro Display', 'system-ui',
+  'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif',
 ]
 
 export const fuentes = {
-  /** La de toda la app. El fallback importa: Poppins no trae todos los glifos. */
-  principal: ['Poppins', ...PILA_SISTEMA],
-  mono: ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'JetBrains Mono', 'monospace'],
+  principal: PILA_SISTEMA,
+  mono: ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'monospace'],
 }
 
 export const curvasBezier = {

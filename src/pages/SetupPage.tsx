@@ -141,7 +141,7 @@ export default function SetupPage({ user, onComplete }: Props) {
   }
 
   return (
-    <div className="min-h-dvh bg-bg flex items-center justify-center px-4 py-8">
+    <div className="min-h-dvh flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-accent font-display">Vorta</h1>
@@ -150,7 +150,7 @@ export default function SetupPage({ user, onComplete }: Props) {
           </p>
         </div>
 
-        <div className="bg-surface rounded-tarjeta p-6">
+        <div className="vidrio-panel rounded-tarjeta p-6">
           {paso === 1 ? (
             <>
               <h2 className="text-text font-semibold mb-1 tracking-titulo">¿Cómo te llamamos?</h2>

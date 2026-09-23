@@ -71,7 +71,7 @@ export default function InversionesPage() {
               className={`presionable text-xs px-3 py-1.5 rounded-chip whitespace-nowrap ${
                 desactualizado
                   ? 'bg-warning/10 text-warning border border-warning/30'
-                  : 'bg-surface2 text-textDim hover:text-text'
+                  : 'bg-vidrio-relleno text-textDim hover:text-text'
               }`}
             >
               {desactualizado && <IconoAlerta size={12} className="inline-block align-[-0.1em] mr-1" />}
