@@ -14,7 +14,10 @@ Faltan dos configuraciones que se hacen a mano, fuera del repo.
    Platform → Branding / Audiencia*):
    - Tipo de usuario: **Externo**.
    - Nombre de la app: `Vorta`; correo de asistencia y de contacto del desarrollador: tu @gmail.com.
-   - Dominios autorizados: `supabase.co` y `vercel.app`.
+   - Dominios autorizados: `kash-app-rho.vercel.app` y `bduvzluntatmhfujqvvm.supabase.co`,
+     completos. `vercel.app` y `supabase.co` a secas los rechaza: están en la lista de sufijos
+     públicos (son de miles de proyectos), así que el dominio "privado" es el subdominio propio.
+   - Logotipo: vacío. Subir uno obliga a pasar la verificación de Google antes de publicar.
    - Enlace a la política de privacidad: `https://kash-app-rho.vercel.app/ajustes/privacidad`
      (y términos: `/ajustes/terminos`).
    - Permisos (scopes): solo los básicos — `openid`, `.../auth/userinfo.email`,
