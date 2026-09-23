@@ -31,3 +31,11 @@ export declare const duraciones: { presion: string; rapida: string; normal: stri
 export declare const radios: { chip: string; control: string; panel: string; tarjeta: string; hoja: string }
 export declare const tracking: { display: string; titulo: string; base: string; micro: string }
 export declare const paletaDatos: string[]
+export interface Acento {
+  id: string
+  nombre: string
+  oscuro: { accent: string; accentAlt: string }
+  claro: { accent: string; accentAlt: string }
+}
+export declare const acentos: Acento[]
+export declare const ACENTO_DEFAULT: string

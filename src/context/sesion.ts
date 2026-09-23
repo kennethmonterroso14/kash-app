@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { Cuenta } from '../hooks/useCuentas'
+import type { Cuenta, useCuentas } from '../hooks/useCuentas'
 import type { CategoriaUsuario, useCategorias } from '../hooks/useCategorias'
 import type { useTarjetas } from '../hooks/useTarjetas'
 import type { TarjetaCredito, ResumenTC } from '../lib/finanzas'
@@ -24,6 +24,8 @@ export interface Perfil {
   zona_horaria: string
   tipo_cambio_usd: number
   tipo_cambio_actualizado_at: string | null
+  /** El color de acento (ver `acentos` en tokens.js). Null en una base sin la columna. */
+  acento: string | null
 }
 
 // Defaults de Guatemala: es de donde viene la app y son los valores que la base
@@ -36,6 +38,7 @@ export const PERFIL_DEFAULT: Perfil = {
   zona_horaria: 'America/Guatemala',
   tipo_cambio_usd: 775,
   tipo_cambio_actualizado_at: null,
+  acento: null,
 }
 
 export interface Sesion {
@@ -76,6 +79,8 @@ export interface Sesion {
   /** La incrementa quien escribe en `transacciones`. Estable. */
   invalidarTxns: () => void
   /** Writers que invalidan su propio slice. */
+  actualizarCuenta: ReturnType<typeof useCuentas>['actualizarCuenta']
+  eliminarCuenta: ReturnType<typeof useCuentas>['eliminarCuenta']
   agregarCategoria: ReturnType<typeof useCategorias>['agregarCategoria']
   eliminarCategoria: ReturnType<typeof useCategorias>['eliminarCategoria']
   agregarTC: ReturnType<typeof useTarjetas>['agregarTC']

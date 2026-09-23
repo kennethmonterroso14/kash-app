@@ -16,7 +16,15 @@ Cada ítem dice **por qué quedó afuera**, para que la decisión sea informada 
 
 Estas no son regresiones: la UI insinúa que existen, pero no hay código que las haga.
 
-### 1.1 No se puede editar, archivar ni borrar una cuenta
+### 1.1 No se puede editar, archivar ni borrar una cuenta  · ✅ RESUELTO
+
+Resuelto: tocar una cuenta en Patrimonio abre `ModalCuenta` (el mismo formulario del alta) para
+editar nombre, tipo y color, y eliminarla. `useCuentas.eliminarCuenta` aplica `decidirBajaCuenta`
+(`lib/bajaCuenta.ts`): borra si no tiene historial, archiva si tiene movimientos o pagos fijos
+inactivos, y se niega si tiene saldo (archivarla bajaría el patrimonio sin explicación) o pagos
+fijos activos (se seguirían aplicando sobre una cuenta invisible).
+
+El diagnóstico original:
 `cuentas.activa` existe en el esquema y **nada la escribe nunca**. Un `grep` confirma que no hay un
 solo `.update()` ni `.delete()` contra `cuentas` en todo `src/`. Una cuenta creada con el nombre o
 el saldo equivocado es permanente, y sigue sumando al patrimonio para siempre.

@@ -4,6 +4,7 @@ import { useCuentas } from '../hooks/useCuentas'
 import { useCategorias } from '../hooks/useCategorias'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { zonaValida } from '../lib/constants'
+import { aplicarAcento, esAcentoValido } from '../lib/acento'
 import { SesionCtx, PERFIL_DEFAULT, type Perfil, type Sesion } from './sesion'
 
 export function SesionProvider(
@@ -31,11 +32,20 @@ export function SesionProvider(
 
   const refrescarPerfil = useCallback(async () => {
     const gen = ++genRef.current
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('nombre, moneda, locale, zona_horaria, tipo_cambio_usd, tipo_cambio_actualizado_at')
-      .eq('user_id', userId)
-      .maybeSingle()
+    const columnas = 'nombre, moneda, locale, zona_horaria, tipo_cambio_usd, tipo_cambio_actualizado_at'
+    // Con la lista de columnas armada en runtime supabase-js no puede inferir
+    // la fila, así que se tipa acá: son las columnas de `Perfil`.
+    const leer = async (cols: string) => {
+      const r = await supabase.from('profiles').select(cols).eq('user_id', userId).maybeSingle()
+      return { data: r.data as (Omit<Perfil, 'acento'> & { acento?: string | null }) | null, error: r.error }
+    }
+    let { data, error } = await leer(`${columnas}, acento`)
+    // `acento` es la única columna opcional: es cosmética, y una base sin su
+    // migración no tiene por qué tumbar el perfil entero (moneda, zona). Sin
+    // ella se relee sin la columna y el acento queda solo en este dispositivo.
+    if (error && /acento/.test(error.message)) {
+      ({ data, error } = await leer(columnas))
+    }
     if (gen !== genRef.current) return
     if (error) {
       // No se sustituye el perfil por defaults en la rama de error: presentar
@@ -57,7 +67,11 @@ export function SesionProvider(
       setPerfilError(`Tu zona horaria (${data.zona_horaria}) no es válida. Corrígela antes de seguir.`)
     } else {
       setPerfilError(null)
-      setPerfil({ ...PERFIL_DEFAULT, ...(data ?? {}) })
+      const leido = { ...PERFIL_DEFAULT, ...(data ?? {}) }
+      setPerfil(leido)
+      // El acento del perfil gana al de este dispositivo: es el que se eligió
+      // por última vez, en cualquier dispositivo.
+      if (esAcentoValido(leido.acento)) aplicarAcento(leido.acento)
     }
     setPerfilCargando(false)
   }, [userId])
@@ -142,6 +156,8 @@ export function SesionProvider(
     },
     generacionTxns,
     invalidarTxns,
+    actualizarCuenta: cuentas.actualizarCuenta,
+    eliminarCuenta: cuentas.eliminarCuenta,
     agregarCategoria: categorias.agregarCategoria,
     eliminarCategoria: categorias.eliminarCategoria,
     agregarTC: tarjetas.agregarTC,

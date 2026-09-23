@@ -25,7 +25,7 @@ interface Alta {
  * el `on delete restrict` de `transacciones.cuenta_id` no se dispara.
  *
  * Vive acá y no en un componente porque la usan dos lugares que no pueden
- * compartir un componente: `ModalNuevaCuenta`, que corre dentro del
+ * compartir un componente: `ModalCuenta`, que corre dentro del
  * `SesionProvider`, y `SetupPage`, que corre ANTES de que el provider exista.
  * Duplicar la compensación en los dos era pedir que se separaran.
  *

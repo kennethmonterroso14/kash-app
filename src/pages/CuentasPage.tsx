@@ -4,7 +4,9 @@ import EstadoVacio from '../components/EstadoVacio'
 import AvatarCategoria from '../components/AvatarCategoria'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
-import ModalNuevaCuenta from './cuentas/ModalNuevaCuenta'
+import ModalCuenta from './cuentas/ModalCuenta'
+import { IconoEditar } from '../components/iconos'
+import type { Cuenta } from '../hooks/useCuentas'
 import ModalAjusteSaldo from './cuentas/ModalAjusteSaldo'
 
 export default function CuentasPage() {
@@ -14,6 +16,7 @@ export default function CuentasPage() {
   const error = errores.cuentas
 
   const [mostrarAlta, setMostrarAlta] = useState(false)
+  const [editando, setEditando] = useState<Cuenta | null>(null)
   const positivas = cuentas.filter(c => c.saldo > 0)
   const [ajustando, setAjustando] = useState<{ id: string; nombre: string } | null>(null)
 
@@ -73,11 +76,23 @@ export default function CuentasPage() {
         <ul className="vidrio-panel rounded-tarjeta px-4">
           {cuentas.map(c => (
             <li key={c.id} className="flex items-center gap-3 min-h-[64px] py-2 border-t border-perimetro first:border-t-0">
-              <AvatarCategoria categoria={c.nombre} color={c.color} />
-              <div className="flex-1 min-w-0">
-                <p className="text-text text-[16px] truncate">{c.nombre}</p>
-                <p className="text-textDim text-[13px] capitalize">{c.tipo}</p>
-              </div>
+              {/* Tocar la cuenta la edita (nombre, tipo, color, eliminar). El
+                  saldo va aparte, en "Ajustar", porque es un movimiento. */}
+              <button
+                type="button"
+                onClick={() => setEditando(c)}
+                aria-label={`Editar ${c.nombre}`}
+                className="presionable flex items-center gap-3 flex-1 min-w-0 text-left"
+              >
+                <AvatarCategoria categoria={c.nombre} color={c.color} />
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-center gap-1.5 text-text text-[16px]">
+                    <span className="truncate">{c.nombre}</span>
+                    <IconoEditar size={13} className="text-textDim shrink-0" />
+                  </span>
+                  <span className="block text-textDim text-[13px] capitalize">{c.tipo}</span>
+                </span>
+              </button>
               <div className="text-right flex-shrink-0">
                 <p className={`tabular-nums text-[16px] font-semibold ${c.saldo >= 0 ? 'text-text' : 'text-danger'}`}>
                   {fmt(c.saldo)}
@@ -95,7 +110,8 @@ export default function CuentasPage() {
         </ul>
       )}
 
-      {mostrarAlta && <ModalNuevaCuenta onCerrar={() => setMostrarAlta(false)} />}
+      {mostrarAlta && <ModalCuenta onCerrar={() => setMostrarAlta(false)} />}
+      {editando && <ModalCuenta cuenta={editando} onCerrar={() => setEditando(null)} />}
       {ajustando && (
         <ModalAjusteSaldo cuenta={ajustando} onCerrar={() => setAjustando(null)} />
       )}
