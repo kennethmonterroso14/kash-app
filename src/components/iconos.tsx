@@ -181,3 +181,45 @@ export function IconoAhorro(p: Props) {
 export function IconoBuscar(p: Props) {
   return <Base {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></Base>
 }
+
+/** Se repite: las dos flechas en círculo (pagos fijos). */
+export function IconoRepetir(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5" />
+      <path d="M20 4v4.5h-4.5" />
+      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5" />
+      <path d="M4 20v-4.5h4.5" />
+    </Base>
+  )
+}
+
+/** Etiqueta: categorías. */
+export function IconoEtiqueta(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0z" />
+      <circle cx="8" cy="8" r="1.4" />
+    </Base>
+  )
+}
+
+/** Tendencia: la línea que sube (inversiones). */
+export function IconoTendencia(p: Props) {
+  return <Base {...p}><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></Base>
+}
+
+/** Documento: estados de cuenta. */
+export function IconoDocumento(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M6.5 3h7l4 4v13a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M13.5 3v4h4M9 12h6M9 16h6" />
+    </Base>
+  )
+}
+
+/** Recargar / consultar: la flecha circular (tipo de cambio desde la API). */
+export function IconoRecargar(p: Props) {
+  return <Base {...p}><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v4.5h-4.5" /></Base>
+}

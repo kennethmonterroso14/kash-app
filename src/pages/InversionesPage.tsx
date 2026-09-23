@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
-import { IconoAlerta } from '../components/iconos'
+import { IconoAlerta, IconoMas, IconoTendencia } from '../components/iconos'
 import { useInversiones, type Inversion } from '../hooks/useInversiones'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
@@ -52,58 +52,49 @@ export default function InversionesPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-4 pb-6">
-      {/* Sin <h1>: el riel de pestañas de la sección ya dice "Inversiones", y
-          repetirlo le hace anunciar dos veces lo mismo al lector de pantalla. */}
-      <div className="flex items-center justify-between mb-6 gap-2">
-        <div className="min-w-0">
-          {resumen.ganancia_total !== 0 ? (
-            <p className={`text-sm tabular-nums font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
-              {resumen.ganancia_total >= 0 ? '+' : ''}{fmt(resumen.ganancia_total)}
-              <span className="text-textDim font-sans text-xs font-normal"> de ganancia</span>
-            </p>
-          ) : <span />}
-        </div>
-        <div className="flex gap-2 items-center flex-shrink-0">
-          {tieneUSD && (
-            <button
-              onClick={() => abrir('tipo_cambio')}
-              className={`presionable text-xs px-3 py-1.5 rounded-chip whitespace-nowrap ${
-                desactualizado
-                  ? 'bg-warning/10 text-warning border border-warning/30'
-                  : 'bg-vidrio-relleno text-textDim hover:text-text'
-              }`}
-            >
-              {desactualizado && <IconoAlerta size={12} className="inline-block align-[-0.1em] mr-1" />}
-              Q{(tipoCambioUSD / 100).toFixed(2)}/USD
-            </button>
-          )}
-          <button
-            onClick={() => abrir('nueva')}
-            className="presionable bg-accent text-bg px-4 py-2 rounded-control text-sm font-semibold"
-          >
-            + Nueva
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <Aviso clase="mb-4">{error}</Aviso>
-      )}
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-4">
+      {error && <Aviso>{error}</Aviso>}
 
       {resumen.capital_total > 0 && (
         <ResumenPortafolio resumen={resumen} evolucion={evolucionPortafolio} />
       )}
 
+      {/* Las acciones en cápsulas, debajo de la cabecera y no en una fila
+          suelta arriba: agregar una inversión y el tipo de cambio que usa la
+          conversión. Con el tipo de cambio viejo la cápsula se pone en aviso. */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => abrir('nueva')}
+          className="presionable flex-1 h-11 rounded-full bg-accent/15 text-accent text-[15px] font-semibold inline-flex items-center justify-center gap-1.5"
+        >
+          <IconoMas size={18} /> Nueva inversión
+        </button>
+        {tieneUSD && (
+          <button
+            onClick={() => abrir('tipo_cambio')}
+            aria-label={`Tipo de cambio: ${fmt(tipoCambioUSD)} por dólar${desactualizado ? ', desactualizado' : ''}`}
+            className={`presionable h-11 px-4 rounded-full text-[15px] font-semibold tabular-nums inline-flex items-center gap-1.5 whitespace-nowrap ${
+              desactualizado ? 'bg-warning/15 text-warning' : 'vidrio-chip text-text'
+            }`}
+          >
+            {desactualizado && <IconoAlerta size={16} />}
+            {fmt(tipoCambioUSD)} / USD
+          </button>
+        )}
+      </div>
+
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
       {inversiones.length === 0 && !error && (
         <EstadoVacio
-          icono="📈"
+          icono={<IconoTendencia size={26} />}
           titulo="No tienes inversiones registradas"
-          pista="Agrega tu primera inversión para empezar"
+          pista="Agrega tu primera inversión para empezar."
         />
       )}
 
+      {inversiones.length > 0 && (
+        <h2 className="text-text text-xl font-bold tracking-titulo px-1 pt-2">Tus inversiones</h2>
+      )}
       <div className="flex flex-col gap-3">
         {inversiones.map(inv => (
           <InversionTile

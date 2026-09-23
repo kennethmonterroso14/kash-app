@@ -21,7 +21,10 @@ export default function SelectorCategoria({ categorias, colores, valor, onCambia
   const nombre = useId()
 
   return (
-    <fieldset>
+    // min-w-0: un <fieldset> tiene `min-width: min-content` por defecto, así que
+    // crecía al ancho del carril ENTERO y ensanchaba la hoja: al deslizar las
+    // categorías se desplazaba toda la app en lugar del carril.
+    <fieldset className="min-w-0">
       <legend className="text-textDim text-xs mb-2 tracking-micro">Categoría</legend>
       <div className="grid grid-rows-2 grid-flow-col auto-cols-[4.5rem] gap-x-1 gap-y-3 overflow-x-auto overscroll-x-contain -mx-6 px-6 pt-1 pb-1 [scrollbar-width:none]">
         {categorias.map(c => {

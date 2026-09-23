@@ -68,14 +68,14 @@ export default function ModalCerrarCiclo({ tc, onCerrar }: Props) {
       <div className="flex gap-3">
         <button
           onClick={onCerrar}
-          className="presionable flex-1 py-3 rounded-control bg-vidrio-relleno text-textDim text-sm font-semibold hover:text-text"
+          className="presionable flex-1 h-12 rounded-full bg-vidrio-relleno text-textDim text-sm font-semibold hover:text-text"
         >
           Cancelar
         </button>
         <button
           onClick={confirmar}
           disabled={guardando}
-          className="presionable flex-1 py-3 rounded-control bg-danger text-text text-sm font-semibold disabled:opacity-50"
+          className="presionable flex-1 h-12 rounded-full bg-danger text-text text-sm font-semibold disabled:opacity-50"
         >
           {guardando ? 'Cerrando...' : 'Cerrar ciclo'}
         </button>

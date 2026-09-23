@@ -64,7 +64,7 @@ export default function ModalPresupuesto({
 
         <button
           type="submit" disabled={guardando}
-          className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control disabled:opacity-50"
+          className="presionable w-full bg-accent text-bg font-semibold h-12 rounded-full disabled:opacity-50"
         >
           {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Guardar presupuesto'}
         </button>

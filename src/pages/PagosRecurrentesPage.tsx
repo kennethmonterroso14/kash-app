@@ -102,7 +102,7 @@ export default function PagosRecurrentesPage() {
           titulo="Sin pagos fijos aún"
           pista="Configura tus pagos recurrentes (renta, gym, suscripciones…) y se aplicarán solos cada mes."
         >
-          {botonAgregar('+ Agregar pago fijo', 'px-6 py-2.5 rounded-control')}
+          {botonAgregar('+ Agregar pago fijo', 'px-6 py-2.5 rounded-full')}
         </EstadoVacio>
       )}
 

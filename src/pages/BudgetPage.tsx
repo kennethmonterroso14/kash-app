@@ -47,7 +47,7 @@ export default function BudgetPage() {
           <button
             type="button"
             onClick={recargar}
-            className="presionable w-full bg-accent text-bg font-semibold py-3 rounded-control"
+            className="presionable w-full bg-accent text-bg font-semibold h-12 rounded-full"
           >
             Reintentar
           </button>
@@ -80,7 +80,7 @@ export default function BudgetPage() {
         <SelectorMes mes={mes} onCambiar={setMes} />
         {/* Solo si hay presupuestos: con la lista vacía el estado vacío ya trae
             su propio botón, y se veían dos "+ Categoría". */}
-        {presupuestos.length > 0 && botonAgregar('text-sm px-4 py-2 rounded-control flex-shrink-0')}
+        {presupuestos.length > 0 && botonAgregar('text-sm px-4 py-2 rounded-full flex-shrink-0')}
       </div>
 
       {banner && (
@@ -114,7 +114,7 @@ export default function BudgetPage() {
 
       {presupuestos.length === 0 && (
         <EstadoVacio titulo={`Sin presupuestos para ${etiquetaMes}`}>
-          {botonAgregar('px-6 py-2.5 rounded-control')}
+          {botonAgregar('px-6 py-2.5 rounded-full')}
         </EstadoVacio>
       )}
 

@@ -62,7 +62,7 @@ export default function CuentasPage() {
         >
           <button
             onClick={() => setMostrarAlta(true)}
-            className="presionable bg-accent text-bg font-semibold px-6 py-2 rounded-control"
+            className="presionable bg-accent text-bg font-semibold px-6 py-2 rounded-full"
           >
             Agregar cuenta
           </button>

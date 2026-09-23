@@ -4,7 +4,8 @@ import { useParams } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import Hoja from '../components/Hoja'
 import TituloGrande from '../components/TituloGrande'
-import { IconoChevron } from '../components/iconos'
+import { IconoChevron, IconoDocumento } from '../components/iconos'
+import EstadoVacio from '../components/EstadoVacio'
 import { useCiclosTC, type CicloTC, type TransaccionCiclo } from '../hooks/useCiclosTC'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
@@ -95,11 +96,11 @@ export default function TarjetaHistorialPage() {
       )}
 
       {ciclos.length === 0 && !loading && !error && (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="text-textDim text-sm">Sin ciclos registrados</p>
-          <p className="text-textDim text-xs mt-1">Los ciclos aparecen al registrar cargos</p>
-        </div>
+        <EstadoVacio
+          icono={<IconoDocumento size={26} />}
+          titulo="Sin ciclos registrados"
+          pista="Los ciclos aparecen al registrar cargos."
+        />
       )}
 
       {/* Lista de ciclos */}

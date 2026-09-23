@@ -67,14 +67,13 @@ export default function Layout({ children, userId }: Props) {
       {/*
         Sin header: el nombre de cada pantalla es su título grande, que es
         contenido y scrollea con ella (TituloGrande). Arriba solo queda el
-        borde de scroll de iOS 26 — un fundido al color del fondo bajo la barra
-        de estado, para que lo que pasa por debajo del reloj no se lea encima
-        de él. Es tinta, no vidrio: una capa fija más de material competiría
-        con la barra de abajo.
+        borde de scroll de iOS 26 (`.borde-barra-estado`): desenfoque teñido
+        del fondo bajo la barra de estado, para que lo que pasa por debajo del
+        reloj no se lea encima de él.
       */}
       <div
         aria-hidden="true"
-        className="fixed top-0 inset-x-0 z-30 h-[calc(env(safe-area-inset-top,0px)+1rem)] pointer-events-none bg-gradient-to-b from-bg via-bg/80 to-transparent"
+        className="fixed top-0 inset-x-0 z-30 h-[calc(env(safe-area-inset-top,0px)+1.25rem)] pointer-events-none borde-barra-estado"
       />
 
       {/*

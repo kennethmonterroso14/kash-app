@@ -4,7 +4,7 @@ import Aviso from '../components/Aviso'
 import TituloGrande from '../components/TituloGrande'
 import EstadoVacio from '../components/EstadoVacio'
 import Campo from '../components/Campo'
-import { IconoCerrar } from '../components/iconos'
+import { IconoCerrar, IconoEtiqueta } from '../components/iconos'
 import { type CategoriaUsuario } from '../hooks/useCategorias'
 import { useSesion } from '../context/sesion'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO } from '../lib/constants'
@@ -146,7 +146,7 @@ export default function CategoriasPage() {
           <p className="text-textDim text-sm text-center py-4">Cargando...</p>
         ) : custom.length === 0 ? (
           <EstadoVacio
-            icono="🏷️"
+            icono={<IconoEtiqueta size={26} />}
             titulo="Sin categorías personalizadas"
             pista="Agrega categorías que aparecerán en tus gastos y presupuesto"
           />

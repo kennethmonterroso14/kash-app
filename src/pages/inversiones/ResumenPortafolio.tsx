@@ -1,10 +1,7 @@
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip as RechartTooltip, ResponsiveContainer,
-} from 'recharts'
 import type { ResumenPortafolio as Resumen } from '../../lib/finanzas'
 import { INFLACION_ANUAL_REF } from '../../lib/constants'
-import { useColores } from '../../hooks/useColores'
 import { useMoneda } from '../../hooks/useMoneda'
+import LineaEvolucion from '../../components/LineaEvolucion'
 
 interface Props {
   resumen: Resumen
@@ -12,68 +9,54 @@ interface Props {
   evolucion: { fecha: string; valor_total: number }[]
 }
 
-/** Las cuatro cifras del portafolio más la evolución. Todo en moneda del perfil. */
+/**
+ * El portafolio como la cabecera de una acción en Bolsa: el valor grande, la
+ * ganancia en una cápsula de color, la línea de evolución y debajo el capital y
+ * el rendimiento anual. Todo en la moneda del perfil.
+ */
 export default function ResumenPortafolio({ resumen, evolucion }: Props) {
-  const colores = useColores()
   const fmt = useMoneda()
   const signo = (n: number) => (n >= 0 ? '+' : '')
+  const gana = resumen.ganancia_total >= 0
 
   return (
-    <div className="vidrio-panel rounded-tarjeta p-4 mb-4 space-y-3">
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-textDim text-xs mb-0.5 tracking-micro">Capital invertido</p>
-          <p className="text-text tabular-nums">{fmt(resumen.capital_total)}</p>
-        </div>
-        <div>
-          <p className="text-textDim text-xs mb-0.5 tracking-micro">Valor actual</p>
-          <p className="text-text tabular-nums font-bold">{fmt(resumen.valor_total)}</p>
-        </div>
-        <div>
-          <p className="text-textDim text-xs mb-0.5 tracking-micro">Ganancia total</p>
-          <p className={`tabular-nums font-semibold ${resumen.ganancia_total >= 0 ? 'text-success' : 'text-danger'}`}>
-            {signo(resumen.ganancia_total)}{fmt(resumen.ganancia_total)}
-            <span className="text-xs ml-1">
-              ({signo(resumen.ganancia_pct)}{resumen.ganancia_pct.toFixed(1)}%)
-            </span>
-          </p>
-        </div>
-        <div>
-          <p className="text-textDim text-xs mb-0.5 tracking-micro">Rendimiento anual</p>
-          <p className={`tabular-nums font-semibold ${
-            resumen.rendimiento_anualizado >= INFLACION_ANUAL_REF ? 'text-success' : 'text-warning'
-          }`}>
-            {signo(resumen.rendimiento_anualizado)}{resumen.rendimiento_anualizado.toFixed(1)}% / año
-          </p>
-        </div>
+    <section aria-label="Portafolio" className="vidrio-panel rounded-tarjeta p-5 space-y-3">
+      <div>
+        <p className="text-textDim text-[15px] font-semibold">Valor del portafolio</p>
+        <p className="text-text text-[40px] leading-[46px] font-bold tabular-nums tracking-display">
+          {fmt(resumen.valor_total)}
+        </p>
+        <span className={`inline-flex items-center mt-1 px-2.5 h-7 rounded-full text-[13px] font-semibold tabular-nums ${
+          gana ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'
+        }`}>
+          {signo(resumen.ganancia_total)}{fmt(resumen.ganancia_total)} · {signo(resumen.ganancia_pct)}{resumen.ganancia_pct.toFixed(1)}%
+        </span>
       </div>
 
       {/* Con un solo punto no hay evolución que mostrar, solo una línea plana. */}
       {evolucion.length > 1 && (
-        <div className="-mx-1">
-          <p className="text-textDim text-xs mb-1.5 px-1 tracking-micro">Evolución del portafolio</p>
-          <ResponsiveContainer width="100%" height={90}>
-            <LineChart data={evolucion}>
-              <XAxis dataKey="fecha" hide />
-              <YAxis hide domain={['auto', 'auto']} />
-              <RechartTooltip
-                formatter={(v: unknown) => [fmt(v as number), 'Valor']}
-                labelFormatter={(l: unknown) => l as string}
-                contentStyle={{ background: colores.surface, border: 'none', borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: colores.textDim }}
-              />
-              {/* Los colores salen de tokens.js, no como hex sueltos: una
-                  gráfica con el color viejo tras un cambio de paleta era
-                  exactamente el defecto que ese archivo vino a cerrar. */}
-              <Line
-                type="monotone" dataKey="valor_total"
-                stroke={colores.accent} strokeWidth={2} dot={false}
-                activeDot={{ r: 4, fill: colores.accent }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="pt-1 pr-1.5">
+          <LineaEvolucion
+            valores={evolucion.map(e => e.valor_total)}
+            etiqueta={`Evolución del portafolio: de ${fmt(evolucion[0].valor_total)} a ${fmt(evolucion[evolucion.length - 1].valor_total)}`}
+          />
         </div>
       )}
-    </div>
+
+      <dl className="grid grid-cols-2 gap-2 pt-1">
+        <div className="bg-vidrio-relleno rounded-control px-3 py-2">
+          <dt className="text-textDim text-[12px]">Capital invertido</dt>
+          <dd className="text-text text-[15px] font-semibold tabular-nums">{fmt(resumen.capital_total)}</dd>
+        </div>
+        <div className="bg-vidrio-relleno rounded-control px-3 py-2">
+          <dt className="text-textDim text-[12px]">Rendimiento anual</dt>
+          <dd className={`text-[15px] font-semibold tabular-nums ${
+            resumen.rendimiento_anualizado >= INFLACION_ANUAL_REF ? 'text-success' : 'text-warning'
+          }`}>
+            {signo(resumen.rendimiento_anualizado)}{resumen.rendimiento_anualizado.toFixed(1)}% / año
+          </dd>
+        </div>
+      </dl>
+    </section>
   )
 }

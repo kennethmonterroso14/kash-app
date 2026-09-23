@@ -82,7 +82,7 @@ export default function ModalActualizarValor({ inv, actualizarValor, archivar, o
         <button
           onClick={guardar}
           disabled={guardando}
-          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50"
+          className="presionable w-full h-12 rounded-full bg-accent text-bg font-semibold text-sm disabled:opacity-50"
         >
           {guardando ? 'Guardando...' : 'Guardar nuevo valor'}
         </button>

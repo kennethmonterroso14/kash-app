@@ -82,7 +82,7 @@ export default function ModalPago({ tc, onCerrar }: Props) {
         <button
           onClick={registrar}
           disabled={guardando}
-          className="presionable w-full py-3 rounded-control bg-accent text-bg font-semibold text-sm disabled:opacity-50"
+          className="presionable w-full h-12 rounded-full bg-accent text-bg font-semibold text-sm disabled:opacity-50"
         >
           {guardando ? 'Registrando...' : 'Registrar pago'}
         </button>

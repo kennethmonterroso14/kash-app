@@ -202,6 +202,48 @@ export function agruparPorDia<T extends { fecha: string; tipo: Transaccion['tipo
   return grupos
 }
 
+export interface RebanadaCategoria {
+  cat: string
+  valor: number     // centavos
+  pct: number       // entero 0–100, del total del mes
+}
+
+/**
+ * Las rebanadas del anillo de "Gastos por categoría": las `max` categorías más
+ * grandes y el resto sumado en "Otros". "Otros" también puede ser una categoría
+ * REAL del usuario: si ya está entre las grandes se le suma la cola, en vez de
+ * agregar una segunda rebanada con el mismo nombre. Los porcentajes son del
+ * total y se redondean cada uno (pueden no sumar exactamente 100).
+ */
+export function calcRebanadasCategorias(
+  porCategoria: Record<string, number>,
+  max = 5,
+): { rebanadas: RebanadaCategoria[]; total: number } {
+  const entradas = Object.entries(porCategoria)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a)
+  const total = entradas.reduce((s, [, v]) => s + v, 0)
+  if (total === 0) return { rebanadas: [], total: 0 }
+
+  const top = entradas.slice(0, max)
+  const cola = entradas.slice(max).reduce((s, [, v]) => s + v, 0)
+  if (cola > 0) {
+    const i = top.findIndex(([c]) => c === 'Otros')
+    if (i >= 0) top[i] = ['Otros', top[i][1] + cola]
+    else top.push(['Otros', cola])
+    top.sort(([, a], [, b]) => b - a)
+  }
+  return {
+    rebanadas: top.map(([cat, valor]) => ({ cat, valor, pct: Math.round((valor / total) * 100) })),
+    total,
+  }
+}
+
+/** Promedio entero de montos en centavos (0 sin datos): la línea de referencia de las barras. */
+export function promedioCentavos(valores: number[]): number {
+  return valores.length === 0 ? 0 : Math.round(valores.reduce((s, v) => s + v, 0) / valores.length)
+}
+
 // ─── PROYECCIONES ─────────────────────────────────────────────
 
 /**
