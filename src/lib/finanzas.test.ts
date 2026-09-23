@@ -11,6 +11,8 @@ import {
   calcProximoPagoTC,
   agruparPorDia,
   simboloMoneda,
+  calcRebanadasCategorias,
+  promedioCentavos,
   type ResumenTC,
   type Inversion,
   type InversionHistorial,
@@ -633,5 +635,39 @@ describe('simboloMoneda', () => {
 
   it('con un código inválido devuelve el código en lugar de lanzar', () => {
     expect(simboloMoneda({ moneda: 'XXXX', locale: 'es-GT' })).toBe('XXXX')
+  })
+})
+
+describe('calcRebanadasCategorias', () => {
+  it('ordena de mayor a menor, con % del total', () => {
+    const { rebanadas, total } = calcRebanadasCategorias({ A: 300, B: 100, C: 600, D: 0 })
+    expect(total).toBe(1000)
+    expect(rebanadas).toEqual([
+      { cat: 'C', valor: 600, pct: 60 },
+      { cat: 'A', valor: 300, pct: 30 },
+      { cat: 'B', valor: 100, pct: 10 },
+    ])
+  })
+
+  it('agrupa la cola en "Otros"', () => {
+    const { rebanadas } = calcRebanadasCategorias({ A: 50, B: 40, C: 5, D: 5 }, 2)
+    expect(rebanadas.map(r => [r.cat, r.valor])).toEqual([['A', 50], ['B', 40], ['Otros', 10]])
+  })
+
+  it('si "Otros" ya es una categoría grande, le suma la cola y reordena', () => {
+    const { rebanadas } = calcRebanadasCategorias({ A: 50, Otros: 30, C: 15, D: 10 }, 2)
+    expect(rebanadas.map(r => [r.cat, r.valor])).toEqual([['Otros', 55], ['A', 50]])
+  })
+
+  it('sin gastos no hay rebanadas', () => {
+    expect(calcRebanadasCategorias({})).toEqual({ rebanadas: [], total: 0 })
+    expect(calcRebanadasCategorias({ A: 0 })).toEqual({ rebanadas: [], total: 0 })
+  })
+})
+
+describe('promedioCentavos', () => {
+  it('redondea a entero y devuelve 0 sin datos', () => {
+    expect(promedioCentavos([100, 200, 201])).toBe(167)
+    expect(promedioCentavos([])).toBe(0)
   })
 })
