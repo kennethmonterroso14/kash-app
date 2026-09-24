@@ -1321,5 +1321,8 @@ $$;
 
 -- Solo el dueño de la sesión puede llamarla, y solo borra lo suyo. `public`
 -- (anon) no tiene nada que borrar: sin `auth.uid()` la función lanza.
+-- `anon` aparte: Supabase le da EXECUTE explícito a cada función nueva (default
+-- privileges), así que revocar de `public` no alcanza. Verificado en producción.
 revoke all on function borrar_mi_cuenta() from public;
+revoke execute on function borrar_mi_cuenta() from anon;
 grant execute on function borrar_mi_cuenta() to authenticated;

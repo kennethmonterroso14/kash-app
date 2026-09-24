@@ -11,8 +11,9 @@
 --   claim `client_id`) no cambia en nada.
 --
 --   `cerrar_ciclo_tc` se recrea igual que en schema.sql, con un chequeo más.
---   `borrar_mi_cuenta()` no está en producción (20260922000000 sigue
---   pendiente); esa migración ya trae su chequeo y va DESPUÉS de esta.
+--   `borrar_mi_cuenta()` trae su propio chequeo en 20260922000000, que va
+--   DESPUÉS de esta (usa `es_acceso_ia()`). Las dos, aplicadas en producción
+--   el 2026-09-24 en ese orden.
 --
 -- Aditiva e idempotente: se puede correr dos veces. `supabase/schema.sql` ya
 -- la incluye y es el autoritativo.
