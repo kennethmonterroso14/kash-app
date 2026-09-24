@@ -12,6 +12,8 @@ import PaginaLegal, { H, L, P } from './PaginaLegal'
  * - Asistentes de IA (opcional): el conector MCP `api/mcp` solo responde con
  *   el token OAuth que la persona aprobó en `/oauth/consent`, y lo que devuelve
  *   va al asistente que ella conectó. Se revoca en Ajustes → Asistentes de IA.
+ *   Editar/borrar solo con `profiles.ia_puede_editar`; perfil y borrar la
+ *   cuenta, nunca — policies de schema.sql, sección 4b.
  * - Otra sola llamada a un tercero: `api.exchangerate-api.com` en
  *   `useInversiones.fetchTipoCambioDesdeAPI`, y es un GET de tipos de cambio
  *   que no manda ningún dato del usuario. **Esto era falso cuando se escribió**:
@@ -82,9 +84,10 @@ export default function PoliticaPrivacidad() {
         También es opcional. Desde <strong className="text-text">Ajustes → Asistentes de IA</strong> podés
         conectar Claude, ChatGPT u otra IA a Vorta. Solo pasa si vos lo agregás en tu asistente y
         tocás <strong className="text-text">Permitir</strong> en la pantalla de Vorta que te lo pregunta.
-        A partir de ahí, cuando se lo pedís, el conector de Vorta le permite leer tus cuentas, saldos,
-        categorías y movimientos, y registrar movimientos o cuentas en tu nombre; no le permite borrar
-        ni editar nada. Conectá solo asistentes en los que confíes: el acceso que aprobás es a tu cuenta.
+        A partir de ahí, cuando se lo pedís, el asistente puede leer tus cuentas, saldos, categorías y
+        movimientos, y registrar movimientos o cuentas en tu nombre. Editar o borrar solo puede si vos
+        activás “Permitir editar y borrar”, y nunca puede cambiar tu perfil ni borrar tu cuenta: eso
+        lo hace cumplir la base de datos, no solo la app. Conectá solo asistentes en los que confíes.
         <strong className="text-text"> Lo que el asistente lee pasa a la empresa que lo ofrece</strong> y
         queda sujeto a su propia política de privacidad, no a esta. Podés desconectarlo cuando quieras
         desde la misma pantalla de Ajustes, y deja de tener acceso en ese momento.

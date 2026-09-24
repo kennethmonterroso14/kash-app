@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import type { OAuthGrant } from '@supabase/supabase-js'
 import Aviso from '../components/Aviso'
 import BotonConfirmar from '../components/BotonConfirmar'
+import Interruptor from '../components/Interruptor'
 import TituloGrande from '../components/TituloGrande'
 import { IconoCheck } from '../components/iconos'
+import { useSesion } from '../context/sesion'
 import { supabase } from '../lib/supabase'
 
 const EJEMPLOS = [
@@ -17,9 +19,17 @@ const EJEMPLOS = [
  * conector MCP (`api/mcp`), y la lista de los que ya tienen acceso, con
  * "Desconectar". El acceso es un grant OAuth de Supabase Auth: revocarlo
  * invalida los tokens de ese asistente enseguida.
+ *
+ * "Permitir editar y borrar" es `profiles.ia_puede_editar`, y lo hace cumplir la
+ * base (schema.sql, sección 4b), no solo el conector. Se lee y se escribe acá
+ * y no en el provider: ninguna otra pantalla lo usa.
  */
 export default function AsistentesPage() {
+  const { userId } = useSesion()
   const url = `${window.location.origin}/api/mcp`
+  // null = cargando; 'sin-migracion' = la base todavía no tiene la columna.
+  const [permiso, setPermiso] = useState<boolean | null | 'sin-migracion'>(null)
+  const [errorPermiso, setErrorPermiso] = useState('')
   const [copiado, setCopiado] = useState(false)
   const [grants, setGrants] = useState<OAuthGrant[] | null>(null)
   const [error, setError] = useState('')
@@ -39,6 +49,32 @@ export default function AsistentesPage() {
     })
     return () => { ignorar = true }
   }, [recarga])
+
+  useEffect(() => {
+    let ignorar = false
+    void supabase.from('profiles').select('ia_puede_editar').eq('user_id', userId).maybeSingle()
+      .then(({ data, error: e }) => {
+        if (ignorar) return
+        if (e) {
+          if (/ia_puede_editar/.test(e.message)) setPermiso('sin-migracion')
+          else setErrorPermiso('No se pudo leer este ajuste. Revisa tu conexión.')
+          return
+        }
+        setPermiso(!!data?.ia_puede_editar)
+      })
+    return () => { ignorar = true }
+  }, [userId])
+
+  const cambiarPermiso = async (activo: boolean) => {
+    const antes = permiso
+    setPermiso(activo)
+    setErrorPermiso('')
+    const { error: e } = await supabase.from('profiles').update({ ia_puede_editar: activo }).eq('user_id', userId)
+    if (e) {
+      setPermiso(antes)
+      setErrorPermiso('No se pudo guardar. Revisa tu conexión e intenta de nuevo.')
+    }
+  }
 
   const copiar = async () => {
     try {
@@ -110,10 +146,33 @@ export default function AsistentesPage() {
           ))}
         </ul>
         <p className="text-textDim text-[13px] mt-3">
-          Con el conector puede ver tus cuentas y movimientos, registrar ingresos, gastos y transferencias, crear
-          cuentas y poner el saldo real de una cuenta. El conector no borra ni edita: eso se hace aquí. Importar el mismo estado dos
-          veces no duplica movimientos.
+          Puede ver tus cuentas y movimientos, registrar ingresos, gastos y transferencias, crear cuentas y poner
+          el saldo real de una cuenta. Importar el mismo estado dos veces no duplica movimientos.
         </p>
+      </section>
+
+      <section aria-labelledby="permiso-titulo" className="vidrio-panel rounded-tarjeta p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <h2 id="permiso-titulo" className="text-text text-[16px] font-semibold">Permitir editar y borrar</h2>
+            <p className="text-textDim text-[13px] mt-0.5">
+              Tus asistentes podrán corregir y borrar movimientos y cuentas. Apagado, solo leen y agregan.
+            </p>
+          </div>
+          <Interruptor
+            etiqueta="Permitir editar y borrar"
+            activo={permiso === true}
+            disabled={permiso === null || permiso === 'sin-migracion'}
+            onCambiar={activo => void cambiarPermiso(activo)}
+          />
+        </div>
+        <p className="text-textDim text-[13px] mt-3">
+          Aun así, un asistente nunca puede cambiar tu perfil ni borrar tu cuenta de Vorta.
+        </p>
+        {permiso === 'sin-migracion' && (
+          <Aviso tono="atencion" clase="mt-3">Este ajuste necesita una actualización de la base que todavía no se aplicó.</Aviso>
+        )}
+        {errorPermiso && <Aviso clase="mt-3">{errorPermiso}</Aviso>}
       </section>
 
       <section aria-labelledby="conectados-titulo" className="vidrio-panel rounded-tarjeta px-4 pt-4 pb-2">

@@ -7,9 +7,13 @@ import { baseFalsa } from './baseFalsa.js'
 const YO = 'u1'
 const herramienta = (n: string) => HERRAMIENTAS.find(h => h.nombre === n)!
 
-function mundo(opciones: { fallaInsert?: boolean } = {}) {
+function mundo(opciones: { fallaInsert?: boolean; permiso?: boolean; rlsBloqueaModificar?: boolean } = {}) {
   const tablas = {
-    profiles: [{ user_id: YO, nombre: 'Ana', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala' }],
+    profiles: [{
+      user_id: YO, nombre: 'Ana', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala',
+      ia_puede_editar: opciones.permiso ?? false,
+    }],
+    pagos_recurrentes: [] as Record<string, unknown>[],
     cuentas: [
       { id: 'c1', user_id: YO, nombre: 'BI Ahorros', tipo: 'ahorro', saldo: 100000, activa: true },
       { id: 'c2', user_id: YO, nombre: 'Efectivo', tipo: 'efectivo', saldo: 5000, activa: true },
@@ -177,5 +181,90 @@ describe('fijar_saldo_cuenta', () => {
     const r = await herramienta('fijar_saldo_cuenta').ejecutar(ctx, { cuenta_id: 'c1', saldo: 1000 }) as { sin_cambios?: boolean }
     expect(r.sin_cambios).toBe(true)
     expect(insertados.transacciones).toBeUndefined()
+  })
+})
+
+describe('editar y borrar: solo con el permiso de la persona', () => {
+  const casos: [string, Record<string, unknown>][] = [
+    ['editar_movimiento', { id: 't1', descripcion: 'x' }],
+    ['borrar_movimientos', { ids: ['t1'] }],
+    ['editar_cuenta', { cuenta_id: 'c2', nombre: 'Caja' }],
+    ['eliminar_cuenta', { cuenta_id: 'c2' }],
+  ]
+  it.each(casos)('%s sin permiso no toca nada y dice cómo activarlo', async (nombre, args) => {
+    const { ctx, tablas } = mundo()
+    const antes = JSON.stringify(tablas)
+    await expect(herramienta(nombre).ejecutar(ctx, args)).rejects.toThrow(/Ajustes → Asistentes de IA/)
+    expect(JSON.stringify(tablas)).toBe(antes)
+  })
+
+  it('si RLS rechaza aunque el perfil diga que sí (se apagó en el medio), no finge que editó', async () => {
+    const { ctx } = mundo({ permiso: true, rlsBloqueaModificar: true })
+    await expect(herramienta('editar_movimiento').ejecutar(ctx, { id: 't1', descripcion: 'x' })).rejects.toThrow(/desactivó/)
+    await expect(herramienta('borrar_movimientos').ejecutar(ctx, { ids: ['t1'] })).rejects.toThrow(/desactivó/)
+  })
+
+  it('las borrar son destructivas para el cliente; editar no', () => {
+    expect(herramienta('borrar_movimientos').destructiva).toBe(true)
+    expect(herramienta('eliminar_cuenta').destructiva).toBe(true)
+    expect(herramienta('editar_movimiento').destructiva).toBeUndefined()
+  })
+})
+
+describe('editar_movimiento', () => {
+  it('cambia monto y categoría con el signo del tipo, y el saldo se ajusta', async () => {
+    const { ctx, tablas } = mundo({ permiso: true })
+    await herramienta('editar_movimiento').ejecutar(ctx, { id: 't1', monto: 30, categoria: 'Mascotas' })
+    expect(tablas.transacciones.find(t => t.id === 't1')).toMatchObject({ cantidad: -3000, categoria: 'Mascotas' })
+    expect(tablas.cuentas.find(c => c.id === 'c1')!.saldo).toBe(100000 - 500)
+  })
+  it('no edita tarjetas ni el monto de un ajuste, ni movimientos ajenos', async () => {
+    const { ctx } = mundo({ permiso: true })
+    await expect(herramienta('editar_movimiento').ejecutar(ctx, { id: 't3', descripcion: 'x' })).rejects.toThrow(/tarjeta/)
+    await expect(herramienta('editar_movimiento').ejecutar(ctx, { id: 'tx', descripcion: 'x' })).rejects.toThrow(/no es uno de tus/)
+  })
+})
+
+describe('borrar_movimientos', () => {
+  it('borra todos o ninguno, y revierte el saldo', async () => {
+    const { ctx, tablas } = mundo({ permiso: true })
+    await expect(herramienta('borrar_movimientos').ejecutar(ctx, { ids: ['t1', 'tx'] })).rejects.toThrow(/No se borró nada/)
+    await expect(herramienta('borrar_movimientos').ejecutar(ctx, { ids: ['t1', 't3'] })).rejects.toThrow(/tarjeta/)
+    expect(tablas.transacciones).toHaveLength(5)
+    const r = await herramienta('borrar_movimientos').ejecutar(ctx, { ids: ['t1', 't1'] }) as { borrados: number }
+    expect(r.borrados).toBe(1)
+    expect(tablas.transacciones.some(t => t.id === 't1')).toBe(false)
+    expect(tablas.cuentas.find(c => c.id === 'c1')!.saldo).toBe(102500)
+  })
+})
+
+describe('editar_cuenta', () => {
+  it('renombra, pero no a un nombre que ya existe', async () => {
+    const { ctx, tablas } = mundo({ permiso: true })
+    await expect(herramienta('editar_cuenta').ejecutar(ctx, { cuenta_id: 'c2', nombre: 'bi ahorros' })).rejects.toThrow(/Ya tienes/)
+    await herramienta('editar_cuenta').ejecutar(ctx, { cuenta_id: 'c2', nombre: 'Caja chica', tipo: 'efectivo' })
+    expect(tablas.cuentas.find(c => c.id === 'c2')).toMatchObject({ nombre: 'Caja chica' })
+  })
+})
+
+describe('eliminar_cuenta', () => {
+  it('con saldo se niega y dice qué hacer', async () => {
+    const { ctx } = mundo({ permiso: true })
+    await expect(herramienta('eliminar_cuenta').ejecutar(ctx, { cuenta_id: 'c2' })).rejects.toThrow(/Q50\.00/)
+  })
+  it('con movimientos y en cero, archiva', async () => {
+    const { ctx, tablas } = mundo({ permiso: true })
+    const c1 = tablas.cuentas.find(c => c.id === 'c1')!
+    c1.saldo = 0
+    const r = await herramienta('eliminar_cuenta').ejecutar(ctx, { cuenta_id: 'c1' }) as { resultado: string }
+    expect(r.resultado).toBe('archivada')
+    expect(c1.activa).toBe(false)
+  })
+  it('vacía y en cero, la borra', async () => {
+    const { ctx, tablas } = mundo({ permiso: true })
+    tablas.cuentas.push({ id: 'c9', user_id: YO, nombre: 'Nueva', tipo: 'ahorro', saldo: 0, activa: true })
+    const r = await herramienta('eliminar_cuenta').ejecutar(ctx, { cuenta_id: 'c9' }) as { resultado: string }
+    expect(r.resultado).toBe('borrada')
+    expect(tablas.cuentas.some(c => c.id === 'c9')).toBe(false)
   })
 })

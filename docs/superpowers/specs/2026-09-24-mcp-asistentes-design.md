@@ -67,3 +67,19 @@ Authentication → OAuth Server: activar, *Authorization path* `/oauth/consent`,
 - [x] `/oauth/consent`: pantalla de consentimiento; volver a ella después de entrar con Google.
 - [x] Ajustes → Asistentes de IA: la URL para copiar, cómo conectar y las apps conectadas.
 - [x] `docs/MCP.md`, Política de privacidad y CLAUDE.md.
+
+---
+
+# Adenda (2026-09-24): editar y borrar, con permiso — y límites en la base
+
+El token aprobado es de la cuenta, así que un cliente podría saltarse el conector y hablarle a
+PostgREST. Los límites pasan a la base (`schema.sql` §4b, migración `20260924000000_acceso_ia.sql`):
+con el claim `client_id`, UPDATE y DELETE solo si `profiles.ia_puede_editar`; `profiles` nunca;
+`borrar_mi_cuenta()` nunca; `cerrar_ciclo_tc()` como un UPDATE. La persona lo activa en Ajustes →
+Asistentes de IA, y el conector suma `editar_movimiento`, `borrar_movimientos`, `editar_cuenta` y
+`eliminar_cuenta` (reglas de `decidirBajaCuenta`), que dicen cómo activarlo si está apagado.
+
+- [x] Migración + §4b en schema.sql + chequeo en `cerrar_ciclo_tc` y `borrar_mi_cuenta`.
+- [x] `supabase/tests/acceso_ia.sql` bajo RLS real; verificado por mutación.
+- [x] Herramientas con permiso, con tests (incluido "RLS rechazó aunque el perfil decía que sí").
+- [x] Interruptor en Ajustes → Asistentes de IA; consentimiento y privacidad actualizados.

@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (298 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (313 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -41,6 +41,15 @@ that break only in production: relative imports under `api/` carry an explicit `
 it as unbundled Node ESM), and `api/` may import only dependency-free modules from `src/` — never
 `lib/supabase.ts`, which reads `import.meta.env` at load. `tsconfig.api.json` type-checks it in
 `tsc -b`. Setup and security notes: `docs/MCP.md`.
+
+**What an assistant may do is enforced by Postgres, not by the connector** (`schema.sql` §4b): a
+token carrying the `client_id` claim (OAuth; the app's own session has none) reads and inserts
+freely, but restrictive policies block UPDATE/DELETE on every table unless
+`profiles.ia_puede_editar` is on (Ajustes → Asistentes de IA), never allow touching `profiles`
+(the assistant would grant itself the permission), and `borrar_mi_cuenta()` refuses it outright.
+A new table needs its `_ia_update` / `_ia_delete` pair — the loop in §4b lists them — and
+`supabase/tests/acceso_ia.sql` is the one SQL test that runs under real RLS (`authenticated` role
+plus JWT claims) to prove it.
 
 **Three layers, in order of authority:**
 

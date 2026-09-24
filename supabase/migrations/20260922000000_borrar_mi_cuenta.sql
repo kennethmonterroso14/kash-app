@@ -2,8 +2,9 @@
 -- VORTA — Migración: borrar la cuenta desde la app (tarea 2.2)
 -- Archivo: supabase/migrations/20260922000000_borrar_mi_cuenta.sql
 --
--- ESTADO: PENDIENTE de aplicar. Correr a mano en Supabase → SQL Editor →
--- New query, con NADA seleccionado.
+-- ESTADO: aplicada en producción el 2026-09-24, después de
+-- 20260924000000_acceso_ia.sql. Para otra base: Supabase → SQL Editor → New
+-- query, con NADA seleccionado.
 --
 -- QUÉ AGREGA
 --   Una función, `borrar_mi_cuenta()`. No crea ni borra columnas y no cambia
@@ -86,6 +87,11 @@ begin
   if v_uid is null then
     raise exception 'borrar_mi_cuenta requiere una sesión autenticada';
   end if;
+  -- Nunca desde un asistente de IA, aunque tenga permiso de modificar: borrar
+  -- la cuenta es de la persona, en la app. Ver la sección 4b.
+  if public.es_acceso_ia() then
+    raise exception 'borrar_mi_cuenta no está disponible para un asistente de IA';
+  end if;
 
   -- El orden importa: las hijas antes que las padres. `transacciones` primero
   -- porque referencia a cuentas (restrict), tarjetas y ciclos.
@@ -124,5 +130,8 @@ $$;
 
 -- Solo el dueño de la sesión puede llamarla, y solo borra lo suyo. `public`
 -- (anon) no tiene nada que borrar: sin `auth.uid()` la función lanza.
+-- `anon` aparte: Supabase le da EXECUTE explícito a cada función nueva (default
+-- privileges), así que revocar de `public` no alcanza. Verificado en producción.
 revoke all on function borrar_mi_cuenta() from public;
+revoke execute on function borrar_mi_cuenta() from anon;
 grant execute on function borrar_mi_cuenta() to authenticated;

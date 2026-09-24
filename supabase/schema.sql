@@ -543,6 +543,75 @@ begin
 end $$;
 
 -- ══════════════════════════════════════════════════════════════════════
+-- 4b. ACCESO DE ASISTENTES DE IA  (conector MCP, api/mcp)
+--
+--     Un asistente conectado por OAuth usa un token de Supabase con el claim
+--     `client_id`; la sesión de la app no lo tiene. Con ese token el asistente
+--     ES la persona para RLS, así que sin nada más podría hablarle a PostgREST
+--     directo y editar o borrar lo que quisiera, saltándose el conector.
+--
+--     Estas policies RESTRICTIVAS (se combinan con AND con las `_own`):
+--       · SELECT e INSERT: sin cambios — el asistente lee y agrega.
+--       · UPDATE y DELETE: solo si la persona lo activó en Ajustes →
+--         Asistentes de IA (`profiles.ia_puede_editar`, apagado por defecto).
+--       · `profiles`: NUNCA desde un asistente — si pudiera, se prendería el
+--         permiso a sí mismo.
+--       · `borrar_mi_cuenta()`: nunca; `cerrar_ciclo_tc()`: como un UPDATE.
+--
+--     Los triggers de saldo y de deuda siguen funcionando con un insert del
+--     asistente: son `security definer` y su dueño (postgres) tiene
+--     BYPASSRLS — verificado en producción el 2026-09-24.
+-- ══════════════════════════════════════════════════════════════════════
+
+alter table profiles
+  add column if not exists ia_puede_editar boolean not null default false;
+
+create or replace function public.es_acceso_ia()
+returns boolean
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select coalesce(auth.jwt() ->> 'client_id', '') <> ''
+$$;
+
+-- Sin `security definer`: lee el perfil propio con el RLS de quien llama, y
+-- ninguna policy de `profiles` la usa, así que no hay recursión.
+create or replace function public.ia_puede_modificar()
+returns boolean
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select not public.es_acceso_ia()
+      or coalesce((select p.ia_puede_editar from public.profiles p where p.user_id = auth.uid()), false)
+$$;
+
+do $$
+declare
+  t text;
+  permiso text;
+begin
+  foreach t in array array[
+    'profiles', 'cuentas', 'transacciones', 'presupuestos', 'metas_ahorro',
+    'tarjetas_credito', 'ciclos_tc', 'pagos_recurrentes',
+    'categorias_usuario', 'inversiones', 'inversiones_historial'
+  ]
+  loop
+    -- `(select …)` para que se evalúe una vez por consulta y no por fila.
+    permiso := case when t = 'profiles'
+                    then '(select not public.es_acceso_ia())'
+                    else '(select public.ia_puede_modificar())' end;
+    execute format('drop policy if exists %I on public.%I', t || '_ia_update', t);
+    execute format('create policy %I on public.%I as restrictive for update using (%s)',
+                   t || '_ia_update', t, permiso);
+    execute format('drop policy if exists %I on public.%I', t || '_ia_delete', t);
+    execute format('create policy %I on public.%I as restrictive for delete using (%s)',
+                   t || '_ia_delete', t, permiso);
+  end loop;
+end $$;
+
+-- ══════════════════════════════════════════════════════════════════════
 -- 5. TRIGGER: saldo de cuentas
 --    Aplica deltas (+NEW.cantidad / −OLD.cantidad); no recalcula un SUM.
 -- ══════════════════════════════════════════════════════════════════════
@@ -767,6 +836,11 @@ declare
 begin
   if v_uid is null then
     raise exception 'cerrar_ciclo_tc requiere una sesión autenticada';
+  end if;
+  -- Un asistente de IA solo cierra ciclos si la persona le permitió modificar
+  -- (Ajustes → Asistentes de IA). Ver la sección 4b.
+  if not public.ia_puede_modificar() then
+    raise exception 'cerrar_ciclo_tc no está permitido para este asistente de IA';
   end if;
 
   select id, dia_cierre, dia_pago, deuda_actual
@@ -1204,6 +1278,11 @@ begin
   if v_uid is null then
     raise exception 'borrar_mi_cuenta requiere una sesión autenticada';
   end if;
+  -- Nunca desde un asistente de IA, aunque tenga permiso de modificar: borrar
+  -- la cuenta es de la persona, en la app. Ver la sección 4b.
+  if public.es_acceso_ia() then
+    raise exception 'borrar_mi_cuenta no está disponible para un asistente de IA';
+  end if;
 
   -- El orden importa: las hijas antes que las padres. `transacciones` primero
   -- porque referencia a cuentas (restrict), tarjetas y ciclos.
@@ -1242,5 +1321,8 @@ $$;
 
 -- Solo el dueño de la sesión puede llamarla, y solo borra lo suyo. `public`
 -- (anon) no tiene nada que borrar: sin `auth.uid()` la función lanza.
+-- `anon` aparte: Supabase le da EXECUTE explícito a cada función nueva (default
+-- privileges), así que revocar de `public` no alcanza. Verificado en producción.
 revoke all on function borrar_mi_cuenta() from public;
+revoke execute on function borrar_mi_cuenta() from anon;
 grant execute on function borrar_mi_cuenta() to authenticated;
