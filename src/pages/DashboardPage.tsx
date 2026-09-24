@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { useTransacciones } from '../hooks/useTransacciones'
@@ -15,7 +15,7 @@ import SelectorMes from '../components/SelectorMes'
 import TituloGrande from '../components/TituloGrande'
 import { IconoAjustes } from '../components/iconos'
 import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
-import { alternarMontos, montosOcultos, suscribirMontos } from '../lib/modoPrivado'
+import { useMontosOcultos } from '../hooks/useMontosOcultos'
 import TarjetaPatrimonio from './dashboard/TarjetaPatrimonio'
 import TarjetaDisponibleReal from './dashboard/TarjetaDisponibleReal'
 import TarjetasTC from './dashboard/TarjetasTC'
@@ -34,8 +34,7 @@ export default function DashboardPage() {
   } = useSesion()
   const fechas = useFechas()
   const [mes, setMes] = useState(fechas.mesActual())
-  // Arranca oculto en cada apertura de la app; ver lib/modoPrivado.ts.
-  const oculto = useSyncExternalStore(suscribirMontos, montosOcultos)
+  const [oculto, alternarMontos] = useMontosOcultos()
 
   const { txns, loading, error: errorTxns } = useTransacciones(userId, mes)
   const { data: resumen6 } = useResumen6Meses(userId)

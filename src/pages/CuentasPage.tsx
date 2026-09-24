@@ -2,16 +2,18 @@ import { useState } from 'react'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
 import AvatarCategoria from '../components/AvatarCategoria'
+import Monto from '../components/Monto'
 import { useSesion } from '../context/sesion'
-import { useMoneda } from '../hooks/useMoneda'
+import { useMontosOcultos } from '../hooks/useMontosOcultos'
 import ModalCuenta from './cuentas/ModalCuenta'
-import { IconoEditar } from '../components/iconos'
+import { IconoEditar, IconoOjo } from '../components/iconos'
 import type { Cuenta } from '../hooks/useCuentas'
 import ModalAjusteSaldo from './cuentas/ModalAjusteSaldo'
 
 export default function CuentasPage() {
   const { cuentas, totalPatrimonio, cargando, error: errores } = useSesion()
-  const fmt = useMoneda()
+  // El mismo ojo que Resumen: ocultar en una pantalla oculta en las dos.
+  const [oculto, alternarMontos] = useMontosOcultos()
   const cargandoCuentas = cargando.cuentas
   const error = errores.cuentas
 
@@ -24,7 +26,16 @@ export default function CuentasPage() {
     <div className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-4">
       <div className="vidrio-panel rounded-tarjeta p-5">
         <div className="flex justify-between items-center gap-2 mb-1">
-          <p className="text-textDim text-[15px] font-semibold">Patrimonio total</p>
+          <button
+            type="button"
+            onClick={alternarMontos}
+            aria-pressed={oculto}
+            aria-label={oculto ? 'Mostrar saldos' : 'Ocultar saldos'}
+            className="presionable flex items-center gap-2 min-h-8 -ml-1 pl-1 pr-2"
+          >
+            <span className="text-textDim text-[15px] font-semibold">Patrimonio total</span>
+            <IconoOjo tachado={oculto} size={16} className="text-textDim" />
+          </button>
           <button
             onClick={() => setMostrarAlta(true)}
             className="presionable h-8 px-3 rounded-full bg-accent/15 text-accent text-[14px] font-semibold flex-shrink-0"
@@ -35,13 +46,14 @@ export default function CuentasPage() {
         {/* Con la consulta fallida el total es 0, y mostrar ese 0 como un
             hecho es justo el defecto que se estaba corrigiendo. */}
         <p className="text-[40px] leading-[46px] tabular-nums font-bold text-text tracking-display">
-          {error ? '—' : fmt(totalPatrimonio)}
+          {error ? '—' : <Monto valor={totalPatrimonio} oculto={oculto} />}
         </p>
         {/* Cómo se reparte: una barra por cuenta, cada una tan ancha como su
             saldo (flex-grow = saldo, sin aritmética). Un saldo negativo no
             tiene ancho que mostrar, así que queda fuera de la barra — y sigue
-            en rojo en la lista de abajo. */}
-        {!error && positivas.length > 0 && (
+            en rojo en la lista de abajo. Oculta en modo privado: las
+            proporciones también dicen cuánto hay en cada cuenta. */}
+        {!error && !oculto && positivas.length > 0 && (
           <div aria-hidden="true" className="flex gap-1 h-2.5 mt-4">
             {positivas.map(c => (
               <div key={c.id} className="rounded-full min-w-1.5" style={{ flexGrow: c.saldo, background: c.color }} />
@@ -95,7 +107,7 @@ export default function CuentasPage() {
               </button>
               <div className="text-right flex-shrink-0">
                 <p className={`tabular-nums text-[16px] font-semibold ${c.saldo >= 0 ? 'text-text' : 'text-danger'}`}>
-                  {fmt(c.saldo)}
+                  <Monto valor={c.saldo} oculto={oculto} />
                 </p>
                 <button
                   onClick={() => setAjustando({ id: c.id, nombre: c.nombre, saldo: c.saldo })}

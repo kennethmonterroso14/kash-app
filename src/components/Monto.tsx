@@ -1,4 +1,4 @@
-import { useMoneda } from '../../hooks/useMoneda'
+import { useMoneda } from '../hooks/useMoneda'
 
 interface Props {
   valor: number
