@@ -15,6 +15,7 @@ import SelectorMes from '../components/SelectorMes'
 import TituloGrande from '../components/TituloGrande'
 import { IconoAjustes } from '../components/iconos'
 import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
+import { useMontosOcultos } from '../hooks/useMontosOcultos'
 import TarjetaPatrimonio from './dashboard/TarjetaPatrimonio'
 import TarjetaDisponibleReal from './dashboard/TarjetaDisponibleReal'
 import TarjetasTC from './dashboard/TarjetasTC'
@@ -33,7 +34,7 @@ export default function DashboardPage() {
   } = useSesion()
   const fechas = useFechas()
   const [mes, setMes] = useState(fechas.mesActual())
-  const [oculto, setOculto] = useState(false)
+  const [oculto, alternarMontos] = useMontosOcultos()
 
   const { txns, loading, error: errorTxns } = useTransacciones(userId, mes)
   const { data: resumen6 } = useResumen6Meses(userId)
@@ -85,7 +86,7 @@ export default function DashboardPage() {
         cuentas={cuentas}
         error={errorCuentas}
         oculto={oculto}
-        onAlternar={() => setOculto(v => !v)}
+        onAlternar={alternarMontos}
       />
 
       {/*

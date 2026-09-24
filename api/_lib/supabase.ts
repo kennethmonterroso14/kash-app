@@ -32,3 +32,9 @@ export async function usuarioDelToken(token: string): Promise<string | null> {
   const { data, error } = await createClient(url, clave, { auth: SIN_SESION }).auth.getUser(token)
   return error || !data.user ? null : data.user.id
 }
+
+/** Cliente sin sesión (rol anon): para el RPC del atajo, que autoriza por la clave. */
+export function clienteAnonimo(): SupabaseClient {
+  const { url, clave } = configSupabase()
+  return createClient(url, clave, { auth: SIN_SESION })
+}

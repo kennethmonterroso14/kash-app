@@ -1,5 +1,5 @@
 import type { PatrimonioNeto } from '../../lib/finanzas'
-import Monto from './Monto'
+import Monto from '../../components/Monto'
 
 interface Props {
   datos: PatrimonioNeto

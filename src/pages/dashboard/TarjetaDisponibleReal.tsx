@@ -1,5 +1,5 @@
 import type { DisponibleReal } from '../../lib/finanzas'
-import Monto from './Monto'
+import Monto from '../../components/Monto'
 
 interface Props {
   datos: DisponibleReal

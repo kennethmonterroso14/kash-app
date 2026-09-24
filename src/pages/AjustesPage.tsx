@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import TituloGrande from '../components/TituloGrande'
-import { IconoChevron, IconoChispas, IconoEtiqueta, IconoRepetir } from '../components/iconos'
+import { IconoChevron, IconoChispas, IconoEtiqueta, IconoRepetir, IconoTarjetas } from '../components/iconos'
 import { useSesion } from '../context/sesion'
 import DialogoBorrarCuenta from './ajustes/DialogoBorrarCuenta'
 import SelectorAcento from './ajustes/SelectorAcento'
@@ -35,6 +35,8 @@ export default function AjustesPage({ onSignOut }: Props) {
       detalle: 'Se aplican solos cada mes' },
     { to: '/ajustes/categorias', Icono: IconoEtiqueta, label: 'Categorías',
       detalle: 'Las tuyas, además de las base' },
+    { to: '/ajustes/apple-pay', Icono: IconoTarjetas, label: 'Apple Pay',
+      detalle: 'Registra solos tus pagos con el iPhone' },
     { to: '/ajustes/asistentes', Icono: IconoChispas, label: 'Asistentes de IA',
       detalle: 'Conecta Claude, ChatGPT u otra IA' },
   ]
