@@ -60,10 +60,10 @@ Authentication → OAuth Server: activar, *Authorization path* `/oauth/consent`,
 
 # Plan
 
-- [ ] `api/_lib/`: protocolo MCP (JSON-RPC, CORS, 401), validación pura y herramientas; tests.
-- [ ] `api/mcp.ts` y `api/oauth-protected-resource.ts`; `vercel.json` y el SW no deben tragarse
+- [x] `api/_lib/`: protocolo MCP (JSON-RPC, CORS, 401), validación pura y herramientas; tests.
+- [x] `api/mcp.ts` y `api/oauth-protected-resource.ts`; `vercel.json` y el SW no deben tragarse
       `/api` ni `/.well-known`; `tsconfig.api.json` para que `tsc -b` los revise.
-- [ ] `crearCuentaConSaldo` recibe el cliente, para que la función la reutilice.
-- [ ] `/oauth/consent`: pantalla de consentimiento; volver a ella después de entrar con Google.
-- [ ] Ajustes → Asistentes de IA: la URL para copiar, cómo conectar y las apps conectadas.
-- [ ] `docs/MCP.md`, Política de privacidad y CLAUDE.md.
+- [x] `crearCuentaConSaldo` recibe el cliente, para que la función la reutilice.
+- [x] `/oauth/consent`: pantalla de consentimiento; volver a ella después de entrar con Google.
+- [x] Ajustes → Asistentes de IA: la URL para copiar, cómo conectar y las apps conectadas.
+- [x] `docs/MCP.md`, Política de privacidad y CLAUDE.md.
