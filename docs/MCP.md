@@ -53,19 +53,30 @@ no está activado; si falla el registro, falta el paso 3.
 | `transferir` | sí | Dos patas `ajuste` / `Transferencia`, como la app. |
 | `crear_cuenta` | sí | `crearCuentaConSaldoEn`, con la misma compensación que `ModalCuenta`. |
 | `fijar_saldo_cuenta` | sí | Pone el saldo real registrando la diferencia (como "Cambiar saldo"). |
+| `editar_movimiento` | con permiso | Descripción, fecha, notas; en ingresos/gastos también monto y categoría. |
+| `borrar_movimientos` | con permiso | Hasta 50 por id, todo o nada. |
+| `editar_cuenta` | con permiso | Nombre y tipo. |
+| `eliminar_cuenta` | con permiso | Con `decidirBajaCuenta`: bloquea con saldo o pagos fijos, archiva o borra. |
 
-No hay herramientas para borrar ni editar, ni para tarjetas de crédito (`gasto_tc`/`pago_tc`).
+"Con permiso" = la persona activó **Permitir editar y borrar** en Ajustes → Asistentes de IA
+(`profiles.ia_puede_editar`, apagado por defecto). Nada toca tarjetas de crédito
+(`gasto_tc`/`pago_tc`).
 
 ## Seguridad: lo que hay que saber
 
 - **El token que se aprueba es de la cuenta, no del conector.** Es un JWT normal de Supabase con
-  un claim `client_id`; con él, un cliente podría hablarle a PostgREST directamente y hacer lo
-  mismo que la app. Por eso la pantalla de consentimiento dice lo que *el conector* permite, muestra
-  a qué dominio vuelve (el nombre del cliente lo elige quien lo registra y no prueba nada) y pide
-  aprobar solo asistentes de confianza.
-- **Endurecimiento pendiente** (necesita una migración): políticas `as restrictive` para `update`
-  y `delete` cuando `auth.jwt() ->> 'client_id'` no es nulo, y el mismo chequeo al inicio de
-  `borrar_mi_cuenta()`. Los triggers de saldo y deuda son `security definer`, así que un insert
-  desde el conector seguiría moviendo los saldos.
+  el claim `client_id`; con él, un cliente podría hablarle a PostgREST directamente. Por eso los
+  límites no viven solo en el conector sino **en la base** (`schema.sql`, sección 4b, migración
+  `20260924000000_acceso_ia.sql`): con `client_id`, policies restrictivas bloquean UPDATE y DELETE
+  en las once tablas salvo que `profiles.ia_puede_editar` esté activo; `profiles` no se puede
+  modificar nunca (si no, el asistente se daría el permiso a sí mismo); `borrar_mi_cuenta()` lanza
+  siempre y `cerrar_ciclo_tc()` sigue el permiso. SELECT e INSERT no cambian, y los triggers de
+  saldo y deuda siguen funcionando porque son `security definer` con dueño con BYPASSRLS.
+  `supabase/tests/acceso_ia.sql` lo prueba con RLS de verdad (rol `authenticated` y claims).
+- **El alcance es una sola persona.** No hay service role en la función: un asistente, bien o mal
+  intencionado, no puede ver ni tocar datos de otra cuenta ni la estructura de la base.
+- La pantalla de consentimiento muestra a qué dominio vuelve (el nombre del cliente lo elige quien
+  lo registra y no prueba nada) y pide aprobar solo asistentes de confianza: un asistente
+  aprobado puede LEER todo lo de la persona.
 - Revocar: Ajustes → Asistentes de IA → Desconectar (`auth.oauth.revokeGrant`). Como la función
   valida cada token con `auth.getUser`, un acceso revocado deja de servir enseguida.
