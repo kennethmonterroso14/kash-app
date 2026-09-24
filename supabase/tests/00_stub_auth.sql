@@ -32,3 +32,13 @@ create table if not exists auth.users (
 -- existir igual para que las policies se puedan CREAR.
 create or replace function auth.uid() returns uuid
 language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+
+-- Como el de Supabase: los claims del JWT de la petición. Las funciones de
+-- acceso de IA (`es_acceso_ia`) leen `client_id` de acá.
+create or replace function auth.jwt() returns jsonb
+language sql stable as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')
+  )::jsonb
+$$;

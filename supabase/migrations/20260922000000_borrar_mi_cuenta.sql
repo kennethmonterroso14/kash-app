@@ -86,6 +86,11 @@ begin
   if v_uid is null then
     raise exception 'borrar_mi_cuenta requiere una sesión autenticada';
   end if;
+  -- Nunca desde un asistente de IA, aunque tenga permiso de modificar: borrar
+  -- la cuenta es de la persona, en la app. Ver la sección 4b.
+  if public.es_acceso_ia() then
+    raise exception 'borrar_mi_cuenta no está disponible para un asistente de IA';
+  end if;
 
   -- El orden importa: las hijas antes que las padres. `transacciones` primero
   -- porque referencia a cuentas (restrict), tarjetas y ciclos.
