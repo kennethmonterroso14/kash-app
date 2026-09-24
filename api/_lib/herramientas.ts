@@ -7,9 +7,12 @@
  * escribe (todo es una fila de `transacciones` y el trigger hace el resto), el
  * dinero es centavos enteros y las fechas son las de la zona del perfil.
  *
- * No hay herramientas para borrar ni editar: lo que la IA registre mal se
- * corrige desde la app. Las tarjetas de crédito quedan fuera (ver el diseño en
- * docs/superpowers/specs/2026-09-24-mcp-asistentes-design.md).
+ * Editar y borrar existen pero están APAGADOS por defecto: la persona los
+ * activa en Ajustes → Asistentes de IA (`profiles.ia_puede_editar`). La base
+ * lo hace cumplir con policies restrictivas (schema.sql, sección 4b) aunque
+ * alguien se salte este archivo; el chequeo de acá existe para dar un mensaje
+ * que diga cómo activarlo, en vez de un "cero filas". Las tarjetas de crédito
+ * quedan fuera (docs/superpowers/specs/2026-09-24-mcp-asistentes-design.md).
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -17,6 +20,7 @@ import {
 } from '../../src/lib/finanzas.js'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, hoyEn, zonaValida } from '../../src/lib/constants.js'
 import { crearCuentaConSaldoEn } from '../../src/lib/altaCuentaEn.js'
+import { decidirBajaCuenta } from '../../src/lib/bajaCuenta.js'
 import { paletaDatos } from '../../src/lib/tokens.js'
 import {
   ErrorHerramienta, leerFecha, leerMes, leerMonto, leerSaldo, leerTexto, leerTextoOpcional,
@@ -35,6 +39,8 @@ export interface Herramienta {
   esquema: Record<string, unknown>
   /** Solo lee: el cliente puede llamarla sin pedir confirmación. */
   soloLectura: boolean
+  /** Borra algo: el cliente debería confirmarlo con la persona antes. */
+  destructiva?: boolean
   ejecutar(ctx: Contexto, args: Record<string, unknown>): Promise<unknown>
 }
 
@@ -507,7 +513,254 @@ const fijarSaldo: Herramienta = {
   },
 }
 
+// ─── EDITAR Y BORRAR (solo con el permiso de la persona) ──────────────
+
+const COMO_ACTIVAR =
+  'Editar y borrar desde un asistente está desactivado. La persona puede activarlo en Vorta → Ajustes → ' +
+  'Asistentes de IA → "Permitir editar y borrar", o hacer el cambio directamente en la app.'
+
+async function exigirPermisoModificar({ db, userId }: Contexto): Promise<void> {
+  const { data, error } = await db.from('profiles').select('ia_puede_editar').eq('user_id', userId).maybeSingle()
+  // Sin la migración la columna no existe: para este asistente es "apagado".
+  if (error && /ia_puede_editar/.test(error.message)) throw new ErrorHerramienta(COMO_ACTIVAR)
+  if (error) fallo('leer tus permisos', error)
+  if (!data?.ia_puede_editar) throw new ErrorHerramienta(COMO_ACTIVAR)
+}
+
+/**
+ * RLS no da error cuando una policy restrictiva rechaza: la fila simplemente
+ * no se toca. Si el permiso se apagó entre el chequeo y la escritura, se ve así.
+ */
+function sinFilas(accion: string): never {
+  throw new ErrorHerramienta(`No se pudo ${accion}: no se encontró, o el permiso para editar y borrar se desactivó. ${COMO_ACTIVAR}`)
+}
+
+const TIPOS_TC = ['gasto_tc', 'pago_tc']
+const NOTA_PERMISO = ' Requiere que la persona haya activado "Permitir editar y borrar" en Vorta → Ajustes → Asistentes de IA.'
+
+const editarMovimiento: Herramienta = {
+  nombre: 'editar_movimiento',
+  titulo: 'Editar un movimiento',
+  descripcion:
+    'Corrige un movimiento: descripción, fecha, notas y, en ingresos y gastos, también monto y categoría (el ' +
+    'saldo de la cuenta se ajusta solo). Los de tarjeta de crédito no se editan: se corrigen en la app. Usa ' +
+    'el id de listar_movimientos.' + NOTA_PERMISO,
+  esquema: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+      descripcion: { type: 'string', maxLength: 200 },
+      fecha: { type: 'string', description: 'YYYY-MM-DD, no futura.' },
+      monto: { type: 'number', exclusiveMinimum: 0, description: 'En unidades, positivo. Solo ingresos y gastos.' },
+      categoria: { type: 'string', description: 'Solo ingresos y gastos.' },
+      notas: { type: 'string', maxLength: 500 },
+    },
+    required: ['id'],
+    additionalProperties: false,
+  },
+  soloLectura: false,
+  async ejecutar(ctx, args) {
+    await exigirPermisoModificar(ctx)
+    const [perfil, categorias] = await Promise.all([cargarPerfil(ctx), cargarCategorias(ctx)])
+    const id = leerTexto(args.id, 'id', 64)
+    const { data: t, error } = await ctx.db
+      .from('transacciones').select('id, tipo, cantidad, categoria, cuenta_id')
+      .eq('id', id).eq('user_id', ctx.userId).maybeSingle()
+    if (error) fallo('leer el movimiento', error)
+    if (!t) throw new ErrorHerramienta('id: no es uno de tus movimientos')
+    if (TIPOS_TC.includes(t.tipo)) {
+      throw new ErrorHerramienta('Los movimientos de tarjeta de crédito no se editan: bórralo y regístralo de nuevo desde Tarjetas en la app.')
+    }
+    const esFlujo = t.tipo === 'ingreso' || t.tipo === 'gasto'
+    if (!esFlujo && (args.monto !== undefined || args.categoria !== undefined)) {
+      throw new ErrorHerramienta('En ajustes y transferencias solo se corrigen descripción, fecha y notas. Para el saldo, usa fijar_saldo_cuenta.')
+    }
+
+    const cambios: Record<string, unknown> = {}
+    if (args.descripcion !== undefined) cambios.descripcion = leerTexto(args.descripcion, 'descripcion', 200)
+    if (args.fecha !== undefined) cambios.fecha = leerFecha(args.fecha, perfil.hoy)
+    if (args.notas !== undefined) cambios.notas = leerTextoOpcional(args.notas, 'notas', 500) ?? null
+    if (args.monto !== undefined) {
+      const c = leerMonto(args.monto)
+      cambios.cantidad = t.tipo === 'gasto' ? -c : c
+    }
+    if (args.categoria !== undefined) {
+      const validas = t.tipo === 'gasto' ? categorias.gasto : categorias.ingreso
+      if (typeof args.categoria !== 'string' || !validas.includes(args.categoria)) {
+        throw new ErrorHerramienta(`categoria: "${String(args.categoria)}" no es una categoría de ${t.tipo}. Válidas: ${validas.join(', ')}.`)
+      }
+      cambios.categoria = args.categoria
+    }
+    if (Object.keys(cambios).length === 0) throw new ErrorHerramienta('No indicaste nada que cambiar')
+
+    const { data: editadas, error: errEditar } = await ctx.db
+      .from('transacciones').update(cambios).eq('id', id).eq('user_id', ctx.userId).select('id')
+    if (errEditar) fallo('editar el movimiento', errEditar)
+    if (!editadas?.length) sinFilas('editar el movimiento')
+    const fmt = (c: number) => formatMoneda(c, perfil)
+    return { editado: true, cambios: Object.keys(cambios), saldos: t.cuenta_id ? await saldosDe(ctx, [t.cuenta_id], fmt) : undefined }
+  },
+}
+
+const borrarMovimientos: Herramienta = {
+  nombre: 'borrar_movimientos',
+  titulo: 'Borrar movimientos',
+  descripcion:
+    'Borra de 1 a 50 movimientos por id (de listar_movimientos), todos o ninguno; el saldo de cada cuenta se ' +
+    'revierte solo. Una transferencia son DOS movimientos (tipo ajuste, categoría Transferencia): borra los dos. ' +
+    'Los de tarjeta de crédito se borran desde la app. Confirma con la persona antes: no se puede deshacer ' +
+    'desde aquí.' + NOTA_PERMISO,
+  esquema: {
+    type: 'object',
+    properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 50 } },
+    required: ['ids'],
+    additionalProperties: false,
+  },
+  soloLectura: false,
+  destructiva: true,
+  async ejecutar(ctx, args) {
+    await exigirPermisoModificar(ctx)
+    const ids = args.ids
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 50 || !ids.every(i => typeof i === 'string')) {
+      throw new ErrorHerramienta('ids: manda de 1 a 50 ids de movimientos')
+    }
+    const unicos = [...new Set(ids as string[])]
+    const { data: filas, error } = await ctx.db
+      .from('transacciones').select('id, tipo, cuenta_id, descripcion')
+      .eq('user_id', ctx.userId).in('id', unicos)
+    if (error) fallo('leer los movimientos', error)
+    const encontrados = new Set((filas ?? []).map(f => f.id))
+    const faltan = unicos.filter(i => !encontrados.has(i))
+    if (faltan.length) throw new ErrorHerramienta(`No se borró nada. Estos ids no son movimientos tuyos: ${faltan.join(', ')}`)
+    const deTarjeta = (filas ?? []).filter(f => TIPOS_TC.includes(f.tipo))
+    if (deTarjeta.length) {
+      throw new ErrorHerramienta(`No se borró nada. Los de tarjeta de crédito se borran desde Tarjetas en la app: ${deTarjeta.map(f => f.id).join(', ')}`)
+    }
+
+    // Un solo delete: la base lo aplica entero o nada.
+    const { data: borradas, error: errBorrar } = await ctx.db
+      .from('transacciones').delete().eq('user_id', ctx.userId).in('id', unicos).select('id')
+    if (errBorrar) fallo('borrar los movimientos (no se borró ninguno)', errBorrar)
+    if ((borradas?.length ?? 0) !== unicos.length) sinFilas('borrar todos los movimientos')
+    const perfil = await cargarPerfil(ctx)
+    const fmt = (c: number) => formatMoneda(c, perfil)
+    const cuentas = [...new Set((filas ?? []).map(f => f.cuenta_id).filter((c): c is string => !!c))]
+    return { borrados: unicos.length, saldos: cuentas.length ? await saldosDe(ctx, cuentas, fmt) : undefined }
+  },
+}
+
+const editarCuenta: Herramienta = {
+  nombre: 'editar_cuenta',
+  titulo: 'Editar una cuenta',
+  descripcion:
+    'Cambia el nombre o el tipo de una cuenta. El saldo no se edita aquí: usa fijar_saldo_cuenta.' + NOTA_PERMISO,
+  esquema: {
+    type: 'object',
+    properties: {
+      cuenta_id: { type: 'string' },
+      nombre: { type: 'string', maxLength: 60 },
+      tipo: { type: 'string', enum: [...TIPOS_CUENTA] },
+    },
+    required: ['cuenta_id'],
+    additionalProperties: false,
+  },
+  soloLectura: false,
+  async ejecutar(ctx, args) {
+    await exigirPermisoModificar(ctx)
+    const cuentas = await cargarCuentas(ctx)
+    const cuenta = cuentaPorId(cuentas, args.cuenta_id, 'cuenta_id')
+    const cambios: Record<string, unknown> = {}
+    if (args.nombre !== undefined) {
+      const nombre = leerTexto(args.nombre, 'nombre', 60)
+      const igual = cuentas.find(c => c.id !== cuenta.id && c.nombre.trim().toLowerCase() === nombre.toLowerCase())
+      if (igual) throw new ErrorHerramienta(`Ya tienes otra cuenta "${igual.nombre}". Elige otro nombre.`)
+      cambios.nombre = nombre
+    }
+    if (args.tipo !== undefined) {
+      if (typeof args.tipo !== 'string' || !(TIPOS_CUENTA as readonly string[]).includes(args.tipo)) {
+        throw new ErrorHerramienta(`tipo: uno de ${TIPOS_CUENTA.join(', ')}`)
+      }
+      cambios.tipo = args.tipo
+    }
+    if (Object.keys(cambios).length === 0) throw new ErrorHerramienta('No indicaste nada que cambiar')
+    const { data, error } = await ctx.db
+      .from('cuentas').update(cambios).eq('id', cuenta.id).eq('user_id', ctx.userId).select('id, nombre, tipo')
+    if (error) fallo('editar la cuenta', error)
+    if (!data?.length) sinFilas('editar la cuenta')
+    return { editada: true, cuenta: data[0] }
+  },
+}
+
+const eliminarCuenta: Herramienta = {
+  nombre: 'eliminar_cuenta',
+  titulo: 'Eliminar una cuenta',
+  descripcion:
+    'Elimina una cuenta con las mismas reglas que la app: si tiene saldo o pagos fijos activos no se puede ' +
+    '(primero transfiere el saldo o déjala en 0 con fijar_saldo_cuenta); si tiene movimientos se archiva ' +
+    '(deja de verse y su historial se conserva); si está vacía se borra. Confirma con la persona antes.' + NOTA_PERMISO,
+  esquema: {
+    type: 'object',
+    properties: { cuenta_id: { type: 'string' } },
+    required: ['cuenta_id'],
+    additionalProperties: false,
+  },
+  soloLectura: false,
+  destructiva: true,
+  async ejecutar(ctx, args) {
+    await exigirPermisoModificar(ctx)
+    const [perfil, cuentas] = await Promise.all([cargarPerfil(ctx), cargarCuentas(ctx)])
+    const cuenta = cuentaPorId(cuentas, args.cuenta_id, 'cuenta_id')
+    const { db, userId } = ctx
+    const contar = (tabla: string, extra?: [string, unknown]) => {
+      let q = db.from(tabla).select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('cuenta_id', cuenta.id)
+      if (extra) q = q.eq(extra[0], extra[1])
+      return q
+    }
+    const [fila, movs, pagos, pagosActivos] = await Promise.all([
+      db.from('cuentas').select('saldo').eq('id', cuenta.id).eq('user_id', userId).single(),
+      contar('transacciones'),
+      contar('pagos_recurrentes'),
+      contar('pagos_recurrentes', ['activo', true]),
+    ])
+    if (fila.error || movs.error || pagos.error || pagosActivos.error) {
+      fallo('revisar la cuenta', fila.error ?? movs.error ?? pagos.error ?? pagosActivos.error)
+    }
+    // La regla es la de la app (`lib/bajaCuenta.ts`), no una copia.
+    const decision = decidirBajaCuenta({
+      saldo: fila.data.saldo,
+      movimientos: movs.count ?? 0,
+      pagosFijos: pagos.count ?? 0,
+      pagosFijosActivos: pagosActivos.count ?? 0,
+    })
+    if (decision.accion === 'bloquear') {
+      throw new ErrorHerramienta(decision.motivo === 'saldo'
+        ? `No se eliminó: la cuenta tiene ${formatMoneda(fila.data.saldo, perfil)}. Transfiere ese saldo a otra cuenta o déjala en 0 con fijar_saldo_cuenta, y vuelve a intentarlo.`
+        : 'No se eliminó: la cuenta tiene pagos fijos activos. Cámbialos a otra cuenta o elimínalos en la app (Ajustes → Pagos fijos).')
+    }
+    let hecho: 'borrada' | 'archivada' = decision.accion === 'borrar' ? 'borrada' : 'archivada'
+    if (hecho === 'borrada') {
+      const { data, error } = await db.from('cuentas').delete().eq('id', cuenta.id).eq('user_id', userId).select('id')
+      // 23503: apareció un movimiento entre el conteo y el borrado → se archiva.
+      if (error && (error as { code?: string }).code !== '23503') fallo('eliminar la cuenta', error)
+      if (error) hecho = 'archivada'
+      else if (!data?.length) sinFilas('eliminar la cuenta')
+    }
+    if (hecho === 'archivada') {
+      const { data, error } = await db.from('cuentas').update({ activa: false }).eq('id', cuenta.id).eq('user_id', userId).select('id')
+      if (error) fallo('archivar la cuenta', error)
+      if (!data?.length) sinFilas('archivar la cuenta')
+    }
+    return {
+      resultado: hecho,
+      explicacion: hecho === 'archivada'
+        ? 'Tenía movimientos: se archivó. Ya no aparece en la app y su historial se conserva.'
+        : 'Estaba vacía: se borró.',
+    }
+  },
+}
+
 export const HERRAMIENTAS: Herramienta[] = [
   obtenerContexto, listarMovimientos, resumenMes,
   registrarMovimientos, transferir, crearCuenta, fijarSaldo,
+  editarMovimiento, borrarMovimientos, editarCuenta, eliminarCuenta,
 ]

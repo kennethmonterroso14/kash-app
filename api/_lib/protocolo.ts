@@ -24,7 +24,8 @@ const INSTRUCCIONES =
   'Vorta es la app de finanzas personales de esta persona. Llama primero a obtener_contexto para conocer sus ' +
   'cuentas, categorías, moneda y la fecha de hoy. Para cargar un estado de cuenta: registrar_movimientos con ' +
   'todas las filas y luego fijar_saldo_cuenta con el saldo final del estado si no cuadra. Antes de escribir, ' +
-  'confirma con la persona qué vas a registrar. No se puede borrar ni editar desde aquí: eso se hace en la app.'
+  'confirma con la persona qué vas a registrar. Editar y borrar solo funcionan si la persona los activó en ' +
+  'Vorta → Ajustes → Asistentes de IA; confirma siempre antes de borrar.'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -106,7 +107,7 @@ async function atender(m: Mensaje, ctx: Contexto, herramientas: Herramienta[]) {
           annotations: {
             title: h.titulo,
             readOnlyHint: h.soloLectura,
-            destructiveHint: false,
+            destructiveHint: h.destructiva ?? false,
             idempotentHint: h.soloLectura,
             openWorldHint: false,
           },
