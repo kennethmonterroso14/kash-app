@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Aviso from '../components/Aviso'
 import { supabase } from '../lib/supabase'
 import { googleActivado, leerErrorOAuth, mensajeErrorOAuth } from '../lib/authOAuth'
+import { guardarDestino } from '../lib/volverTrasLogin'
 import Campo from '../components/Campo'
 
 /** La "G" de Google en sus cuatro colores: la marca que pide su guía para el botón. */
@@ -66,6 +67,9 @@ export default function LoginPage() {
     setError('')
     setInfo('')
     setConGoogle(true)
+    // Google vuelve al origen, no a esta ruta: si se llegó a una en particular
+    // (el consentimiento de un asistente de IA), se retoma al volver.
+    if (window.location.pathname !== '/') guardarDestino(window.location.pathname + window.location.search)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
