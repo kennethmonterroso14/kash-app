@@ -10,10 +10,11 @@ const PUEDE = [
   'Registrar ingresos, gastos y transferencias',
   'Crear cuentas y poner el saldo real de una cuenta',
 ]
-// Lo que el CONECTOR no ofrece. Se dice así, y no "no podrá", porque el acceso
-// que se aprueba es a la cuenta: la frontera de lo que hace es el conector.
-const NO_PERMITE = [
-  'Borrar ni editar nada de lo que ya tienes',
+// Esto lo hace cumplir la BASE (schema.sql, sección 4b) para cualquier token de
+// asistente, no solo el conector: por eso se puede decir "no podrá".
+const NO_PODRA = [
+  'Editar ni borrar nada, salvo que lo actives en Ajustes → Asistentes de IA',
+  'Cambiar tu perfil ni borrar tu cuenta de Vorta',
   'Ver tu contraseña',
 ]
 
@@ -105,7 +106,7 @@ export default function ConsentimientoPage() {
                 </p>
               </div>
 
-              <p className="text-text text-[15px] font-semibold mb-2">Con el conector de Vorta podrá</p>
+              <p className="text-text text-[15px] font-semibold mb-2">Podrá</p>
               <ul className="space-y-2 mb-4">
                 {PUEDE.map(t => (
                   <li key={t} className="flex gap-2.5 text-[15px] text-text">
@@ -113,9 +114,9 @@ export default function ConsentimientoPage() {
                   </li>
                 ))}
               </ul>
-              <p className="text-text text-[15px] font-semibold mb-2">El conector no permite</p>
+              <p className="text-text text-[15px] font-semibold mb-2">No podrá</p>
               <ul className="space-y-2 mb-5">
-                {NO_PERMITE.map(t => (
+                {NO_PODRA.map(t => (
                   <li key={t} className="flex gap-2.5 text-[15px] text-textDim">
                     <IconoCerrar size={18} className="shrink-0 mt-0.5" />{t}
                   </li>
