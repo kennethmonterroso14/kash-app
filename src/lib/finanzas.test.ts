@@ -13,6 +13,8 @@ import {
   simboloMoneda,
   calcRebanadasCategorias,
   promedioCentavos,
+  centavosConSigno,
+  calcAjusteParaSaldo,
   type ResumenTC,
   type Inversion,
   type InversionHistorial,
@@ -669,5 +671,27 @@ describe('promedioCentavos', () => {
   it('redondea a entero y devuelve 0 sin datos', () => {
     expect(promedioCentavos([100, 200, 201])).toBe(167)
     expect(promedioCentavos([])).toBe(0)
+  })
+})
+
+describe('centavosConSigno', () => {
+  it('convierte con signo y acepta coma decimal', () => {
+    expect(centavosConSigno('1500.50')).toBe(150050)
+    expect(centavosConSigno('-200')).toBe(-20000)
+    expect(centavosConSigno('0')).toBe(0)
+    expect(centavosConSigno('12,34')).toBe(1234)
+  })
+  it('devuelve null si no es un número, en vez de lanzar', () => {
+    expect(centavosConSigno('')).toBeNull()
+    expect(centavosConSigno('abc')).toBeNull()
+  })
+})
+
+describe('calcAjusteParaSaldo', () => {
+  it('es la diferencia que lleva el saldo actual al nuevo', () => {
+    expect(calcAjusteParaSaldo(100000, 125050)).toBe(25050)
+    expect(calcAjusteParaSaldo(100000, 40000)).toBe(-60000)
+    expect(calcAjusteParaSaldo(-5000, 0)).toBe(5000)
+    expect(calcAjusteParaSaldo(7000, 7000)).toBe(0)
   })
 })

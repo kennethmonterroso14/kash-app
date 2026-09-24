@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { supabase } from './lib/supabase'
 import Layout from './components/Layout'
 import SeccionConPestanas from './components/SeccionConPestanas'
 import LoginPage from './pages/LoginPage'
+import ConsentimientoPage from './pages/ConsentimientoPage'
 import SetupPage from './pages/SetupPage'
 import DashboardPage from './pages/DashboardPage'
 import TransaccionesPage from './pages/TransaccionesPage'
@@ -13,6 +14,7 @@ import BudgetPage from './pages/BudgetPage'
 import MetasPage from './pages/MetasPage'
 import ProyeccionesPage from './pages/ProyeccionesPage'
 import AjustesPage from './pages/AjustesPage'
+import AsistentesPage from './pages/AsistentesPage'
 import PagosRecurrentesPage from './pages/PagosRecurrentesPage'
 import CategoriasPage from './pages/CategoriasPage'
 import TarjetasPage from './pages/TarjetasPage'
@@ -22,6 +24,7 @@ import AutoAplicarPagos from './components/AutoAplicarPagos'
 import PoliticaPrivacidad from './pages/legal/PoliticaPrivacidad'
 import Terminos from './pages/legal/Terminos'
 import { SesionProvider } from './context/SesionProvider'
+import { tomarDestino } from './lib/volverTrasLogin'
 
 const PESTANAS_PATRIMONIO = [
   { to: '/patrimonio/cuentas',     label: 'Cuentas' },
@@ -61,6 +64,16 @@ export default function App() {
       })
     return () => { ignore = true }
   }, [userId])
+
+  // Si el login sacó a la persona de la app (Google devuelve al origen), acá
+  // se retoma adonde iba — hoy, el consentimiento de un asistente de IA.
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (!userId) return
+    const destino = tomarDestino()
+    if (destino) navigate(destino, { replace: true })
+  }, [userId, navigate])
 
   if (loading || (user && hasSetup === null)) {
     return (
@@ -107,6 +120,11 @@ export default function App() {
     return <SetupPage user={user} onComplete={() => setSetup({ userId: user.id, value: true })} />
   }
 
+  // Un asistente de IA pide conectarse (OAuth del conector MCP). Pantalla de
+  // paso, fuera del Layout; después del setup, porque el conector necesita el
+  // perfil (zona horaria, moneda) para escribir bien.
+  if (pathname === '/oauth/consent') return <ConsentimientoPage />
+
   // El provider envuelve TODO lo que hay detrás del gate de auth, así que
   // cualquier página puede usar useSesion(). Perfil, cuentas, categorías y
   // tarjetas se cargan una vez acá en lugar de una vez por página.
@@ -141,6 +159,7 @@ export default function App() {
           <Route path="/ajustes" element={<AjustesPage onSignOut={signOut} />} />
           <Route path="/ajustes/pagos" element={<PagosRecurrentesPage />} />
           <Route path="/ajustes/categorias" element={<CategoriasPage />} />
+          <Route path="/ajustes/asistentes" element={<AsistentesPage />} />
 
           {/*
             Rutas viejas conservadas como redirecciones: pueden estar en un

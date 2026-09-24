@@ -20,15 +20,27 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (254 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (298 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
 ## Architecture
 
-Client-only SPA: React 19 + Vite + Tailwind + Supabase. No backend of our own — the browser talks
-straight to Postgres through `@supabase/supabase-js`, and RLS (`auth.uid() = user_id` on every
-table) is the only authorization layer. Deployed on Vercel with SPA rewrites (`vercel.json`).
+SPA: React 19 + Vite + Tailwind + Supabase. The browser talks straight to Postgres through
+`@supabase/supabase-js`, and RLS (`auth.uid() = user_id` on every table) is the only authorization
+layer. Deployed on Vercel with SPA rewrites (`vercel.json`, which keeps `/api/*` and
+`/.well-known/*` out of the fallback).
+
+**The one server-side piece is the MCP connector** (`api/mcp.ts`, logic in `api/_lib/`): a
+stateless Vercel function that lets a person's AI assistant read and write *their* data. It
+authenticates with Supabase Auth's OAuth 2.1 server (consent screen at `/oauth/consent`,
+`ConsentimientoPage`) and forwards the person's token to PostgREST — **never the service role**, so
+RLS stays the boundary. It reuses `finanzas.ts` for the math, and its tools follow the same ledger
+rules (no writes to `cuentas.saldo`, integer centavos, dates in the profile's zone). Two constraints
+that break only in production: relative imports under `api/` carry an explicit `.js` (Vercel runs
+it as unbundled Node ESM), and `api/` may import only dependency-free modules from `src/` — never
+`lib/supabase.ts`, which reads `import.meta.env` at load. `tsconfig.api.json` type-checks it in
+`tsc -b`. Setup and security notes: `docs/MCP.md`.
 
 **Three layers, in order of authority:**
 
@@ -72,7 +84,9 @@ add/edit form of a given entity is **one** component, not two copies.
 `signInWithPassword` / `signUp`, *not* a magic link — plus optional Google OAuth via
 `signInWithOAuth`, whose button only renders when `/auth/v1/settings` reports the provider enabled;
 setup in `docs/LOGIN_GOOGLE.md`) →
-`SetupPage` if the user has no `profiles` row → `Layout` + `Routes`. `Layout` has **no header**:
+`SetupPage` if the user has no `profiles` row → `ConsentimientoPage` if the path is
+`/oauth/consent` (an AI assistant asking to connect; `lib/volverTrasLogin.ts` brings the user back
+there after a Google login, which returns to the origin) → `Layout` + `Routes`. `Layout` has **no header**:
 a soft top scroll edge under the status bar, the global `AlertasBanner`, and a floating 5-item
 bottom nav (Resumen · Movimientos · Tarjetas · Patrimonio · Plan) plus the `+` FAB. The nav icons
 are drawn SVGs in `src/components/iconos.tsx`, not glyphs — no UI font carries them. Each screen

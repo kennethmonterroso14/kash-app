@@ -228,3 +228,13 @@ export function IconoRecargar(p: Props) {
 export function IconoReloj(p: Props) {
   return <Base {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></Base>
 }
+
+/** Chispas: los asistentes de IA conectados. */
+export function IconoChispas(p: Props) {
+  return (
+    <Base {...p}>
+      <path d="M10 3.5 11.6 8a2 2 0 0 0 1.2 1.2l4.5 1.6-4.5 1.6a2 2 0 0 0-1.2 1.2L10 18.1l-1.6-4.5a2 2 0 0 0-1.2-1.2L2.7 10.8l4.5-1.6A2 2 0 0 0 8.4 8z" />
+      <path d="M18 14.5v5M15.5 17h5" />
+    </Base>
+  )
+}

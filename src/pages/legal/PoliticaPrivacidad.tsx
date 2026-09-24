@@ -9,6 +9,9 @@ import PaginaLegal, { H, L, P } from './PaginaLegal'
  * - Sin analítica ni rastreo: `grep -rn "gtag|analytics|sentry|posthog|mixpanel"`
  *   sobre `src/` e `index.html` no devuelve nada.
  * - Inicio con Google (opcional, OAuth de Supabase): correo, nombre y foto.
+ * - Asistentes de IA (opcional): el conector MCP `api/mcp` solo responde con
+ *   el token OAuth que la persona aprobó en `/oauth/consent`, y lo que devuelve
+ *   va al asistente que ella conectó. Se revoca en Ajustes → Asistentes de IA.
  * - Otra sola llamada a un tercero: `api.exchangerate-api.com` en
  *   `useInversiones.fetchTipoCambioDesdeAPI`, y es un GET de tipos de cambio
  *   que no manda ningún dato del usuario. **Esto era falso cuando se escribió**:
@@ -74,14 +77,27 @@ export default function PoliticaPrivacidad() {
         Google.
       </P>
 
+      <H>Si conectás un asistente de IA</H>
+      <P>
+        También es opcional. Desde <strong className="text-text">Ajustes → Asistentes de IA</strong> podés
+        conectar Claude, ChatGPT u otra IA a Vorta. Solo pasa si vos lo agregás en tu asistente y
+        tocás <strong className="text-text">Permitir</strong> en la pantalla de Vorta que te lo pregunta.
+        A partir de ahí, cuando se lo pedís, el conector de Vorta le permite leer tus cuentas, saldos,
+        categorías y movimientos, y registrar movimientos o cuentas en tu nombre; no le permite borrar
+        ni editar nada. Conectá solo asistentes en los que confíes: el acceso que aprobás es a tu cuenta.
+        <strong className="text-text"> Lo que el asistente lee pasa a la empresa que lo ofrece</strong> y
+        queda sujeto a su propia política de privacidad, no a esta. Podés desconectarlo cuando quieras
+        desde la misma pantalla de Ajustes, y deja de tener acceso en ese momento.
+      </P>
+
       <H>Las otras llamadas a terceros</H>
       <P>
-        Además del inicio con Google (si lo usás), hay una sola más.
+        Además del inicio con Google y de los asistentes que conectes (si usás alguno), hay una sola más.
         Si tenés inversiones en dólares y tocás “Usar el tipo de cambio de hoy”, la app consulta el tipo de
         cambio público en <span className="text-text">api.exchangerate-api.com</span>. Esa consulta
         pide la tabla de tipos de cambio del dólar y <strong className="text-text">no manda ningún
         dato tuyo</strong>: ni tu correo, ni tus montos, ni un identificador. Si nunca tocás ese
-        botón ni entrás con Google, la app no habla con nadie más que con su propia base.
+        botón, no entrás con Google ni conectás un asistente, la app no habla con nadie más que con su propia base.
       </P>
 
       <H>Qué se guarda en tu dispositivo</H>
