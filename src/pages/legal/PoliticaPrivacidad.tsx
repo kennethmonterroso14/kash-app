@@ -9,6 +9,8 @@ import PaginaLegal, { H, L, P } from './PaginaLegal'
  * - Sin analítica ni rastreo: `grep -rn "gtag|analytics|sentry|posthog|mixpanel"`
  *   sobre `src/` e `index.html` no devuelve nada.
  * - Inicio con Google (opcional, OAuth de Supabase): correo, nombre y foto.
+ * - Atajo de Apple Pay (opcional): monto, comercio y nombre de la tarjeta de
+ *   Wallet, que el iPhone de la persona manda a /api/atajo; la clave, solo hash.
  * - Asistentes de IA (opcional): el conector MCP `api/mcp` solo responde con
  *   el token OAuth que la persona aprobó en `/oauth/consent`, y lo que devuelve
  *   va al asistente que ella conectó. Se revoca en Ajustes → Asistentes de IA.
@@ -91,6 +93,16 @@ export default function PoliticaPrivacidad() {
         <strong className="text-text"> Lo que el asistente lee pasa a la empresa que lo ofrece</strong> y
         queda sujeto a su propia política de privacidad, no a esta. Podés desconectarlo cuando quieras
         desde la misma pantalla de Ajustes, y deja de tener acceso en ese momento.
+      </P>
+
+      <H>Si usás el atajo de Apple Pay</H>
+      <P>
+        También es opcional. Si armás la automatización de <strong className="text-text">Ajustes → Apple Pay</strong>,
+        tu iPhone le manda a Vorta, en cada pago con Apple Pay, el <strong className="text-text">monto, el comercio
+        y el nombre de la tarjeta</strong> tal como aparece en Wallet — nada más: ni el número de la tarjeta ni
+        tu ubicación. Se guarda como un gasto en la cuenta o tarjeta que elegiste. La clave del atajo se guarda
+        solo como un resumen irreversible (hash); la podés regenerar cuando quieras, y la anterior deja de
+        servir en ese momento.
       </P>
 
       <H>Las otras llamadas a terceros</H>

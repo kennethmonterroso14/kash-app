@@ -15,6 +15,7 @@ import MetasPage from './pages/MetasPage'
 import ProyeccionesPage from './pages/ProyeccionesPage'
 import AjustesPage from './pages/AjustesPage'
 import AsistentesPage from './pages/AsistentesPage'
+import ApplePayPage from './pages/ApplePayPage'
 import PagosRecurrentesPage from './pages/PagosRecurrentesPage'
 import CategoriasPage from './pages/CategoriasPage'
 import TarjetasPage from './pages/TarjetasPage'
@@ -160,6 +161,7 @@ export default function App() {
           <Route path="/ajustes/pagos" element={<PagosRecurrentesPage />} />
           <Route path="/ajustes/categorias" element={<CategoriasPage />} />
           <Route path="/ajustes/asistentes" element={<AsistentesPage />} />
+          <Route path="/ajustes/apple-pay" element={<ApplePayPage />} />
 
           {/*
             Rutas viejas conservadas como redirecciones: pueden estar en un
