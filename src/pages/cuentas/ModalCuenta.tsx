@@ -24,7 +24,7 @@ interface Props {
  *
  * En la edición el saldo NO es un campo: lo mueve el trigger a partir de las
  * transacciones, y escribirlo a mano lo dejaría peleando con los deltas. Para
- * corregirlo está "Ajustar", que inserta un `ajuste`. Eliminar vive acá abajo,
+ * corregirlo está "Cambiar saldo", que inserta un `ajuste` por la diferencia. Eliminar vive acá abajo,
  * con dos toques, y la regla de qué pasa (borrar, archivar o negarse) es de
  * `decidirBajaCuenta`.
  */
@@ -84,7 +84,7 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
     if ('ok' in r) { onCerrar(); return }
     if ('error' in r) { setErr(r.error); return }
     setErr(r.bloqueada === 'saldo'
-      ? `Esta cuenta tiene ${fmt(cuenta.saldo)}. Para eliminarla, primero pasa ese saldo a otra cuenta con una transferencia, o déjala en ${fmt(0)} con "Ajustar".`
+      ? `Esta cuenta tiene ${fmt(cuenta.saldo)}. Para eliminarla, primero pasa ese saldo a otra cuenta con una transferencia, o déjala en ${fmt(0)} con "Cambiar saldo".`
       : 'Esta cuenta tiene pagos fijos activos. Cámbialos a otra cuenta o elimínalos en Ajustes → Pagos fijos, y vuelve a intentarlo.')
   }
 
@@ -112,7 +112,7 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
         {cuenta && (
           <p className="text-textDim text-[13px]">
             Saldo actual <span className="text-text tabular-nums font-semibold">{fmt(cuenta.saldo)}</span>.
-            Para corregirlo usa “Ajustar” en la lista: queda registrado como un ajuste.
+            Para corregirlo usa “Cambiar saldo” en la lista: escribes el saldo real y queda registrado como un ajuste.
           </p>
         )}
 

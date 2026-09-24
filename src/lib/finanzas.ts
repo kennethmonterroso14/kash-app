@@ -244,6 +244,28 @@ export function promedioCentavos(valores: number[]): number {
   return valores.length === 0 ? 0 : Math.round(valores.reduce((s, v) => s + v, 0) / valores.length)
 }
 
+/**
+ * Un monto que escribió el usuario, con signo, a centavos. `toCentavos` lanza
+ * con negativos a propósito (el signo lo pone quien llama); acá se separa el
+ * signo y se vuelve a aplicar. Devuelve null si no es un número.
+ */
+export function centavosConSigno(texto: string): number | null {
+  const val = parseFloat(texto.replace(',', '.'))
+  if (!Number.isFinite(val)) return null
+  return toCentavos(Math.abs(val)) * (val < 0 ? -1 : 1)
+}
+
+/**
+ * Para "sobrescribir" el saldo de una cuenta: el `ajuste` que la lleva de
+ * `actual` a `nuevo`. El saldo nunca se escribe directo — lo mueve el trigger a
+ * partir de las transacciones —, así que poner un saldo es insertar la
+ * diferencia. 0 significa que ya está en ese valor y no hay nada que insertar
+ * (la base además rechaza `cantidad = 0`).
+ */
+export function calcAjusteParaSaldo(actual: number, nuevo: number): number {
+  return nuevo - actual
+}
+
 // ─── PROYECCIONES ─────────────────────────────────────────────
 
 /**

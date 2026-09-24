@@ -18,7 +18,7 @@ export default function CuentasPage() {
   const [mostrarAlta, setMostrarAlta] = useState(false)
   const [editando, setEditando] = useState<Cuenta | null>(null)
   const positivas = cuentas.filter(c => c.saldo > 0)
-  const [ajustando, setAjustando] = useState<{ id: string; nombre: string } | null>(null)
+  const [ajustando, setAjustando] = useState<{ id: string; nombre: string; saldo: number } | null>(null)
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-4">
@@ -77,7 +77,7 @@ export default function CuentasPage() {
           {cuentas.map(c => (
             <li key={c.id} className="flex items-center gap-3 min-h-[64px] py-2 border-t border-perimetro first:border-t-0">
               {/* Tocar la cuenta la edita (nombre, tipo, color, eliminar). El
-                  saldo va aparte, en "Ajustar", porque es un movimiento. */}
+                  saldo va aparte, en "Cambiar saldo", porque es un movimiento. */}
               <button
                 type="button"
                 onClick={() => setEditando(c)}
@@ -98,11 +98,11 @@ export default function CuentasPage() {
                   {fmt(c.saldo)}
                 </p>
                 <button
-                  onClick={() => setAjustando({ id: c.id, nombre: c.nombre })}
-                  aria-label={`Ajustar saldo de ${c.nombre}`}
+                  onClick={() => setAjustando({ id: c.id, nombre: c.nombre, saldo: c.saldo })}
+                  aria-label={`Cambiar el saldo de ${c.nombre}`}
                   className="presionable text-[13px] text-accent"
                 >
-                  Ajustar
+                  Cambiar saldo
                 </button>
               </div>
             </li>
