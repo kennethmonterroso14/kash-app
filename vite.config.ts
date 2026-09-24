@@ -22,6 +22,10 @@ export default defineConfig({
       // Sin fuentes propias que precachear: la app usa SF Pro, la del sistema.
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // El conector MCP y su metadata son del servidor: si el SW contestara
+        // esas URLs con el index.html de la app, abrir /api/mcp en el navegador
+        // mostraría la app en lugar de la respuesta real.
+        navigateFallbackDenylist: [/^\/api\//, /^\/\.well-known\//],
       },
       // `icons.svg` se fue: era un sprite de iconos de redes sociales de la
       // plantilla de Vite, sin un solo uso en `src/`, y estaba precacheándose.
