@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (313 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (347 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -31,16 +31,23 @@ SPA: React 19 + Vite + Tailwind + Supabase. The browser talks straight to Postgr
 layer. Deployed on Vercel with SPA rewrites (`vercel.json`, which keeps `/api/*` and
 `/.well-known/*` out of the fallback).
 
-**The one server-side piece is the MCP connector** (`api/mcp.ts`, logic in `api/_lib/`): a
-stateless Vercel function that lets a person's AI assistant read and write *their* data. It
-authenticates with Supabase Auth's OAuth 2.1 server (consent screen at `/oauth/consent`,
-`ConsentimientoPage`) and forwards the person's token to PostgREST — **never the service role**, so
-RLS stays the boundary. It reuses `finanzas.ts` for the math, and its tools follow the same ledger
-rules (no writes to `cuentas.saldo`, integer centavos, dates in the profile's zone). Two constraints
-that break only in production: relative imports under `api/` carry an explicit `.js` (Vercel runs
-it as unbundled Node ESM), and `api/` may import only dependency-free modules from `src/` — never
-`lib/supabase.ts`, which reads `import.meta.env` at load. `tsconfig.api.json` type-checks it in
-`tsc -b`. Setup and security notes: `docs/MCP.md`.
+**There are two server-side pieces, both stateless Vercel functions under `api/`** (logic in
+`api/_lib/`, tested with `npm test`), and **neither uses the service role**:
+
+- **The MCP connector** (`api/mcp.ts`) lets a person's AI assistant read and write *their* data. It
+  authenticates with Supabase Auth's OAuth 2.1 server (consent screen at `/oauth/consent`,
+  `ConsentimientoPage`) and forwards the person's token to PostgREST, so RLS stays the boundary. Its
+  tools reuse `finanzas.ts` and follow the ledger rules (no writes to `cuentas.saldo`, integer
+  centavos, dates in the profile's zone). Setup and security: `docs/MCP.md`.
+- **The Apple Pay shortcut** (`api/atajo.ts`) receives each Apple Pay payment from an iOS Shortcuts
+  "Transacción" automation. It hashes the person's shortcut key and calls `registrar_pago_atajo` as
+  `anon` — a `security definer` RPC whose only power is inserting one expense for the key's owner.
+  See `docs/APPLE_PAY.md`.
+
+Two constraints that break only in production: relative imports under `api/` carry an explicit
+`.js` (Vercel runs it as unbundled Node ESM), and `api/` may import only dependency-free modules
+from `src/` — never `lib/supabase.ts`, which reads `import.meta.env` at load. `tsconfig.api.json`
+type-checks it in `tsc -b`.
 
 **What an assistant may do is enforced by Postgres, not by the connector** (`schema.sql` §4b): a
 token carrying the `client_id` claim (OAuth; the app's own session has none) reads and inserts
@@ -188,7 +195,7 @@ it fixed.
 
 ## Database
 
-`supabase/schema.sql` is the **single authoritative source**: all 11 tables, enums, indexes, RLS
+`supabase/schema.sql` is the **single authoritative source**: all 13 tables, enums, indexes, RLS
 policies, triggers and RPCs. It runs from scratch on an empty project and is idempotent over a
 deployed one. Its shape was verified against production by introspecting `information_schema`
 (columns, types, nullability, defaults and constraints), so trust it over the SQL blocks inside

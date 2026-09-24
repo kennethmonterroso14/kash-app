@@ -47,7 +47,7 @@ iPhone paga ─▶ Atajo "Transacción" ─POST /api/atajo  (Authorization: Bear
 
 ## Plan
 
-- [ ] Migración `20260925000000_atajo_apple_pay.sql` + `schema.sql` (tablas, RLS, RPC) y test SQL.
-- [ ] `api/atajo.ts` + `api/_lib/atajo.ts` (importe → centavos, hash, respuesta en texto) con tests.
-- [ ] Ajustes → Apple Pay: clave, tarjetas de Wallet y los pasos del atajo.
-- [ ] Privacidad, `docs/APPLE_PAY.md`, CLAUDE.md.
+- [x] Migración `20260925000000_atajo_apple_pay.sql` + `schema.sql` (tablas, RLS, RPC) y test SQL.
+- [x] `api/atajo.ts` + `api/_lib/atajo.ts` (importe → centavos, hash, respuesta en texto) con tests.
+- [x] Ajustes → Apple Pay: clave, tarjetas de Wallet y los pasos del atajo.
+- [x] Privacidad, `docs/APPLE_PAY.md`, CLAUDE.md.
