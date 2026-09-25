@@ -21,6 +21,8 @@ export interface RespuestaPago {
   categoria?: string
   destino?: string
   tarjeta?: string
+  /** El pago quedó esperando que la persona elija la categoría en la app. */
+  por_categorizar?: boolean
 }
 
 export interface DependenciasAtajo {
@@ -74,7 +76,12 @@ export function respuestaPara(r: RespuestaPago, importeCrudo: string): { status:
     : ''
   switch (r.codigo) {
     case 'registrado':
-      return { status: 200, cuerpo: `Vorta ✓ ${monto} · ${r.categoria} · ${r.destino}` }
+      return {
+        status: 200,
+        cuerpo: r.por_categorizar
+          ? `Vorta ✓ ${monto} · ${r.destino}. Abre Vorta para elegir la categoría.`
+          : `Vorta ✓ ${monto} · ${r.categoria} · ${r.destino}`,
+      }
     case 'duplicado':
       return { status: 200, cuerpo: `Vorta: ese pago ya estaba registrado (${monto} · ${r.destino}).` }
     case 'clave_invalida':

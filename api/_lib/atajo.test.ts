@@ -60,6 +60,11 @@ describe('manejarAtajo', () => {
     expect(d.registrar).toHaveBeenCalledWith(hashClave('mi-clave'), 4500, 'Super La Torre', 'BAC Débito')
   })
 
+  it('si el pago quedó por categorizar, lo dice en vez de afirmar una categoría', async () => {
+    const r = await manejarAtajo(post({ monto: 45, comercio: 'x', tarjeta: 't' }), deps({ ...registrado, por_categorizar: true }))
+    expect(await r.text()).toBe('Vorta ✓ Q45.00 · BAC Débito. Abre Vorta para elegir la categoría.')
+  })
+
   it('acepta la clave en el cuerpo, y un formulario en lugar de JSON', async () => {
     const d = deps(registrado)
     await manejarAtajo(post({ clave: 'en-el-cuerpo', monto: 45, comercio: 'x', tarjeta: 't' }, {}), d)
