@@ -70,6 +70,6 @@ hoja donde se elige la categoría de cada pago de un toque, con la aprendida ya 
   `trg_deuda_tc` revierta y re-aplique el cargo contra `deuda_actual` aunque su ciclo ya haya
   cerrado — la razón por la que la UI no edita movimientos de tarjeta.
 
-- [ ] Migración `20260926000000_atajo_por_categorizar.sql` + schema + test SQL.
-- [ ] Respuesta del atajo: "falta la categoría".
-- [ ] Aviso global + hoja para categorizar; pasos del atajo más simples (la clave en el cuerpo).
+- [x] Migración `20260926000000_atajo_por_categorizar.sql` + schema + test SQL.
+- [x] Respuesta del atajo: "falta la categoría".
+- [x] Aviso global + hoja para categorizar; pasos del atajo más simples (la clave en el cuerpo).

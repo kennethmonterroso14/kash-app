@@ -6,14 +6,19 @@ Cada pago con Apple Pay en tienda se registra en Vorta sin tocar nada, vía la a
 ## Cómo funciona
 
 ```
-Pago con Apple Pay ─▶ Atajos "Transacción" ─POST /api/atajo  (Authorization: Bearer <clave>)
-    { "monto": "Q45.00", "comercio": "Super La Torre", "tarjeta": "Visa BI" }
+Pago con Apple Pay ─▶ Atajos "Transacción" ─POST /api/atajo
+    { "clave": "vorta_…", "monto": "Q45.00", "comercio": "Super La Torre", "tarjeta": "Visa BI" }
 /api/atajo ─ sha256(clave), importe → centavos ─▶ rpc registrar_pago_atajo (rol anon)
-◀── texto: "Vorta ✓ Q45.00 · Supermercado · BAC Débito"   (el atajo lo muestra)
+◀── texto: "Vorta ✓ Q45.00 · BAC Débito. Abre Vorta para elegir la categoría."
 ```
 
-- `api/atajo.ts` — handler de Vercel; lógica en `api/_lib/atajo.ts` (lee la clave del encabezado o
-  del cuerpo, entiende el importe en cualquier idioma, arma el texto de respuesta). Tests en
+**La categoría la elige la persona.** El pago se registra al instante (saldo y deuda al día) con la
+categoría aprendida del comercio como sugerencia, y queda en `pagos_por_categorizar`. Un aviso
+global del Layout (`PagosPorCategorizar`) abre una hoja para confirmarla o cambiarla, pago por pago;
+`categorizar_pago()` (§14) cambia solo la categoría sin tocar el reparto de deuda.
+
+- `api/atajo.ts` — handler de Vercel; lógica en `api/_lib/atajo.ts` (lee la clave del cuerpo —
+  lo que enseña la app, un campo más del JSON — o de un `Authorization: Bearer`, entiende el importe en cualquier idioma, arma el texto de respuesta). Tests en
   `api/_lib/atajo.test.ts`.
 - `registrar_pago_atajo` (`schema.sql` §13) — `security definer`, ejecutable solo por `anon`.
   Resuelve la persona por el hash de la clave y registra UN gasto: a una cuenta (`gasto`) o a una

@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (347 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (350 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -42,7 +42,10 @@ layer. Deployed on Vercel with SPA rewrites (`vercel.json`, which keeps `/api/*`
 - **The Apple Pay shortcut** (`api/atajo.ts`) receives each Apple Pay payment from an iOS Shortcuts
   "Transacción" automation. It hashes the person's shortcut key and calls `registrar_pago_atajo` as
   `anon` — a `security definer` RPC whose only power is inserting one expense for the key's owner.
-  See `docs/APPLE_PAY.md`.
+  Each such payment is also marked in `pagos_por_categorizar`, and the global
+  `PagosPorCategorizar` notice in `Layout` asks the person to pick its category; that goes through
+  `categorizar_pago()`, never a plain UPDATE — on a `gasto_tc` a plain UPDATE makes `trg_deuda_tc`
+  re-apply the charge to the open cycle even after its cycle closed. See `docs/APPLE_PAY.md`.
 
 Two constraints that break only in production: relative imports under `api/` carry an explicit
 `.js` (Vercel runs it as unbundled Node ESM), and `api/` may import only dependency-free modules
@@ -195,7 +198,7 @@ it fixed.
 
 ## Database
 
-`supabase/schema.sql` is the **single authoritative source**: all 13 tables, enums, indexes, RLS
+`supabase/schema.sql` is the **single authoritative source**: all 14 tables, enums, indexes, RLS
 policies, triggers and RPCs. It runs from scratch on an empty project and is idempotent over a
 deployed one. Its shape was verified against production by introspecting `information_schema`
 (columns, types, nullability, defaults and constraints), so trust it over the SQL blocks inside
