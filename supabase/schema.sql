@@ -494,6 +494,22 @@ drop policy if exists atajo_tarjetas_own on atajo_tarjetas;
 create policy atajo_tarjetas_own on atajo_tarjetas
   for all using ((select auth.uid()) = user_id);
 
+-- `pagos_por_categorizar`: pagos que llegaron por el atajo y esperan que la
+-- persona elija la categoría. Es una marca FUERA del ledger: el movimiento ya
+-- está registrado (con la categoría sugerida) y ya movió saldo o deuda; borrar
+-- el movimiento borra la marca.
+create table if not exists pagos_por_categorizar (
+  transaccion_id  uuid primary key references transacciones(id) on delete cascade,
+  user_id         uuid references auth.users(id) on delete cascade not null,
+  created_at      timestamptz not null default now()
+);
+create index if not exists pagos_por_categorizar_user on pagos_por_categorizar(user_id, created_at);
+
+alter table pagos_por_categorizar enable row level security;
+drop policy if exists pagos_por_categorizar_own on pagos_por_categorizar;
+create policy pagos_por_categorizar_own on pagos_por_categorizar
+  for all using ((select auth.uid()) = user_id);
+
 -- ══════════════════════════════════════════════════════════════════════
 -- 3. ÍNDICES
 -- ══════════════════════════════════════════════════════════════════════
@@ -643,7 +659,7 @@ begin
     'profiles', 'cuentas', 'transacciones', 'presupuestos', 'metas_ahorro',
     'tarjetas_credito', 'ciclos_tc', 'pagos_recurrentes',
     'categorias_usuario', 'inversiones', 'inversiones_historial',
-    'atajo_claves', 'atajo_tarjetas'
+    'atajo_claves', 'atajo_tarjetas', 'pagos_por_categorizar'
   ]
   loop
     -- `(select …)` para que se evalúe una vez por consulta y no por fila.
@@ -1393,7 +1409,9 @@ grant execute on function borrar_mi_cuenta() to authenticated;
 --       · a una tarjeta de crédito, SIEMPRE en su ciclo abierto — si no hay,
 --         se abre como en cerrar_ciclo_tc: un cargo sin ciclo_id rompe el
 --         reparto al cerrar (el cierre solo migra los cargos de su ciclo);
---       · categoría: la del último gasto con ese mismo comercio, o "Otros";
+--       · categoría: la del último gasto con ese mismo comercio, o "Otros",
+--         como SUGERENCIA: el pago queda en pagos_por_categorizar y la
+--         persona la confirma o la cambia en la app (sección 14);
 --       · el mismo pago dos veces en 2 minutos (el atajo reintentó) no duplica;
 --       · fecha: hoy en la zona del perfil.
 -- ══════════════════════════════════════════════════════════════════════
@@ -1424,6 +1442,7 @@ declare
   v_inicio     date;
   v_cierre     date;
   v_pago       date;
+  v_txn        uuid;
 begin
   if p_centavos is null or p_centavos <= 0 or p_centavos > 1000000000000 then
     return jsonb_build_object('ok', false, 'codigo', 'monto_invalido');
@@ -1492,7 +1511,8 @@ begin
   if v_map.cuenta_id is not null then
     insert into transacciones (user_id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas)
     values (v_uid, v_map.cuenta_id, v_hoy, -p_centavos, v_comercio, v_categoria, 'gasto',
-            'Apple Pay · ' || v_tarjeta);
+            'Apple Pay · ' || v_tarjeta)
+    returning id into v_txn;
   else
     select id into v_ciclo
       from ciclos_tc
@@ -1532,12 +1552,16 @@ begin
 
     insert into transacciones (user_id, tarjeta_id, ciclo_id, fecha, cantidad, descripcion, categoria, tipo, notas)
     values (v_uid, v_map.tarjeta_id, v_ciclo, v_hoy, -p_centavos, v_comercio, v_categoria, 'gasto_tc',
-            'Apple Pay · ' || v_tarjeta);
+            'Apple Pay · ' || v_tarjeta)
+    returning id into v_txn;
   end if;
+
+  -- La persona elige la categoría en la app (la sugerida ya quedó puesta).
+  insert into pagos_por_categorizar (transaccion_id, user_id) values (v_txn, v_uid);
 
   return jsonb_build_object('ok', true, 'codigo', 'registrado', 'centavos', p_centavos,
     'moneda', v_perfil.moneda, 'locale', v_perfil.locale,
-    'categoria', v_categoria, 'destino', v_destino);
+    'categoria', v_categoria, 'destino', v_destino, 'por_categorizar', true);
 end;
 $$;
 
@@ -1547,3 +1571,50 @@ $$;
 revoke all on function registrar_pago_atajo(text, bigint, text, text) from public;
 revoke execute on function registrar_pago_atajo(text, bigint, text, text) from authenticated;
 grant execute on function registrar_pago_atajo(text, bigint, text, text) to anon;
+
+-- ══════════════════════════════════════════════════════════════════════
+-- 14. RPC: elegir la categoría de un pago que llegó por el atajo
+--
+--     Cambia SOLO la categoría, con `vorta.reparto_manual` encendido. Un
+--     UPDATE normal de un `gasto_tc` dispara trg_deuda_tc, que revierte el
+--     reparto guardado y vuelve a aplicar el cargo contra deuda_actual — mal
+--     si el ciclo ya cerró (es la razón por la que la UI no edita movimientos
+--     de tarjeta). Con el monto intacto no hay deuda que recalcular, y el
+--     trigger de saldo de cuentas deja el saldo igual (−OLD + NEW = 0).
+--
+--     Invoker: corre con el RLS de quien llama. Un asistente de IA sin
+--     permiso de modificar no puede (sección 4b).
+-- ══════════════════════════════════════════════════════════════════════
+
+create or replace function categorizar_pago(p_transaccion_id uuid, p_categoria text)
+returns boolean
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_filas int;
+begin
+  if coalesce(btrim(p_categoria), '') = '' or length(btrim(p_categoria)) > 50 then
+    raise exception 'Categoría inválida';
+  end if;
+
+  perform set_config('vorta.reparto_manual', 'on', true);
+  update transacciones
+     set categoria = btrim(p_categoria)
+   where id = p_transaccion_id
+     and user_id = auth.uid()
+     and tipo in ('gasto', 'gasto_tc');
+  get diagnostics v_filas = row_count;
+  perform set_config('vorta.reparto_manual', 'off', true);
+
+  if v_filas = 1 then
+    delete from pagos_por_categorizar
+     where transaccion_id = p_transaccion_id and user_id = auth.uid();
+  end if;
+  return v_filas = 1;
+end;
+$$;
+
+revoke all on function categorizar_pago(uuid, text) from public;
+revoke execute on function categorizar_pago(uuid, text) from anon;
+grant execute on function categorizar_pago(uuid, text) to authenticated;
