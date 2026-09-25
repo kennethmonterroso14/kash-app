@@ -51,3 +51,25 @@ iPhone paga ─▶ Atajo "Transacción" ─POST /api/atajo  (Authorization: Bear
 - [x] `api/atajo.ts` + `api/_lib/atajo.ts` (importe → centavos, hash, respuesta en texto) con tests.
 - [x] Ajustes → Apple Pay: clave, tarjetas de Wallet y los pasos del atajo.
 - [x] Privacidad, `docs/APPLE_PAY.md`, CLAUDE.md.
+
+---
+
+# Adenda (2026-09-25): la categoría la elige la persona
+
+Pedido del dueño: con una misma tarjeta se paga de todo, así que la categoría "aprendida del
+comercio" no alcanza. **El pago se sigue registrando al instante** (monto y tarjeta, para que saldo
+y deuda estén al día), pero queda **por categorizar**: al abrir la app, un aviso global lleva a una
+hoja donde se elige la categoría de cada pago de un toque, con la aprendida ya marcada.
+
+- `pagos_por_categorizar (transaccion_id → transacciones on delete cascade)`: la marca, fuera del
+  ledger. Borrar el movimiento borra la marca.
+- El movimiento se inserta con la categoría sugerida, no con un vacío: si nunca se categoriza, los
+  totales del mes siguen siendo razonables.
+- `categorizar_pago(transaccion_id, categoria)` (invoker, RLS de la persona) cambia **solo** la
+  categoría con `vorta.reparto_manual` encendido: un UPDATE normal de un `gasto_tc` haría que
+  `trg_deuda_tc` revierta y re-aplique el cargo contra `deuda_actual` aunque su ciclo ya haya
+  cerrado — la razón por la que la UI no edita movimientos de tarjeta.
+
+- [ ] Migración `20260926000000_atajo_por_categorizar.sql` + schema + test SQL.
+- [ ] Respuesta del atajo: "falta la categoría".
+- [ ] Aviso global + hoja para categorizar; pasos del atajo más simples (la clave en el cuerpo).
