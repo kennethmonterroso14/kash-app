@@ -14,7 +14,8 @@ import { formatMoneda, toCentavos } from '../../src/lib/finanzas.js'
 export interface RespuestaPago {
   ok: boolean
   codigo: 'registrado' | 'duplicado' | 'clave_invalida' | 'monto_invalido' | 'sin_tarjeta'
-    | 'tarjeta_sin_asignar' | 'destino_inactivo' | 'sin_perfil'
+    | 'tarjeta_sin_asignar' | 'destino_inactivo' | 'sin_perfil' | 'sin_tipo_cambio'
+  /** Lo registrado, en la moneda de la cuenta o tarjeta destino (`moneda`). */
   centavos?: number
   moneda?: string
   locale?: string
@@ -23,10 +24,15 @@ export interface RespuestaPago {
   tarjeta?: string
   /** El pago quedó esperando que la persona elija la categoría en la app. */
   por_categorizar?: boolean
+  /** En qué moneda venía el importe, según la base (null si sin símbolo). */
+  moneda_importe?: string | null
+  /** Si se convirtió a la moneda del destino: lo que se pagó, en su moneda. */
+  centavos_original?: number
+  moneda_original?: string
 }
 
 export interface DependenciasAtajo {
-  registrar(claveHash: string, centavos: number, comercio: string, tarjeta: string): Promise<RespuestaPago>
+  registrar(claveHash: string, centavos: number, comercio: string, tarjeta: string, moneda: string | null): Promise<RespuestaPago>
 }
 
 /** SHA-256 en hex, igual que `crypto.subtle` en Ajustes y `sha256()` en Postgres. */
@@ -66,6 +72,35 @@ export function leerImporte(valor: unknown): number | null {
   return centavos > 0 ? centavos : null
 }
 
+/**
+ * Los símbolos de MONEDAS_SOPORTADAS como los escribe un iPhone, del más
+ * específico al más general: "RD$" antes que "$", "GTQ" antes que "Q".
+ */
+const SIMBOLOS: [RegExp, string][] = [
+  [/US\$|U\$S/, 'USD'],
+  [/(?<![A-Z])([A-Z]{3})(?![A-Z])/, '$1'],   // un código: "GTQ 45.00", "45.00 USD"
+  [/RD\$/, 'DOP'], [/R\$/, 'BRL'], [/C\$/, 'NIO'], [/MX\$/, 'MXN'], [/B\/\./, 'PAB'], [/S\//, 'PEN'],
+  [/€/, 'EUR'], [/₡/, 'CRC'],
+  [/\$/, '$'],
+  [/Q/, 'GTQ'], [/L/, 'HNL'],
+]
+
+/**
+ * La moneda del importe, del texto que manda el atajo: un código ISO, '$' si
+ * trae un "$" a secas, o null si no trae símbolo. El "$" no se decide acá: son
+ * dólares salvo en un perfil en pesos, y el perfil lo conoce la base
+ * (`registrar_pago_atajo`, que con esto convierte a la moneda de la cuenta).
+ */
+export function leerMonedaImporte(valor: unknown): string | null {
+  if (typeof valor !== 'string') return null
+  const t = valor.toUpperCase()
+  for (const [patron, iso] of SIMBOLOS) {
+    const m = patron.exec(t)
+    if (m) return iso === '$1' ? m[1] : iso
+  }
+  return null
+}
+
 const texto = (cuerpo: string, status = 200) =>
   new Response(cuerpo, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } })
 
@@ -75,13 +110,22 @@ export function respuestaPara(r: RespuestaPago, importeCrudo: string): { status:
     ? formatMoneda(r.centavos, { moneda: r.moneda, locale: r.locale })
     : ''
   switch (r.codigo) {
-    case 'registrado':
+    case 'registrado': {
+      // "US$20.00 → Q155.00": lo pagado y lo que quedó en la cuenta.
+      const pagado = r.centavos_original !== undefined && r.moneda_original && r.locale
+        ? `${formatMoneda(r.centavos_original, { moneda: r.moneda_original, locale: r.locale })} → ${monto}`
+        : monto
+      // Una moneda sin tipo de cambio (un pago en euros) queda tal cual: se avisa.
+      const sinConvertir = r.centavos_original === undefined && r.moneda_importe && r.moneda && r.moneda_importe !== r.moneda
+        ? ` Ojo: venía en ${r.moneda_importe} y se registró sin convertir; corrígelo en la app si tu banco cobró otro monto.`
+        : ''
       return {
         status: 200,
-        cuerpo: r.por_categorizar
-          ? `Vorta ✓ ${monto} · ${r.destino}. Abre Vorta para elegir la categoría.`
-          : `Vorta ✓ ${monto} · ${r.categoria} · ${r.destino}`,
+        cuerpo: (r.por_categorizar
+          ? `Vorta ✓ ${pagado} · ${r.destino}. Abre Vorta para elegir la categoría.`
+          : `Vorta ✓ ${pagado} · ${r.categoria} · ${r.destino}`) + sinConvertir,
       }
+    }
     case 'duplicado':
       return { status: 200, cuerpo: `Vorta: ese pago ya estaba registrado (${monto} · ${r.destino}).` }
     case 'clave_invalida':
@@ -96,6 +140,8 @@ export function respuestaPara(r: RespuestaPago, importeCrudo: string): { status:
       return { status: 409, cuerpo: `Vorta: la tarjeta "${r.tarjeta}" va a una cuenta o tarjeta archivada. Cámbiala en Ajustes → Apple Pay; este pago no se registró.` }
     case 'sin_perfil':
       return { status: 409, cuerpo: 'Vorta: abre la app y termina de configurar tu cuenta.' }
+    case 'sin_tipo_cambio':
+      return { status: 409, cuerpo: 'Vorta: falta el tipo de cambio del dólar para convertir este pago. Ponlo en Patrimonio → Cuentas; este pago no se registró.' }
   }
 }
 
@@ -136,7 +182,7 @@ export async function manejarAtajo(request: Request, deps: DependenciasAtajo): P
 
   let resultado: RespuestaPago
   try {
-    resultado = await deps.registrar(hashClave(clave), centavos, comercio, tarjeta)
+    resultado = await deps.registrar(hashClave(clave), centavos, comercio, tarjeta, leerMonedaImporte(cuerpo.monto))
   } catch (e) {
     console.error('[atajo] el RPC falló:', e)
     return texto('Vorta: no se pudo registrar el pago. Anótalo a mano en la app.', 502)

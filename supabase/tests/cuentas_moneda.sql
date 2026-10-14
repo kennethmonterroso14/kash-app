@@ -66,6 +66,24 @@ select pg_temp.exigir((select count(*) from transacciones where descripcion = 'W
 select pg_temp.exigir((select deuda_actual from tarjetas_credito where id = 'c2222222-2222-2222-2222-222222222222') = 15500 + 300,
   'la tarjeta subió en quetzales');
 
+-- ── "$" a secas: dólares, salvo en un perfil que también escribe "$" ───
+set local role anon;
+select pg_temp.exigir(pg_temp.pago(2000, 'Spotify', 'Visa', '$')
+  @> '{"centavos": 15500, "moneda": "GTQ", "moneda_original": "USD"}', '"$20.00" son dólares en un perfil en quetzales');
+-- Otra moneda no se puede convertir (no hay tipo de cambio): tal cual, y se dice.
+select pg_temp.exigir(pg_temp.pago(1500, 'Zara', 'Visa', 'EUR')
+  @> '{"codigo": "registrado", "centavos": 1500, "moneda_importe": "EUR"}', 'en euros, tal cual');
+select pg_temp.exigir(not (pg_temp.pago(1600, 'Zara 2', 'Visa', 'EUR') ? 'centavos_original'), 'en euros, sin conversión');
+reset role;
+update profiles set moneda = 'MXN' where user_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+set local role anon;
+select pg_temp.exigir(pg_temp.pago(2000, 'Oxxo', 'Visa', '$')
+  @> '{"centavos": 2000, "moneda": "MXN", "moneda_importe": "MXN"}', 'en México "$20.00" son pesos: tal cual');
+-- …y a la cuenta en dólares, pesos → dólares con el tipo de cambio del perfil.
+select pg_temp.exigir(pg_temp.pago(7750, 'Oxxo', 'Débito USD', '$') @> '{"centavos": 1000, "moneda": "USD"}', 'pesos a la cuenta en dólares');
+reset role;
+update profiles set moneda = 'GTQ' where user_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 -- ── Un tipo de cambio en 0 lo rechaza la base ──────────────────────────
 do $$ begin
   update profiles set tipo_cambio_usd = 0 where user_id = 'aaaaaaaa-0000-0000-0000-000000000001';
