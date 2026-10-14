@@ -181,10 +181,14 @@ export function calcEstadisticasMes(
  * en que llegan (la lista ya viene por fecha descendente) y con el neto del día
  * en centavos. El neto usa la misma regla que el total del mes: un `pago_tc`
  * no es gasto (mueve deuda) y un `ajuste` tampoco es ingreso ni gasto, así que
- * el neto solo suma ingresos y resta lo que `esGastoComputable` cuenta.
+ * el neto solo suma ingresos y resta lo que `esGastoComputable` cuenta. Los
+ * movimientos de una cuenta en dólares entran al neto convertidos (`valor`); las
+ * filas del grupo quedan intactas, para mostrarse en su moneda.
  */
 export function agruparPorDia<T extends { fecha: string; tipo: Transaccion['tipo']; cantidad: number }>(
   txns: T[],
+  /** Cuánto vale cada movimiento en la moneda del perfil (las cuentas USD se convierten). */
+  valor: (t: T) => number = t => t.cantidad,
 ): { fecha: string; txns: T[]; neto: number }[] {
   const grupos: { fecha: string; txns: T[]; neto: number }[] = []
   const porFecha = new Map<string, { fecha: string; txns: T[]; neto: number }>()
@@ -196,8 +200,8 @@ export function agruparPorDia<T extends { fecha: string; tipo: Transaccion['tipo
       grupos.push(g)
     }
     g.txns.push(t)
-    if (t.tipo === 'ingreso') g.neto += t.cantidad
-    else if (esGastoComputable(t.tipo)) g.neto -= Math.abs(t.cantidad)
+    if (t.tipo === 'ingreso') g.neto += valor(t)
+    else if (esGastoComputable(t.tipo)) g.neto -= Math.abs(valor(t))
   }
   return grupos
 }
@@ -594,6 +598,59 @@ export interface ResumenPortafolio {
 export function usdToGTQ(montoUSD_centavos: number, tipoCambioUSD: number): number {
   if (tipoCambioUSD <= 0) throw new Error('tipoCambioUSD debe ser > 0')
   return Math.round(montoUSD_centavos * tipoCambioUSD / 100)
+}
+
+/** El inverso de `usdToGTQ`: centavos GTQ → centavos USD. */
+export function gtqToUSD(montoGTQ_centavos: number, tipoCambioUSD: number): number {
+  if (tipoCambioUSD <= 0) throw new Error('tipoCambioUSD debe ser > 0')
+  return Math.round(montoGTQ_centavos * 100 / tipoCambioUSD)
+}
+
+// ─── CUENTAS EN DÓLARES ──────────────────────────────────────────
+//
+// Una cuenta guarda su saldo y TODOS sus movimientos en su propia moneda (el
+// trigger de saldo no sabe de monedas: suma `cantidad`). Lo que SUMA entre
+// cuentas —el patrimonio, las estadísticas del mes, presupuestos— pasa primero
+// a la moneda del perfil con el tipo de cambio del perfil; lo que MUESTRA una
+// cuenta o un movimiento usa la moneda de su cuenta. Misma convención que
+// `inversiones.moneda`: 'GTQ' es la moneda del perfil y solo 'USD' se convierte.
+
+export type MonedaCuenta = 'GTQ' | 'USD'
+
+/** Un monto guardado en `moneda`, expresado en la moneda del perfil. */
+export const aMonedaBase = (centavos: number, moneda: string | null | undefined, tipoCambioUSD: number): number =>
+  moneda === 'USD' ? usdToGTQ(centavos, tipoCambioUSD) : centavos
+
+/** De una moneda de cuenta a otra, para las dos patas de una transferencia. */
+export function convertirMoneda(centavos: number, de: MonedaCuenta, a: MonedaCuenta, tipoCambioUSD: number): number {
+  if (de === a) return centavos
+  return de === 'USD' ? usdToGTQ(centavos, tipoCambioUSD) : gtqToUSD(centavos, tipoCambioUSD)
+}
+
+/** El patrimonio en cuentas, en la moneda del perfil: las cuentas USD, convertidas. */
+export function calcTotalCuentas(
+  cuentas: { saldo: number; moneda?: string | null }[],
+  tipoCambioUSD: number,
+): number {
+  return cuentas.reduce((s, c) => s + aMonedaBase(c.saldo, c.moneda, tipoCambioUSD), 0)
+}
+
+/**
+ * Los movimientos con `cantidad` en la moneda del perfil, para SUMARLOS
+ * (`calcEstadisticasMes`, presupuestos, el neto de un día). No para mostrarlos:
+ * una fila se muestra en la moneda de su cuenta.
+ *
+ * `monedaDe` resuelve la moneda de la cuenta del movimiento; uno de tarjeta no
+ * tiene cuenta y es en quetzales. Los que no cambian se devuelven tal cual.
+ */
+export function txnsEnMonedaBase<T extends { cantidad: number; cuenta_id?: string | null }>(
+  txns: T[],
+  monedaDe: (cuentaId: string | null | undefined) => string,
+  tipoCambioUSD: number,
+): T[] {
+  return txns.map(t =>
+    monedaDe(t.cuenta_id) === 'USD' ? { ...t, cantidad: usdToGTQ(t.cantidad, tipoCambioUSD) } : t,
+  )
 }
 
 /**

@@ -15,6 +15,12 @@ import {
   promedioCentavos,
   centavosConSigno,
   calcAjusteParaSaldo,
+  gtqToUSD,
+  aMonedaBase,
+  convertirMoneda,
+  calcTotalCuentas,
+  txnsEnMonedaBase,
+  calcEstadisticasMes,
   type ResumenTC,
   type Inversion,
   type InversionHistorial,
@@ -693,5 +699,70 @@ describe('calcAjusteParaSaldo', () => {
     expect(calcAjusteParaSaldo(100000, 40000)).toBe(-60000)
     expect(calcAjusteParaSaldo(-5000, 0)).toBe(5000)
     expect(calcAjusteParaSaldo(7000, 7000)).toBe(0)
+  })
+})
+
+describe('cuentas en dólares', () => {
+  const TC = 775   // Q7.75 por US$1
+
+  it('gtqToUSD es el inverso de usdToGTQ, redondeando al centavo', () => {
+    expect(gtqToUSD(77_500, TC)).toBe(10_000)        // Q775 → $100
+    expect(gtqToUSD(4_500, TC)).toBe(581)            // Q45 → $5.806… → $5.81
+    expect(() => gtqToUSD(100, 0)).toThrow()
+  })
+
+  it('aMonedaBase solo convierte USD', () => {
+    expect(aMonedaBase(10_000, 'USD', TC)).toBe(77_500)
+    expect(aMonedaBase(10_000, 'GTQ', TC)).toBe(10_000)
+    expect(aMonedaBase(10_000, undefined, TC)).toBe(10_000)
+    expect(aMonedaBase(-5_000, 'USD', TC)).toBe(-38_750)
+  })
+
+  it('convertirMoneda va en los dos sentidos y no toca la misma moneda', () => {
+    expect(convertirMoneda(10_000, 'USD', 'GTQ', TC)).toBe(77_500)
+    expect(convertirMoneda(77_500, 'GTQ', 'USD', TC)).toBe(10_000)
+    expect(convertirMoneda(1_234, 'USD', 'USD', TC)).toBe(1_234)
+  })
+
+  it('calcTotalCuentas suma en la moneda del perfil', () => {
+    expect(calcTotalCuentas([
+      { saldo: 100_000 },                     // Q1,000
+      { saldo: 150_000, moneda: 'USD' },      // US$1,500 → Q11,625
+      { saldo: -20_000, moneda: 'GTQ' },      // sobregiro de Q200
+    ], TC)).toBe(100_000 + 1_162_500 - 20_000)
+  })
+
+  it('txnsEnMonedaBase convierte solo los movimientos de cuentas USD, sin tocar el original', () => {
+    const txns = [
+      { id: 'a', cantidad: -10_000, cuenta_id: 'usd', tipo: 'gasto' as const },
+      { id: 'b', cantidad: -10_000, cuenta_id: 'gtq', tipo: 'gasto' as const },
+      { id: 'c', cantidad: -10_000, cuenta_id: null, tipo: 'gasto_tc' as const },
+    ]
+    const monedaDe = (id: string | null | undefined) => (id === 'usd' ? 'USD' : 'GTQ')
+    const base = txnsEnMonedaBase(txns, monedaDe, TC)
+    expect(base.map(t => t.cantidad)).toEqual([-77_500, -10_000, -10_000])
+    expect(base[1]).toBe(txns[1])
+    expect(txns[0].cantidad).toBe(-10_000)
+  })
+
+  it('las estadísticas del mes suman en quetzales con los USD convertidos', () => {
+    const monedaDe = (id: string | null | undefined) => (id === 'usd' ? 'USD' : 'GTQ')
+    const txns = [
+      { id: '1', fecha: '2026-10-01', cantidad: 500_000, descripcion: 'Salario', categoria: 'Ingreso', tipo: 'ingreso' as const, cuenta_id: 'gtq' },
+      { id: '2', fecha: '2026-10-02', cantidad: -10_000, descripcion: 'Amazon', categoria: 'Otros', tipo: 'gasto' as const, cuenta_id: 'usd' },
+    ]
+    const e = calcEstadisticasMes(txnsEnMonedaBase(txns, monedaDe, TC))
+    expect(e.gastos).toBe(77_500)
+    expect(e.porCategoria.Otros).toBe(77_500)
+  })
+
+  it('agruparPorDia valúa el neto con la función dada y deja las filas intactas', () => {
+    const txns = [
+      { id: 'a', fecha: '2026-10-01', tipo: 'gasto' as const, cantidad: -10_000, moneda: 'USD' },
+      { id: 'b', fecha: '2026-10-01', tipo: 'ingreso' as const, cantidad: 100_000, moneda: 'GTQ' },
+    ]
+    const g = agruparPorDia(txns, t => aMonedaBase(t.cantidad, t.moneda, TC))
+    expect(g[0].neto).toBe(100_000 - 77_500)
+    expect(g[0].txns[0].cantidad).toBe(-10_000)
   })
 })
