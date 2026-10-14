@@ -20,7 +20,7 @@ npm run test:sql                 # triggers y RPCs contra un PostgreSQL local (v
 are missing, so `npm run dev` needs `.env.local` (copy `.env.example`). `npm run build` and
 `npm test` do not.
 
-State of the checks on a clean tree: `build`, `test` (347 tests) and `lint` (0 problems) all pass.
+State of the checks on a clean tree: `build`, `test` (394 tests) and `lint` (0 problems) all pass.
 `npm run test:sql` is separate — it needs a local PostgreSQL, so it is not part of `npm test`.
 Keep it that way — a red check now means your change broke it.
 
@@ -42,7 +42,12 @@ layer. Deployed on Vercel with SPA rewrites (`vercel.json`, which keeps `/api/*`
 - **The Apple Pay shortcut** (`api/atajo.ts`) receives each Apple Pay payment from an iOS Shortcuts
   "Transacción" automation. It hashes the person's shortcut key and calls `registrar_pago_atajo` as
   `anon` — a `security definer` RPC whose only power is inserting one expense for the key's owner.
-  See `docs/APPLE_PAY.md`.
+  Each such payment is also marked in `pagos_por_categorizar`, and the global
+  `PagosPorCategorizar` notice in `Layout` asks the person to pick its category; that goes through
+  `categorizar_pago()`, never a plain UPDATE — on a `gasto_tc` a plain UPDATE makes `trg_deuda_tc`
+  re-apply the charge to the open cycle even after its cycle closed. The RPC also converts the
+  amount to the destination's currency when the text carries one (`leerMonedaImporte`: "US$20.00",
+  "Q45.00"; a bare "$" is resolved by the profile). See `docs/APPLE_PAY.md`.
 
 Two constraints that break only in production: relative imports under `api/` carry an explicit
 `.js` (Vercel runs it as unbundled Node ESM), and `api/` may import only dependency-free modules
@@ -155,8 +160,8 @@ DELETE or UPDATE cannot reverse it. The trigger is BEFORE precisely so it can wr
 
 - `formatMoneda(centavos, { moneda, locale })` in `finanzas.ts` is **pure and does not read the
   context** — that is deliberate, it is what keeps it testable. `useMoneda()` currys it with the
-  profile (`fmt(x)`, or `fmt(x, 'USD')` for an amount stored in another currency, which is what
-  the USD `inversiones` rows are). It returns `'—'` when the profile failed to load rather than
+  profile (`fmt(x)`, or `fmt(x, moneda)` with the `moneda` of an account or investment — only
+  `'USD'` changes the format, see **USD** below). It returns `'—'` when the profile failed to load rather than
   formatting with a guessed currency. **There is no `formatQ` any more** — it was retired once the
   last call site migrated, so nothing can hardcode quetzales by accident. `calcDisponibleReal`
   takes the money options too, because one of its three warnings quotes an amount.
@@ -176,9 +181,27 @@ out of the timezone, so changing a user's zone moves which transactions land in 
 Read `categoriasGasto` / `categoriasIngreso` / `coloresCategorias` from the hook — importing the
 constants directly in a page silently drops the user's own categories.
 
-**USD**: `inversiones` rows carry `moneda: 'GTQ' | 'USD'` and are stored in centavos of their own
-currency. `profiles.tipo_cambio_usd` is *centavos GTQ per 1 USD* (`775` = Q7.75). Convert with
-`usdToGTQ(...)` before summing anything across currencies.
+**USD**: `cuentas` and `inversiones` both carry `moneda: 'GTQ' | 'USD'`, and `'GTQ'` there means
+*the profile's currency*, not quetzales literally — `monedaISO` translates it; never hand the column
+straight to `formatMoneda` / `simboloMoneda`. An account's balance **and every movement of it** are
+in its currency (the saldo trigger never looks at currency). `profiles.tipo_cambio_usd` is
+*centavos of the profile currency per 1 USD* (`775` = Q7.75, `check > 0`): **one rate for the whole
+app**, written only by `useTipoCambio` (by hand, or "Usar el tipo de cambio de hoy"), reachable from
+the `BotonTipoCambio` chip in Cuentas and Inversiones.
+
+The rule is **what sums converts, what displays keeps its currency.** The provider's
+`totalPatrimonio` is `calcTotalCuentas` (converted), and month stats, the 6-month chart, budgets
+and day nets go through `useMonedas().txnsEnBase` / `enBase`; a row shows
+`fmt(t.cantidad, monedaDe(t.cuenta_id))`. `monedasCuentas` in the session maps **every** account,
+archived ones too, because their movements stay in the history. A movement without an account (a
+card's) is in the profile currency, and so are cards — so a `pago_tc` only comes from an account
+in the profile currency: the trigger lowers the debt by the same number it debits. A transfer
+between currencies stores each leg in its account's currency (`cantidadDestino`), so the legs don't
+sum to zero. Changing an account's currency **relabels, it does not convert**.
+
+Without migration `20261014000000_cuentas_moneda.sql` the column doesn't exist: `useCuentas`
+re-reads without it and `monedaCuentasDisponible` is false (the selector hides), the MCP falls back
+the same way, and `/api/atajo` falls back to the 4-argument RPC.
 
 **Recurring payments**: `useAutoApplyPagos` runs once per session per user, keyed by a `useRef` on
 the user id. It is mounted by `<AutoAplicarPagos>` **inside** the provider, not from `App.tsx`,
@@ -195,7 +218,7 @@ it fixed.
 
 ## Database
 
-`supabase/schema.sql` is the **single authoritative source**: all 13 tables, enums, indexes, RLS
+`supabase/schema.sql` is the **single authoritative source**: all 14 tables, enums, indexes, RLS
 policies, triggers and RPCs. It runs from scratch on an empty project and is idempotent over a
 deployed one. Its shape was verified against production by introspecting `information_schema`
 (columns, types, nullability, defaults and constraints), so trust it over the SQL blocks inside

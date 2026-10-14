@@ -16,6 +16,7 @@ import TituloGrande from '../components/TituloGrande'
 import { IconoAjustes } from '../components/iconos'
 import { CLASE_BOTON_TITULO } from '../lib/clasesUI'
 import { useMontosOcultos } from '../hooks/useMontosOcultos'
+import { useMonedas } from '../hooks/useMonedas'
 import TarjetaPatrimonio from './dashboard/TarjetaPatrimonio'
 import TarjetaDisponibleReal from './dashboard/TarjetaDisponibleReal'
 import TarjetasTC from './dashboard/TarjetasTC'
@@ -42,7 +43,9 @@ export default function DashboardPage() {
   const { limites, error: errorLimites } = useLimitesPresupuesto(userId, mes)
   const errorCuentas = errores.cuentas
 
-  const stats = useMemo(() => calcEstadisticasMes(txns), [txns])
+  // En quetzales: los movimientos de cuentas en dólares entran convertidos.
+  const { txnsEnBase } = useMonedas()
+  const stats = useMemo(() => calcEstadisticasMes(txnsEnBase(txns)), [txns, txnsEnBase])
   const disponibleReal = useMemo(
     // La moneda va a la advertencia, que cita un monto.
     () => calcDisponibleReal(totalPatrimonio, tarjetas, { moneda: perfil.moneda, locale: perfil.locale }),

@@ -25,6 +25,8 @@ export function sesionFalsa(perfil: Partial<Perfil> = {}, errorPerfil: string | 
     perfil: { ...PERFIL_DEFAULT, ...perfil },
     cuentas: [],
     totalPatrimonio: 0,
+    monedasCuentas: {},
+    monedaCuentasDisponible: true,
     categoriasGasto: [],
     categoriasIngreso: [],
     coloresCategorias: {},

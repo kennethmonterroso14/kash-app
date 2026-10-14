@@ -1,22 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { decidirBajaCuenta } from '../lib/bajaCuenta'
+import type { MonedaCuenta } from '../lib/finanzas'
 
 export interface Cuenta {
   id: string
   nombre: string
   tipo: string
-  saldo: number   // centavos
+  saldo: number   // centavos de SU moneda
   color: string
   activa: boolean
+  /** Moneda de la cuenta: el saldo y todos sus movimientos están en ella. */
+  moneda: MonedaCuenta
 }
 
-/** Lo editable de una cuenta. El saldo NO: lo mueve el trigger (usar un ajuste). */
+/**
+ * Lo editable de una cuenta. El saldo NO: lo mueve el trigger (usar un ajuste).
+ * Cambiar la moneda re-etiqueta la cuenta: los números no se convierten.
+ */
 export interface CambiosCuenta {
   nombre: string
   tipo: string
   color: string
+  moneda?: MonedaCuenta
 }
+
+const COLUMNAS = 'id, nombre, tipo, saldo, color, activa'
 
 /**
  * El resultado de pedir eliminar una cuenta. `bloqueada` no es un error: es la
@@ -30,7 +39,12 @@ export type ResultadoBaja =
 const ERROR_GENERICO = 'No se pudo completar. Revisa tu conexión e intenta de nuevo.'
 
 export function useCuentas(userId: string | undefined) {
-  const [cuentas, setCuentas] = useState<Cuenta[]>([])
+  // TODAS las cuentas, también las archivadas: no se muestran, pero sus
+  // movimientos siguen en el historial y para sumarlos hay que saber su moneda.
+  const [todas, setTodas] = useState<Cuenta[]>([])
+  // false = la base todavía no tiene `cuentas.moneda` (migración sin aplicar):
+  // todo es quetzales y la app no ofrece elegir moneda.
+  const [monedaDisponible, setMonedaDisponible] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,12 +56,16 @@ export function useCuentas(userId: string | undefined) {
   const recargar = useCallback(async () => {
     if (!userId) return
     const gen = ++genRef.current
-    const { data, error: qError } = await supabase
+    const leer = (columnas: string) => supabase
       .from('cuentas')
-      .select('id, nombre, tipo, saldo, color, activa')
+      .select(columnas)
       .eq('user_id', userId)
-      .eq('activa', true)
       .order('created_at')
+    let { data, error: qError } = await leer(`${COLUMNAS}, moneda`)
+    // Como `profiles.acento`: una base sin la migración de la moneda no tumba
+    // las cuentas. Se relee sin la columna y todas quedan en quetzales.
+    const sinColumna = !!qError && /moneda/.test(qError.message)
+    if (sinColumna) ({ data, error: qError } = await leer(COLUMNAS))
     if (gen !== genRef.current) return
     if (qError) {
       // Un query fallido no es "sin cuentas": no vaciamos la lista y
@@ -55,7 +73,11 @@ export function useCuentas(userId: string | undefined) {
       setError(qError.message)
     } else {
       setError(null)
-      setCuentas(data ?? [])
+      setMonedaDisponible(!sinColumna)
+      setTodas(((data ?? []) as unknown as Partial<Cuenta>[]).map(c => ({
+        ...(c as Cuenta),
+        moneda: c.moneda === 'USD' ? 'USD' : 'GTQ',
+      })))
     }
     setLoading(false)
   }, [userId])
@@ -74,17 +96,27 @@ export function useCuentas(userId: string | undefined) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { recargar() }, [recargar])
 
-  const totalPatrimonio = cuentas.reduce((sum, c) => sum + c.saldo, 0)
+  // Las que se muestran y se eligen: las activas. El total en quetzales lo
+  // calcula el provider, que es el que tiene el tipo de cambio del perfil.
+  const cuentas = useMemo(() => todas.filter(c => c.activa), [todas])
+  const monedas = useMemo(
+    () => Object.fromEntries(todas.map(c => [c.id, c.moneda])) as Record<string, MonedaCuenta>,
+    [todas],
+  )
 
   /** Devuelve el mensaje de error para mostrar, o null si salió bien. */
   const actualizarCuenta = useCallback(async (id: string, cambios: CambiosCuenta): Promise<string | null> => {
     if (!userId) return ERROR_GENERICO
-    const fila = { nombre: cambios.nombre.trim(), tipo: cambios.tipo, color: cambios.color }
+    const fila = {
+      nombre: cambios.nombre.trim(), tipo: cambios.tipo, color: cambios.color,
+      // Sin la columna no se manda: el update entero fallaría por ella.
+      ...(cambios.moneda && monedaDisponible && { moneda: cambios.moneda }),
+    }
     const { error: e } = await supabase.from('cuentas').update(fila).eq('id', id).eq('user_id', userId)
     if (e) return ERROR_GENERICO
-    setCuentas(prev => prev.map(c => (c.id === id ? { ...c, ...fila } : c)))
+    setTodas(prev => prev.map(c => (c.id === id ? { ...c, ...fila } : c)))
     return null
-  }, [userId])
+  }, [userId, monedaDisponible])
 
   /**
    * Borra la cuenta si no tiene historial, la archiva si lo tiene, o se niega
@@ -121,9 +153,12 @@ export function useCuentas(userId: string | undefined) {
       const { error: e } = await supabase.from('cuentas').update({ activa: false }).eq('id', id).eq('user_id', userId)
       if (e) return { error: ERROR_GENERICO }
     }
-    setCuentas(prev => prev.filter(c => c.id !== id))
+    // Archivada sigue en `todas` (su historial necesita su moneda); borrada no.
+    setTodas(prev => hecho === 'borrada'
+      ? prev.filter(c => c.id !== id)
+      : prev.map(c => (c.id === id ? { ...c, activa: false } : c)))
     return { ok: hecho }
   }, [userId])
 
-  return { cuentas, loading, error, totalPatrimonio, recargar, actualizarCuenta, eliminarCuenta }
+  return { cuentas, monedas, monedaDisponible, loading, error, recargar, actualizarCuenta, eliminarCuenta }
 }

@@ -3,6 +3,7 @@ import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
+import { useMonedas } from '../../hooks/useMonedas'
 import { useSesion } from '../../context/sesion'
 import type { Transaccion } from '../../hooks/useTransacciones'
 
@@ -16,6 +17,9 @@ interface Props {
 
 export default function ModalEditarTxn({ txn, actualizar, onCerrar }: Props) {
   const { categoriasGasto, categoriasIngreso } = useSesion()
+  const { monedaDe, simbolo: simboloDe } = useMonedas()
+  // El monto está en la moneda de su cuenta (US$ si la cuenta es en dólares).
+  const simbolo = simboloDe(monedaDe(txn.cuenta_id))
   // Ver la nota de htmlFor en ModalNuevoMovimiento.
 
   const [cantidad, setCantidad] = useState(String(Math.abs(txn.cantidad) / 100))
@@ -33,7 +37,7 @@ export default function ModalEditarTxn({ txn, actualizar, onCerrar }: Props) {
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
     const val = parseFloat(cantidad)
-    if (isNaN(val) || val <= 0) { setErr('Ingresa un monto mayor a Q0'); return }
+    if (isNaN(val) || val <= 0) { setErr('Ingresa un monto mayor a 0'); return }
     setGuardando(true)
     setErr('')
     // Se preserva el SIGNO guardado. Derivarlo del tipo volteaba el signo de
@@ -54,7 +58,7 @@ export default function ModalEditarTxn({ txn, actualizar, onCerrar }: Props) {
     <Hoja titulo="Editar movimiento" onCerrar={onCerrar}>
       <form onSubmit={enviar} className="space-y-3">
         <Campo
-          etiqueta={`Monto (Q) — ${txn.tipo}`}
+          etiqueta={`Monto (${simbolo}) — ${txn.tipo}`}
           tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={cantidad} onChange={e => setCantidad(e.target.value)}
           clase="text-xl tabular-nums"

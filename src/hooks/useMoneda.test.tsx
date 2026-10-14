@@ -16,6 +16,7 @@ function Sonda() {
     <div>
       <p data-testid="propia">{fmt(150000)}</p>
       <p data-testid="explicita">{fmt(150000, 'USD')}</p>
+      <p data-testid="cuenta-local">{fmt(150000, 'GTQ')}</p>
       <p data-testid="negativo">{fmt(-150000)}</p>
     </div>
   )
@@ -33,6 +34,9 @@ describe('useMoneda', () => {
   it('un perfil hondureño da lempiras sin tocar el código', () => {
     render(<ConSesion sesion={sesionFalsa({ moneda: 'HNL', locale: 'es-HN' })}><Sonda /></ConSesion>)
     expect(screen.getByTestId('propia')).toHaveTextContent('L1,500.00')
+    // Una cuenta con moneda 'GTQ' está en la moneda del PERFIL (cuentas.moneda):
+    // en Honduras son lempiras, no quetzales.
+    expect(screen.getByTestId('cuenta-local')).toHaveTextContent('L1,500.00')
   })
 
   it('el default de Guatemala sigue dando lo de siempre', () => {

@@ -165,17 +165,21 @@ export function useTransacciones(userId: string | undefined, mes: string) {
     deCuentaId: string
     aCuentaId: string
     cantidad: number   // centavos, positive
+    /** Lo que llega a la cuenta destino, en SU moneda. Por defecto, `cantidad`. */
+    cantidadDestino?: number
     descripcion: string
     fecha: string
   }) => {
     if (!userId) return { error: 'Sin usuario' }
-    const { deCuentaId, aCuentaId, cantidad, descripcion, fecha } = params
+    const { deCuentaId, aCuentaId, cantidad, cantidadDestino, descripcion, fecha } = params
     const base = { user_id: userId, categoria: 'Transferencia', tipo: 'ajuste' as const, descripcion, fecha }
     const { data, error } = await supabase
       .from('transacciones')
       .insert([
         { ...base, cuenta_id: deCuentaId, cantidad: -cantidad },
-        { ...base, cuenta_id: aCuentaId,  cantidad: +cantidad },
+        // Entre monedas distintas las patas no suman cero: cada una está en la
+        // moneda de su cuenta (Q775 salen, US$100 llegan).
+        { ...base, cuenta_id: aCuentaId,  cantidad: +(cantidadDestino ?? cantidad) },
       ])
       .select(COLS)
     if (!error && data) {

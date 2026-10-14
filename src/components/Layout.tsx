@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import AlertasBanner from './AlertasBanner'
+import PagosPorCategorizar from './PagosPorCategorizar'
 import BotonNuevoMovimiento from './BotonNuevoMovimiento'
 import ModalNuevoMovimiento from '../pages/transacciones/ModalNuevoMovimiento'
 import {
@@ -85,6 +86,7 @@ export default function Layout({ children, userId }: Props) {
         {/* Alertas globales: una tarjeta de vidrio dentro del flujo, así que scrollean con
             el contenido y aparecer/desaparecer no descuadra ninguna capa fija. */}
         <AlertasBanner userId={userId} />
+        <PagosPorCategorizar userId={userId} />
         {children}
       </main>
 

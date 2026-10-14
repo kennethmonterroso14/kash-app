@@ -2,6 +2,7 @@ import BotonConfirmar from '../../components/BotonConfirmar'
 import { IconoEditar, IconoCheck } from '../../components/iconos'
 import type { PagoRecurrente } from '../../hooks/usePagosRecurrentes'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 
 export type EstadoPago = 'aplicado' | 'pendiente' | 'proximo'
 
@@ -17,6 +18,8 @@ export default function FilaPago({
   pago: p, estado, nombreCuenta, onEditar, onBorrar,
 }: Props) {
   const fmt = useMoneda()
+  // El auto-aplicador lo carga tal cual a la cuenta: está en la moneda de ella.
+  const { monedaDe } = useMonedas()
 
   return (
     <div className="vidrio-panel rounded-tarjeta p-4">
@@ -36,7 +39,7 @@ export default function FilaPago({
           </p>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-danger tabular-nums text-sm font-semibold">-{fmt(p.monto)}</span>
+          <span className="text-danger tabular-nums text-sm font-semibold">-{fmt(p.monto, monedaDe(p.cuenta_id))}</span>
           <button
             onClick={onEditar}
             aria-label={`Editar ${p.nombre}`}

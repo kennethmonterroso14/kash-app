@@ -5,6 +5,7 @@ import Hoja from '../../components/Hoja'
 import { toCentavos } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import type { PagoRecurrente } from '../../hooks/usePagosRecurrentes'
+import { useMonedas } from '../../hooks/useMonedas'
 
 /**
  * Solo hasta 28: un pago fijo el 30 no existiría en febrero, y el
@@ -30,6 +31,7 @@ interface Props {
 
 export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
   const { cuentas, categoriasGasto } = useSesion()
+  const { simbolo: simboloDe } = useMonedas()
   const editando = !!pago
 
   // 'Suscripciones' es el default razonable para un pago fijo, pero solo si el
@@ -45,6 +47,11 @@ export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
   const [categoria, setCategoria] = useState(categoriaInicial)
   const [guardando, setGuardando] = useState(false)
   const [err, setErr] = useState('')
+
+  // El auto-aplicador carga el monto tal cual a la cuenta, así que se escribe
+  // en la moneda de ella.
+  const monedaCuenta = cuentas.find(c => c.id === cuenta)?.moneda ?? 'GTQ'
+  const simbolo = simboloDe(monedaCuenta)
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,7 +81,7 @@ export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
           value={nombre} onChange={e => setNombre(e.target.value)}
         />
         <Campo
-          etiqueta="Monto (Q)" tipo="number" step="0.01" min="0.01" required placeholder="0.00"
+          etiqueta={`Monto (${simbolo})`} tipo="number" step="0.01" min="0.01" required placeholder="0.00"
           value={monto} onChange={e => setMonto(e.target.value)}
           clase="text-xl tabular-nums"
         />
@@ -96,7 +103,7 @@ export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
           etiqueta="Cuenta de cargo" tipo="select"
           value={cuenta} onChange={e => setCuenta(e.target.value)}
         >
-          {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.moneda === 'USD' ? ' (US$)' : ''}</option>)}
         </Campo>
 
         {err && <Aviso>{err}</Aviso>}

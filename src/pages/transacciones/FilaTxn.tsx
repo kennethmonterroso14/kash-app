@@ -3,6 +3,7 @@ import BotonConfirmar from '../../components/BotonConfirmar'
 import { IconoEditar } from '../../components/iconos'
 import type { Transaccion } from '../../hooks/useTransacciones'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 
 interface Props {
   txn: Transaccion
@@ -21,6 +22,7 @@ interface Props {
  */
 export default function FilaTxn({ txn, color, editable, onEditar, onBorrar }: Props) {
   const fmt = useMoneda()
+  const { monedaDe } = useMonedas()
 
   return (
     <li className="flex items-center gap-3 min-h-[60px] py-2 border-t border-perimetro first:border-t-0">
@@ -30,7 +32,7 @@ export default function FilaTxn({ txn, color, editable, onEditar, onBorrar }: Pr
         <p className="text-textDim text-[13px] truncate">{txn.categoria}</p>
       </div>
       <span className={`tabular-nums text-[16px] font-semibold flex-shrink-0 ${txn.cantidad > 0 ? 'text-success' : 'text-text'}`}>
-        {txn.cantidad > 0 ? '+' : ''}{fmt(txn.cantidad)}
+        {txn.cantidad > 0 ? '+' : ''}{fmt(txn.cantidad, monedaDe(txn.cuenta_id))}
       </span>
       <div className="flex items-center -mr-2 flex-shrink-0">
         {editable && (

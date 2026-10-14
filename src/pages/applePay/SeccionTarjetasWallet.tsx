@@ -50,7 +50,7 @@ export default function SeccionTarjetasWallet() {
       <option value="">Sin asignar</option>
       {cuentas.length > 0 && (
         <optgroup label="Cuentas (gasto)">
-          {cuentas.map(c => <option key={c.id} value={`c:${c.id}`}>{c.nombre}</option>)}
+          {cuentas.map(c => <option key={c.id} value={`c:${c.id}`}>{c.nombre}{c.moneda === 'USD' ? ' (US$)' : ''}</option>)}
         </optgroup>
       )}
       {tarjetas.length > 0 && (

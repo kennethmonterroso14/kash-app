@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import AvatarCategoria from '../../components/AvatarCategoria'
 import type { Transaccion } from '../../hooks/useTransacciones'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 import { fechaCorta } from '../../lib/constants'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
  */
 export default function UltimosMovimientos({ txns, coloresCategorias, n = 5 }: Props) {
   const fmt = useMoneda()
+  const { monedaDe } = useMonedas()
   // Por fecha y, dentro del día, por alta: un alta optimista entra al principio
   // del arreglo sin reordenar, así que no se confía en el orden que trae.
   const ultimos = [...txns]
@@ -40,7 +42,7 @@ export default function UltimosMovimientos({ txns, coloresCategorias, n = 5 }: P
               <p className="text-textDim text-[13px] truncate">{t.categoria} · {fechaCorta(t.fecha)}</p>
             </div>
             <span className={`tabular-nums text-[16px] font-semibold shrink-0 ${t.cantidad > 0 ? 'text-success' : 'text-text'}`}>
-              {t.cantidad > 0 ? '+' : ''}{fmt(t.cantidad)}
+              {t.cantidad > 0 ? '+' : ''}{fmt(t.cantidad, monedaDe(t.cuenta_id))}
             </span>
           </li>
         ))}

@@ -51,24 +51,24 @@ export default function PasosAtajo() {
           </div>
         </Paso>
         <Paso n={4}>
-          <p>Toca <Dato>Mostrar más</Dato> y configura:</p>
+          <p>Toca <Dato>Mostrar más</Dato> (Show More). Método: <Dato>POST</Dato>. Cuerpo de la solicitud: <Dato>JSON</Dato>. Agrega cuatro campos de tipo texto:</p>
           <ul className="text-textDim space-y-0.5">
-            <li>Método: <Dato>POST</Dato></li>
-            <li>Encabezado <Dato>Authorization</Dato> = <Dato>Bearer</Dato>, un espacio y tu clave</li>
-            <li>Cuerpo: <Dato>JSON</Dato>, con tres campos de texto:</li>
-            <li className="pl-3">monto → la variable <Dato>Importe</Dato> (Amount)</li>
-            <li className="pl-3">comercio → <Dato>Comercio</Dato> (Merchant)</li>
-            <li className="pl-3">tarjeta → <Dato>Tarjeta o pase</Dato> (Card or Pass)</li>
+            <li><Dato>clave</Dato> → pega tu clave (paso 1)</li>
+            <li><Dato>monto</Dato> → la variable <Dato>Importe</Dato> (Amount)</li>
+            <li><Dato>comercio</Dato> → <Dato>Comercio</Dato> (Merchant)</li>
+            <li><Dato>tarjeta</Dato> → <Dato>Tarjeta o pase</Dato> (Card or Pass)</li>
           </ul>
+          <p className="text-textDim">Las variables aparecen arriba del teclado al tocar el valor de cada campo.</p>
         </Paso>
         <Paso n={5}>
           <p>Opcional: agrega <Dato>Mostrar notificación</Dato> (Show Notification) con el <Dato>Contenido de la URL</Dato> para ver lo que registró Vorta.</p>
         </Paso>
       </ol>
       <p className="text-textDim text-[13px] mt-4">
-        Funciona con pagos de Apple Pay en tienda (iPhone o Apple Watch). Las compras en línea y la tarjeta
-        física no disparan la automatización. La categoría se aprende del comercio: corrígela una vez en
-        Movimientos y los siguientes pagos ahí usarán esa.
+        Cada pago se registra al instante en la cuenta o tarjeta que asignaste, y al abrir Vorta te pide
+        la categoría (con la del último pago en ese comercio ya marcada). Funciona con pagos de Apple Pay en
+        tienda, con el iPhone o el Apple Watch; la tarjeta física y muchas compras en línea no disparan la
+        automatización.
       </p>
     </section>
   )

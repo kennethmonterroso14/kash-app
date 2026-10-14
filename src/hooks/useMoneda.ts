@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useSesion } from '../context/sesion'
-import { formatMoneda } from '../lib/finanzas'
+import { formatMoneda, monedaISO } from '../lib/finanzas'
 
 /**
  * Formatea centavos con la moneda y el locale del usuario.
@@ -8,11 +8,12 @@ import { formatMoneda } from '../lib/finanzas'
  *   const fmt = useMoneda()
  *   fmt(150000)          → "Q1,500.00" | "$1,500.00" | "L1,500.00"
  *   fmt(150000, 'USD')   → "$1,500.00"  (moneda explícita, locale del perfil)
+ *   fmt(150000, 'GTQ')   → igual que fmt(150000): 'GTQ' es la del perfil
  *
- * El segundo parámetro existe para los montos que están guardados en su propia
- * moneda y no en la del perfil: las filas USD de `inversiones`. Antes eso se
- * armaba a mano (`$${x / 100}.toFixed(2)`), que se saltaba el separador de
- * miles.
+ * El segundo parámetro es la moneda de una cuenta o inversión (`monedaISO`):
+ * solo 'USD' cambia el formato. Así un perfil en lempiras no ve "Q" en sus
+ * cuentas "en la moneda del perfil". Antes eso se armaba a mano
+ * (`$${x / 100}.toFixed(2)`), que se saltaba el separador de miles.
  *
  * `formatMoneda` se queda pura en `finanzas.ts`; la currificación con el perfil
  * es esto. Meter el contexto dentro del formateador rompería su pureza y sus
@@ -31,6 +32,6 @@ export function useMoneda(): (centavos: number, moneda?: string) => string {
     const locale = perfil.locale
     const propia = perfil.moneda
     return (centavos: number, moneda?: string) =>
-      perfilFallo ? '—' : formatMoneda(centavos, { moneda: moneda ?? propia, locale })
+      perfilFallo ? '—' : formatMoneda(centavos, { moneda: monedaISO(moneda, propia), locale })
   }, [perfil.locale, perfil.moneda, perfilFallo])
 }

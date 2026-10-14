@@ -2,28 +2,25 @@
 import { useState } from 'react'
 import Aviso from '../components/Aviso'
 import EstadoVacio from '../components/EstadoVacio'
-import { IconoAlerta, IconoMas, IconoTendencia } from '../components/iconos'
+import { IconoMas, IconoTendencia } from '../components/iconos'
 import { useInversiones, type Inversion } from '../hooks/useInversiones'
 import { useSesion } from '../context/sesion'
-import { useMoneda } from '../hooks/useMoneda'
 import ResumenPortafolio from './inversiones/ResumenPortafolio'
 import InversionTile from './inversiones/InversionTile'
 import ModalInversion from './inversiones/ModalInversion'
 import ModalActualizarValor from './inversiones/ModalActualizarValor'
-import ModalTipoCambio from './inversiones/ModalTipoCambio'
-import { estaDesactualizado } from './inversiones/tipoCambio'
+import BotonTipoCambio from '../components/BotonTipoCambio'
 
-type Pantalla = 'lista' | 'nueva' | 'editar' | 'actualizar_valor' | 'tipo_cambio'
+type Pantalla = 'lista' | 'nueva' | 'editar' | 'actualizar_valor'
 
 export default function InversionesPage() {
   const { userId } = useSesion()
-  const fmt = useMoneda()
   const {
     inversiones, resumen, evolucionPortafolio,
-    tipoCambioUSD, tipoCambioFecha, tieneUSD,
+    tipoCambioUSD, tieneUSD,
     loading, error,
-    agregarInversion, actualizarValor, archivarInversion, actualizarTipoCambio,
-    actualizarInversion, fetchTipoCambioDesdeAPI,
+    agregarInversion, actualizarValor, archivarInversion,
+    actualizarInversion,
   } = useInversiones(userId)
 
   const [pantalla, setPantalla] = useState<Pantalla>('lista')
@@ -36,12 +33,6 @@ export default function InversionesPage() {
   }
   const volver = () => setPantalla('lista')
 
-  // El reloj se lee UNA vez, en el inicializador del estado, y no en cada
-  // render: leerlo en el cuerpo del componente lo vuelve impuro (lo marca
-  // react-hooks/purity). Para un aviso de "hace 7+ días" alcanza con la marca
-  // del montaje.
-  const [montadoEn] = useState(() => Date.now())
-  const desactualizado = estaDesactualizado(tipoCambioFecha, montadoEn)
 
   if (loading) {
     return (
@@ -69,18 +60,7 @@ export default function InversionesPage() {
         >
           <IconoMas size={18} /> Nueva inversión
         </button>
-        {tieneUSD && (
-          <button
-            onClick={() => abrir('tipo_cambio')}
-            aria-label={`Tipo de cambio: ${fmt(tipoCambioUSD)} por dólar${desactualizado ? ', desactualizado' : ''}`}
-            className={`presionable h-11 px-4 rounded-full text-[15px] font-semibold tabular-nums inline-flex items-center gap-1.5 whitespace-nowrap ${
-              desactualizado ? 'bg-warning/15 text-warning' : 'vidrio-chip text-text'
-            }`}
-          >
-            {desactualizado && <IconoAlerta size={16} />}
-            {fmt(tipoCambioUSD)} / USD
-          </button>
-        )}
+        {tieneUSD && <BotonTipoCambio />}
       </div>
 
       {/* Vacío de verdad, no un fallo de consulta: el error se muestra arriba. */}
@@ -118,16 +98,6 @@ export default function InversionesPage() {
           inv={sel}
           actualizarValor={actualizarValor}
           archivar={archivarInversion}
-          onCerrar={volver}
-        />
-      )}
-      {pantalla === 'tipo_cambio' && (
-        <ModalTipoCambio
-          tipoCambioUSD={tipoCambioUSD}
-          tipoCambioFecha={tipoCambioFecha}
-          desactualizado={desactualizado}
-          guardar={actualizarTipoCambio}
-          consultarAPI={fetchTipoCambioDesdeAPI}
           onCerrar={volver}
         />
       )}

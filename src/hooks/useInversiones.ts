@@ -26,11 +26,9 @@ export function useInversiones(userId: string) {
   // El tipo de cambio vive en `profiles`, y de eso ya es dueño el contexto de
   // sesión. Antes este hook lo consultaba por su cuenta, que era una de las
   // seis consultas duplicadas a esa tabla.
-  const { perfil, error: erroresSesion, refrescar } = useSesion()
+  // Leerlo y cambiarlo es de `useTipoCambio`: es uno para toda la app.
+  const { perfil } = useSesion()
   const tipoCambioUSD = perfil.tipo_cambio_usd
-  // Si el perfil no cargó, la fecha queda en null y la UI marca el tipo de
-  // cambio como "sin verificar" en lugar de presentar el default como vigente.
-  const tipoCambioFecha = erroresSesion.perfil ? null : perfil.tipo_cambio_actualizado_at
   const [inversiones, setInversiones]         = useState<Inversion[]>([])
   const [historial, setHistorial]             = useState<InversionHistorial[]>([])
   const [loading, setLoading]                 = useState(true)
@@ -290,34 +288,6 @@ export function useInversiones(userId: string) {
     return data
   }
 
-  const actualizarTipoCambio = async (nuevoCambio: number) => {
-    // nuevoCambio: centavos GTQ por 1 USD (ej: 775 = Q7.75)
-    if (nuevoCambio <= 0) throw new Error('El tipo de cambio debe ser mayor a 0')
-    const ahora = new Date().toISOString()
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ tipo_cambio_usd: nuevoCambio, tipo_cambio_actualizado_at: ahora })
-      .eq('user_id', userId)
-    if (error) throw new Error(`Error al actualizar tipo de cambio: ${error.message}`)
-    // El perfil es dueño del tipo de cambio, así que se invalida ese slice en
-    // lugar de guardar una copia local que podría quedar desincronizada.
-    await refrescar.perfil()
-  }
-
-  const fetchTipoCambioDesdeAPI = async (): Promise<number> => {
-    // Usa la API gratuita de exchangerate-api.com (sin API key, GTQ incluido)
-    const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD')
-    if (!res.ok) throw new Error('No se pudo conectar a la API de tipo de cambio')
-    const json = await res.json() as { rates: Record<string, number> }
-    const rateGTQ = json.rates['GTQ']
-    if (!rateGTQ || rateGTQ <= 0) throw new Error('GTQ no disponible en la API')
-    // Convertir a centavos (ej: 7.75 → 775)
-    const centavos = Math.round(rateGTQ * 100)
-    await actualizarTipoCambio(centavos)
-    return centavos
-  }
-
   const resumen = useMemo(
     () => calcResumenPortafolio(inversiones, tipoCambioUSD),
     [inversiones, tipoCambioUSD]
@@ -336,16 +306,13 @@ export function useInversiones(userId: string) {
     resumen,
     evolucionPortafolio,
     tipoCambioUSD,
-    tipoCambioFecha,
     tieneUSD,
     loading,
     error,
     agregarInversion,
     actualizarValor,
     archivarInversion,
-    actualizarTipoCambio,
     actualizarInversion,
-    fetchTipoCambioDesdeAPI,
     recargar: cargar,
   }
 }

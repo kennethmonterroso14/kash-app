@@ -56,7 +56,7 @@ describe('construirCSV', () => {
   })
 
   it('emite la cabecera aunque no haya filas', () => {
-    expect(construirCSV([], nombres)).toBe('﻿fecha,descripcion,categoria,tipo,cantidad_Q,cuenta')
+    expect(construirCSV([], nombres)).toBe('﻿fecha,descripcion,categoria,tipo,cantidad,moneda,cuenta')
   })
 
   it('el monto va como número, no como texto entrecomillado', () => {
@@ -80,7 +80,17 @@ describe('construirCSV', () => {
   it('una descripción con coma o salto de línea no rompe las columnas', () => {
     const csv = construirCSV([txn({ descripcion: 'Uber, centro\ncon espera' })], nombres)
     expect(csv).toContain('"Uber, centro\ncon espera"')
-    // La cabecera sigue teniendo seis columnas.
-    expect(csv.split('\n')[0].split(',')).toHaveLength(6)
+    // La cabecera sigue teniendo siete columnas.
+    expect(csv.split('\n')[0].split(',')).toHaveLength(7)
+  })
+
+  it('cada movimiento lleva la moneda de su cuenta, y la cantidad queda en ella', () => {
+    const csv = construirCSV([
+      txn({ id: 'a', cuenta_id: 'usd', cantidad: -1000 }),
+      txn({ id: 'b', cuenta_id: 'c1', cantidad: -1000 }),
+    ], { ...nombres, moneda: id => (id === 'usd' ? 'USD' : 'GTQ') })
+    const [, a, b] = csv.split('\n')
+    expect(a).toContain(',-10.00,"USD",')
+    expect(b).toContain(',-10.00,"GTQ",')
   })
 })

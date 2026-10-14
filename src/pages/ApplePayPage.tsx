@@ -18,7 +18,7 @@ export default function ApplePayPage() {
     <div className="max-w-lg mx-auto px-4 pb-6">
       <TituloGrande
         titulo="Apple Pay"
-        subtitulo="Tus pagos se registran solos"
+        subtitulo="Tus pagos se registran solos; tú eliges la categoría"
         volver={{ a: '/ajustes', etiqueta: 'Ajustes' }}
       />
       <div className="mt-4">

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
-import { hashClave, leerImporte, manejarAtajo, type DependenciasAtajo, type RespuestaPago } from './atajo.js'
+import { hashClave, leerImporte, leerMonedaImporte, manejarAtajo, type DependenciasAtajo, type RespuestaPago } from './atajo.js'
 
 describe('leerImporte', () => {
   it.each([
@@ -19,6 +19,19 @@ describe('leerImporte', () => {
 
   it.each([[''], ['Q'], ['abc'], ['0.00'], [0], [NaN], [null], [undefined], [{}]])('%s no se entiende', entrada => {
     expect(leerImporte(entrada)).toBeNull()
+  })
+})
+
+describe('leerMonedaImporte', () => {
+  it.each([
+    ['Q45.00', 'GTQ'], ['GTQ 1,234', 'GTQ'], ['GTQ1,234', 'GTQ'],
+    ['US$45.00', 'USD'], ['USD 45.00', 'USD'], ['45.00 USD', 'USD'], ['U$S 45', 'USD'],
+    ['$45.00', '$'],                     // ambiguo: lo resuelve la base con el perfil
+    ['MX$45.00', 'MXN'], ['RD$45.00', 'DOP'], ['R$ 45,00', 'BRL'], ['C$45.00', 'NIO'],
+    ['1.234,56 €', 'EUR'], ['L45.00', 'HNL'], ['₡4,500.00', 'CRC'], ['S/ 45.00', 'PEN'], ['B/.45.00', 'PAB'],
+    ['45.00', null], [45, null], [null, null],
+  ])('%s → %s', (entrada, esperado) => {
+    expect(leerMonedaImporte(entrada)).toBe(esperado)
   })
 })
 
@@ -57,20 +70,39 @@ describe('manejarAtajo', () => {
     expect(r.status).toBe(200)
     expect(r.headers.get('Content-Type')).toMatch(/text\/plain/)
     expect(await r.text()).toBe('Vorta ✓ Q45.00 · Supermercado · BAC Débito')
-    expect(d.registrar).toHaveBeenCalledWith(hashClave('mi-clave'), 4500, 'Super La Torre', 'BAC Débito')
+    expect(d.registrar).toHaveBeenCalledWith(hashClave('mi-clave'), 4500, 'Super La Torre', 'BAC Débito', 'GTQ')
+  })
+
+  it('si el pago quedó por categorizar, lo dice en vez de afirmar una categoría', async () => {
+    const r = await manejarAtajo(post({ monto: 45, comercio: 'x', tarjeta: 't' }), deps({ ...registrado, por_categorizar: true }))
+    expect(await r.text()).toBe('Vorta ✓ Q45.00 · BAC Débito. Abre Vorta para elegir la categoría.')
+  })
+
+  it('si la base convirtió a la moneda de la cuenta, muestra lo pagado y lo registrado', async () => {
+    const d = deps({ ...registrado, centavos: 15500, centavos_original: 2000, moneda_original: 'USD', moneda_importe: 'USD', por_categorizar: true })
+    const r = await manejarAtajo(post({ monto: 'US$20.00', comercio: 'Netflix', tarjeta: 'Visa' }), d)
+    expect(await r.text()).toBe('Vorta ✓ $20.00 → Q155.00 · BAC Débito. Abre Vorta para elegir la categoría.')
+    expect(d.registrar).toHaveBeenCalledWith(hashClave('mi-clave'), 2000, 'Netflix', 'Visa', 'USD')
+  })
+
+  it('una moneda que no se puede convertir queda tal cual, y lo avisa', async () => {
+    const r = await manejarAtajo(post({ monto: '15,00 €', comercio: 'Zara', tarjeta: 'Visa' }), deps({ ...registrado, moneda_importe: 'EUR' }))
+    expect(await r.text()).toMatch(/Ojo: venía en EUR y se registró sin convertir/)
+    const igual = await manejarAtajo(post({ monto: 'Q45', comercio: 'x', tarjeta: 't' }), deps({ ...registrado, moneda_importe: 'GTQ' }))
+    expect(await igual.text()).not.toMatch(/Ojo/)
   })
 
   it('acepta la clave en el cuerpo, y un formulario en lugar de JSON', async () => {
     const d = deps(registrado)
     await manejarAtajo(post({ clave: 'en-el-cuerpo', monto: 45, comercio: 'x', tarjeta: 't' }, {}), d)
-    expect(d.registrar).toHaveBeenLastCalledWith(hashClave('en-el-cuerpo'), 4500, 'x', 't')
+    expect(d.registrar).toHaveBeenLastCalledWith(hashClave('en-el-cuerpo'), 4500, 'x', 't', null)
     const form = new Request('https://vorta.test/api/atajo', {
       method: 'POST',
       headers: { Authorization: 'Bearer f', 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ monto: '12,50', comercio: 'Café', tarjeta: 'Visa' }).toString(),
     })
     await manejarAtajo(form, d)
-    expect(d.registrar).toHaveBeenLastCalledWith(hashClave('f'), 1250, 'Café', 'Visa')
+    expect(d.registrar).toHaveBeenLastCalledWith(hashClave('f'), 1250, 'Café', 'Visa', null)
   })
 
   it('sin clave: 401 y no llama a la base', async () => {
@@ -92,6 +124,7 @@ describe('manejarAtajo', () => {
     [{ ok: false, codigo: 'clave_invalida' }, 401, /Genera una nueva/],
     [{ ok: false, codigo: 'tarjeta_sin_asignar', tarjeta: 'Amex' }, 409, /"Amex" no está asignada.*no se registró/],
     [{ ok: false, codigo: 'destino_inactivo', tarjeta: 'Vieja' }, 409, /archivada/],
+    [{ ok: false, codigo: 'sin_tipo_cambio' }, 409, /tipo de cambio.*no se registró/],
     [{ ok: true, codigo: 'duplicado', centavos: 4500, moneda: 'GTQ', locale: 'es-GT', destino: 'BAC' }, 200, /ya estaba registrado \(Q45\.00 · BAC\)/],
   ])('%o → %i', async (respuesta, status, mensaje) => {
     const r = await manejarAtajo(post({ monto: 45, comercio: 'x', tarjeta: 't' }), deps(respuesta))

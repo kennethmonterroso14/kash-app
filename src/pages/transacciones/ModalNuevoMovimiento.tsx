@@ -5,10 +5,11 @@ import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import SelectorCategoria from '../../components/SelectorCategoria'
 import { IconoAlerta } from '../../components/iconos'
-import { simboloMoneda, toCentavos } from '../../lib/finanzas'
+import { convertirMoneda, toCentavos, type MonedaCuenta } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
+import { useMonedas } from '../../hooks/useMonedas'
 import { AL_INSTANTE, posicionIndicador, RESORTE_SEGMENTO, useMenosMovimiento } from '../../lib/movimiento'
 import type { useTransacciones } from '../../hooks/useTransacciones'
 
@@ -73,15 +74,31 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
   const [tcId, setTcId] = useState(resumenTCs[0]?.tc.id ?? '')
   const [transferDe, setTransferDe] = useState('')
   const [transferA, setTransferA] = useState('')
+  // Lo que llega cuando las dos cuentas son de monedas distintas. Vacío = el
+  // monto convertido con el tipo de cambio del perfil (la sugerencia visible).
+  const [recibido, setRecibido] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [err, setErr] = useState('')
 
   const categorias = tipo === 'ingreso' ? categoriasIngreso : categoriasGasto
 
+  // El monto se escribe en la moneda de la cuenta que lo mueve: la elegida, o
+  // la de origen en una transferencia. Las tarjetas son en quetzales.
+  const monedaDeCuenta = (id: string): MonedaCuenta => cuentas.find(c => c.id === id)?.moneda ?? 'GTQ'
+  const monedaMonto: MonedaCuenta = tipo === 'gasto_tc' ? 'GTQ'
+    : tipo === 'transferencia' ? monedaDeCuenta(transferDe)
+    : monedaDeCuenta(cuentaId)
+  const monedaDestino = monedaDeCuenta(transferA)
+  const entreMonedas = tipo === 'transferencia' && !!transferDe && !!transferA && monedaMonto !== monedaDestino
+  const { simbolo } = useMonedas()
+  const montoSugerido = entreMonedas && parseFloat(cantidad) > 0
+    ? convertirMoneda(toCentavos(parseFloat(cantidad)), monedaMonto, monedaDestino, perfil.tipo_cambio_usd)
+    : null
+
   const cambiarTipo = (t: Tipo) => {
     setTipo(t)
     setCategoria(t === 'ingreso' ? categoriasIngreso[0] : categoriasGasto[0])
-    if (t === 'transferencia') { setTransferDe(''); setTransferA('') }
+    if (t === 'transferencia') { setTransferDe(''); setTransferA(''); setRecibido('') }
   }
 
   // Aviso del disponible que quedaría en la TC. Sobre el monto ya validado:
@@ -96,17 +113,24 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
     e.preventDefault()
     setErr('')
     const val = parseFloat(cantidad)
-    if (isNaN(val) || val <= 0) return setErr('Ingresa un monto mayor a Q0')
+    if (isNaN(val) || val <= 0) return setErr('Ingresa un monto mayor a 0')
 
     setGuardando(true)
     try {
       if (tipo === 'transferencia') {
         if (!transferDe || !transferA)   return setErr('Selecciona ambas cuentas')
         if (transferDe === transferA)    return setErr('Las cuentas deben ser distintas')
+        let cantidadDestino: number | undefined
+        if (entreMonedas) {
+          const llega = recibido.trim() === '' ? null : parseFloat(recibido)
+          if (llega !== null && (isNaN(llega) || llega <= 0)) return setErr('Ingresa lo que llega, mayor a 0')
+          cantidadDestino = llega === null ? montoSugerido ?? undefined : toCentavos(llega)
+        }
         const { error } = await agregarTransferencia({
           deCuentaId: transferDe,
           aCuentaId: transferA,
           cantidad: toCentavos(val),
+          cantidadDestino,
           descripcion: descripcion || 'Transferencia',
           fecha,
         })
@@ -180,7 +204,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
         <label className="flex items-baseline justify-center gap-1 py-3">
           <span className="sr-only">Monto</span>
           <span aria-hidden="true" className="text-textDim text-[28px] font-semibold">
-            {simboloMoneda({ moneda: perfil.moneda, locale: perfil.locale })}
+            {simbolo(monedaMonto)}
           </span>
           <input
             type="number" inputMode="decimal" step="0.01" min="0.01" required placeholder="0.00"
@@ -198,13 +222,23 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
             <div className="grid grid-cols-2 gap-3">
               <Campo etiqueta="De cuenta" tipo="select" required value={transferDe} onChange={e => setTransferDe(e.target.value)}>
                 <option value="">Seleccionar</option>
-                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.moneda === 'USD' ? ' (US$)' : ''}</option>)}
               </Campo>
               <Campo etiqueta="A cuenta" tipo="select" required value={transferA} onChange={e => setTransferA(e.target.value)}>
                 <option value="">Seleccionar</option>
-                {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                {cuentas.filter(c => c.id !== transferDe).map(c => <option key={c.id} value={c.id}>{c.nombre}{c.moneda === 'USD' ? ' (US$)' : ''}</option>)}
               </Campo>
             </div>
+            {entreMonedas && (
+              <Campo
+                etiqueta={`Llega (${simbolo(monedaDestino)})`}
+                tipo="number" step="0.01" min="0.01" inputMode="decimal"
+                placeholder={montoSugerido !== null ? (montoSugerido / 100).toFixed(2) : '0.00'}
+                value={recibido} onChange={e => setRecibido(e.target.value)}
+                clase="tabular-nums"
+                pista={`Con el tipo de cambio de ${fmt(perfil.tipo_cambio_usd)} por US$1. Si tu banco usó otro, escribe lo que llegó.`}
+              />
+            )}
             <Campo
               etiqueta="Descripción (opcional)" placeholder="ej. Ahorro mensual"
               value={descripcion} onChange={e => setDescripcion(e.target.value)}
@@ -232,7 +266,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
                 </Campo>
               ) : (
                 <Campo etiqueta="Cuenta" tipo="select" value={cuentaId} onChange={e => setCuentaId(e.target.value)}>
-                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.moneda === 'USD' ? ' (US$)' : ''}</option>)}
                 </Campo>
               )}
             </div>

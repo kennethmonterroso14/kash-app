@@ -3,6 +3,7 @@ import { IconoEditar, IconoChevron } from '../../components/iconos'
 import { calcEstadoPresupuesto, esGastoComputable } from '../../lib/finanzas'
 import { useColores } from '../../hooks/useColores'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 import type { Presupuesto } from '../../hooks/usePresupuestos'
 import type { Transaccion } from '../../hooks/useTransacciones'
 
@@ -21,6 +22,7 @@ export default function TarjetaPresupuesto({
 }: Props) {
   const colores = useColores()
   const fmt = useMoneda()
+  const { monedaDe, enBase } = useMonedas()
 
   // Mismo criterio que el total del mes: `gasto_tc` cuenta (un gasto con
   // tarjeta es gasto igual) y `pago_tc` no (mueve deuda, no es consumo nuevo).
@@ -28,7 +30,8 @@ export default function TarjetaPresupuesto({
   const propias = txns
     .filter(t => esGastoComputable(t.tipo) && t.categoria === p.categoria)
     .sort((a, b) => b.fecha.localeCompare(a.fecha))
-  const gastado = propias.reduce((s, t) => s + Math.abs(t.cantidad), 0)
+  // En quetzales, como el límite: un gasto en una cuenta en dólares, convertido.
+  const gastado = propias.reduce((s, t) => s + Math.abs(enBase(t.cantidad, monedaDe(t.cuenta_id))), 0)
 
   const { pct, estado, restante } = calcEstadoPresupuesto(gastado, p.monto_limite)
   const colorBarra = estado === 'excedido' ? colores.danger
@@ -110,7 +113,7 @@ export default function TarjetaPresupuesto({
                   <p className="text-textDim text-xs tracking-micro">{t.fecha}</p>
                 </div>
                 <span className="text-danger text-xs tabular-nums font-semibold flex-shrink-0">
-                  −{fmt(Math.abs(t.cantidad))}
+                  −{fmt(Math.abs(t.cantidad), monedaDe(t.cuenta_id))}
                 </span>
               </div>
             ))

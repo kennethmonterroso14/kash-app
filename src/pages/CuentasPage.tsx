@@ -5,13 +5,18 @@ import AvatarCategoria from '../components/AvatarCategoria'
 import Monto from '../components/Monto'
 import { useSesion } from '../context/sesion'
 import { useMontosOcultos } from '../hooks/useMontosOcultos'
+import BotonTipoCambio from '../components/BotonTipoCambio'
 import ModalCuenta from './cuentas/ModalCuenta'
 import { IconoEditar, IconoOjo } from '../components/iconos'
 import type { Cuenta } from '../hooks/useCuentas'
+import { useMoneda } from '../hooks/useMoneda'
+import { useMonedas } from '../hooks/useMonedas'
 import ModalAjusteSaldo from './cuentas/ModalAjusteSaldo'
 
 export default function CuentasPage() {
   const { cuentas, totalPatrimonio, cargando, error: errores } = useSesion()
+  const fmt = useMoneda()
+  const { enBase } = useMonedas()
   // El mismo ojo que Resumen: ocultar en una pantalla oculta en las dos.
   const [oculto, alternarMontos] = useMontosOcultos()
   const cargandoCuentas = cargando.cuentas
@@ -20,7 +25,10 @@ export default function CuentasPage() {
   const [mostrarAlta, setMostrarAlta] = useState(false)
   const [editando, setEditando] = useState<Cuenta | null>(null)
   const positivas = cuentas.filter(c => c.saldo > 0)
-  const [ajustando, setAjustando] = useState<{ id: string; nombre: string; saldo: number } | null>(null)
+  const [ajustando, setAjustando] = useState<Cuenta | null>(null)
+  // Lo que hay en dólares, para decir de dónde sale la parte convertida del total.
+  const enDolares = cuentas.filter(c => c.moneda === 'USD')
+  const totalUSD = enDolares.reduce((s, c) => s + c.saldo, 0)
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-4">
@@ -56,8 +64,21 @@ export default function CuentasPage() {
         {!error && !oculto && positivas.length > 0 && (
           <div aria-hidden="true" className="flex gap-1 h-2.5 mt-4">
             {positivas.map(c => (
-              <div key={c.id} className="rounded-full min-w-1.5" style={{ flexGrow: c.saldo, background: c.color }} />
+              // El ancho en la moneda del perfil: US$100 no pesa lo mismo que Q100.
+              <div key={c.id} className="rounded-full min-w-1.5" style={{ flexGrow: enBase(c.saldo, c.moneda), background: c.color }} />
             ))}
+          </div>
+        )}
+        {/* Las cuentas en dólares entran al total convertidas con el tipo de
+            cambio de Inversiones; acá se dice cuánto y con cuál, y se cambia. */}
+        {!error && enDolares.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mt-4">
+            <p className="text-textDim text-[13px] min-w-0">
+              {oculto
+                ? 'Incluye cuentas en dólares, convertidas al tipo de cambio.'
+                : <>Incluye <span className="text-text tabular-nums">{fmt(totalUSD, 'USD')}</span> en dólares (≈ <span className="tabular-nums">{fmt(enBase(totalUSD, 'USD'))}</span>).</>}
+            </p>
+            <BotonTipoCambio clase="shrink-0 h-9 px-3 text-[13px]" />
           </div>
         )}
       </div>
@@ -102,15 +123,17 @@ export default function CuentasPage() {
                     <span className="truncate">{c.nombre}</span>
                     <IconoEditar size={13} className="text-textDim shrink-0" />
                   </span>
-                  <span className="block text-textDim text-[13px] capitalize">{c.tipo}</span>
+                  <span className="block text-textDim text-[13px]">
+                    <span className="capitalize">{c.tipo}</span>{c.moneda === 'USD' && ' · en dólares'}
+                  </span>
                 </span>
               </button>
               <div className="text-right flex-shrink-0">
                 <p className={`tabular-nums text-[16px] font-semibold ${c.saldo >= 0 ? 'text-text' : 'text-danger'}`}>
-                  <Monto valor={c.saldo} oculto={oculto} />
+                  <Monto valor={c.saldo} moneda={c.moneda} oculto={oculto} />
                 </p>
                 <button
-                  onClick={() => setAjustando({ id: c.id, nombre: c.nombre, saldo: c.saldo })}
+                  onClick={() => setAjustando(c)}
                   aria-label={`Cambiar el saldo de ${c.nombre}`}
                   className="presionable text-[13px] text-accent"
                 >
