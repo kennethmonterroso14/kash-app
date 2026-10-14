@@ -9,7 +9,9 @@
  *   · insertar, editar o borrar en `transacciones` mueve `cuentas.saldo`;
  *   · `rlsBloqueaModificar` hace que update y delete no toquen ninguna fila,
  *     como las policies restrictivas de la sección 4b cuando el asistente no
- *     tiene permiso (RLS no da error: devuelve cero filas).
+ *     tiene permiso (RLS no da error: devuelve cero filas);
+ *   · `columnasFaltantes` es una migración sin aplicar: leer o escribir esa
+ *     columna falla con el error de PostgREST.
  * Las filas nuevas reciben id y los defaults de `cuentas`.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -19,6 +21,7 @@ type Fila = Record<string, unknown>
 interface Opciones {
   fallaInsert?: boolean
   rlsBloqueaModificar?: boolean
+  columnasFaltantes?: Record<string, string[]>
 }
 
 export function baseFalsa(tablas: Record<string, Fila[]>, opciones: Opciones = {}) {
@@ -36,6 +39,10 @@ export function baseFalsa(tablas: Record<string, Fila[]>, opciones: Opciones = {
       let operacion: 'leer' | 'insertar' | 'editar' | 'borrar' = 'leer'
       let pendiente: Fila[] = []
       let cambios: Fila = {}
+      let faltante: string | undefined
+      const revisar = (columnas: string[]) => {
+        faltante ??= (opciones.columnasFaltantes?.[tabla] ?? []).find(c => columnas.includes(c))
+      }
 
       const filtradas = () => (tablas[tabla] ?? []).filter(f => filtros.every(p => p(f)))
       const salida = (filas: Fila[]) => {
@@ -45,6 +52,7 @@ export function baseFalsa(tablas: Record<string, Fila[]>, opciones: Opciones = {
       }
 
       const resolver = () => {
+        if (faltante) return { data: null, error: { message: `column ${tabla}.${faltante} does not exist` } }
         if (operacion === 'insertar') {
           if (opciones.fallaInsert) return { data: null, error: { message: 'insert falló' } }
           const nuevas: Fila[] = pendiente.map(f => ({
@@ -78,7 +86,8 @@ export function baseFalsa(tablas: Record<string, Fila[]>, opciones: Opciones = {
       }
 
       const q = {
-        select: (_cols?: string, opts?: { count?: string; head?: boolean }) => {
+        select: (cols?: string, opts?: { count?: string; head?: boolean }) => {
+          if (cols) revisar(cols.split(',').map(c => c.trim()))
           if (opts?.head) conteo = true
           return q
         },
@@ -90,8 +99,12 @@ export function baseFalsa(tablas: Record<string, Fila[]>, opciones: Opciones = {
         limit: (n: number) => { limite = n; return q },
         single: () => { modo = 'una'; return q },
         maybeSingle: () => { modo = 'unaOpcional'; return q },
-        insert: (filas: Fila | Fila[]) => { operacion = 'insertar'; pendiente = Array.isArray(filas) ? filas : [filas]; return q },
-        update: (valores: Fila) => { operacion = 'editar'; cambios = valores; return q },
+        insert: (filas: Fila | Fila[]) => {
+          operacion = 'insertar'; pendiente = Array.isArray(filas) ? filas : [filas]
+          revisar(pendiente.flatMap(f => Object.keys(f)))
+          return q
+        },
+        update: (valores: Fila) => { operacion = 'editar'; cambios = valores; revisar(Object.keys(valores)); return q },
         delete: () => { operacion = 'borrar'; return q },
         then: (ok: (r: unknown) => unknown, mal?: (e: unknown) => unknown) => Promise.resolve(resolver()).then(ok, mal),
       }

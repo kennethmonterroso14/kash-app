@@ -16,7 +16,8 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  calcAjusteParaSaldo, calcEstadisticasMes, formatMoneda, type OpcionesMoneda, type Transaccion,
+  calcAjusteParaSaldo, calcEstadisticasMes, calcTotalCuentas, convertirMoneda, formatMoneda, monedaISO,
+  txnsEnMonedaBase, type MonedaCuenta, type OpcionesMoneda, type Transaccion,
 } from '../../src/lib/finanzas.js'
 import { CATEGORIAS_GASTO, CATEGORIAS_INGRESO, hoyEn, zonaValida } from '../../src/lib/constants.js'
 import { crearCuentaConSaldoEn } from '../../src/lib/altaCuentaEn.js'
@@ -60,11 +61,13 @@ interface Perfil extends OpcionesMoneda {
   nombre: string
   zona: string
   hoy: string
+  /** Centavos de la moneda del perfil por US$1 (775 = Q7.75): convierte las cuentas en dólares. */
+  tipoCambioUSD: number
 }
 
 async function cargarPerfil({ db, userId }: Contexto): Promise<Perfil> {
   const { data, error } = await db
-    .from('profiles').select('nombre, moneda, locale, zona_horaria').eq('user_id', userId).maybeSingle()
+    .from('profiles').select('nombre, moneda, locale, zona_horaria, tipo_cambio_usd').eq('user_id', userId).maybeSingle()
   if (error) fallo('leer tu perfil', error)
   if (!data) throw new ErrorHerramienta('Tu cuenta de Vorta todavía no está configurada: abre la app una vez para terminar el registro.')
   // Una zona inválida no se adivina: fecharía mal lo que se escriba.
@@ -73,18 +76,56 @@ async function cargarPerfil({ db, userId }: Contexto): Promise<Perfil> {
   }
   return {
     nombre: data.nombre, moneda: data.moneda, locale: data.locale,
-    zona: data.zona_horaria, hoy: hoyEn(data.zona_horaria),
+    zona: data.zona_horaria, hoy: hoyEn(data.zona_horaria), tipoCambioUSD: data.tipo_cambio_usd,
   }
 }
 
-interface CuentaFila { id: string; nombre: string; tipo: string; saldo: number }
+/**
+ * El formateador de una moneda de cuenta: 'USD' en dólares, 'GTQ' en la del
+ * perfil (`monedaISO`). Cada monto de una cuenta se muestra en SU moneda.
+ */
+const formateadorEn = (perfil: Perfil, moneda: MonedaCuenta = 'GTQ') =>
+  (centavos: number) => formatMoneda(centavos, { moneda: monedaISO(moneda, perfil.moneda), locale: perfil.locale })
+
+/** Sin la migración de cuentas en dólares, leer `moneda` falla: todas son de la moneda del perfil. */
+const faltaColumnaMoneda = (error: { message: string } | null) => !!error && /moneda/.test(error.message)
+const comoMoneda = (m: unknown): MonedaCuenta => (m === 'USD' ? 'USD' : 'GTQ')
+
+interface CuentaFila { id: string; nombre: string; tipo: string; saldo: number; moneda: MonedaCuenta }
+type FilaLeida = Omit<CuentaFila, 'moneda'> & { moneda?: string }
 
 async function cargarCuentas({ db, userId }: Contexto): Promise<CuentaFila[]> {
-  const { data, error } = await db
-    .from('cuentas').select('id, nombre, tipo, saldo')
-    .eq('user_id', userId).eq('activa', true).order('created_at', { ascending: true })
+  const leer = async (columnas: string) => {
+    const r = await db
+      .from('cuentas').select(columnas)
+      .eq('user_id', userId).eq('activa', true).order('created_at', { ascending: true })
+    return { data: r.data as FilaLeida[] | null, error: r.error }
+  }
+  let { data, error } = await leer('id, nombre, tipo, saldo, moneda')
+  if (faltaColumnaMoneda(error)) ({ data, error } = await leer('id, nombre, tipo, saldo'))
   if (error) fallo('leer tus cuentas', error)
-  return data ?? []
+  return (data ?? []).map(c => ({ ...c, moneda: comoMoneda(c.moneda) }))
+}
+
+/**
+ * Nombre y moneda de TODAS las cuentas, también las archivadas: un movimiento
+ * viejo puede ser de una. Sin la moneda no se puede sumar ni mostrar un monto
+ * de cuenta, así que un fallo acá es un error, no un "sin nombre".
+ */
+async function cargarTodasLasCuentas({ db, userId }: Contexto) {
+  const leer = async (columnas: string) => {
+    const r = await db.from('cuentas').select(columnas).eq('user_id', userId)
+    return { data: r.data as { id: string; nombre: string; moneda?: string }[] | null, error: r.error }
+  }
+  let { data, error } = await leer('id, nombre, moneda')
+  if (faltaColumnaMoneda(error)) ({ data, error } = await leer('id, nombre'))
+  if (error) fallo('leer tus cuentas', error)
+  const porId = new Map((data ?? []).map(c => [c.id, { nombre: c.nombre, moneda: comoMoneda(c.moneda) }]))
+  return {
+    nombreDe: (id: string) => porId.get(id)?.nombre ?? id,
+    /** Un movimiento sin cuenta es de tarjeta: en la moneda del perfil. */
+    monedaDe: (id: string | null | undefined): MonedaCuenta => (id && porId.get(id)?.moneda) || 'GTQ',
+  }
 }
 
 /** Base + las propias, como `useCategorias`. */
@@ -101,6 +142,19 @@ async function cargarCategorias({ db, userId }: Contexto): Promise<{ gasto: stri
 
 const unidades = (centavos: number) => centavos / 100
 
+/** La moneda de una cuenta nueva o editada: 'USD', o la del perfil (también si la nombran por su código). */
+function leerMonedaCuenta(valor: unknown, perfil: Perfil): MonedaCuenta | undefined {
+  if (valor === undefined || valor === null || valor === '') return undefined
+  const v = typeof valor === 'string' ? valor.trim().toUpperCase() : valor
+  // Con el perfil en dólares, "en dólares" ES la moneda del perfil.
+  if (v === 'USD') return perfil.moneda === 'USD' ? 'GTQ' : 'USD'
+  if (v === 'GTQ' || v === perfil.moneda) return 'GTQ'
+  throw new ErrorHerramienta(`moneda: "USD" para una cuenta en dólares, o "${perfil.moneda}" (la de tu perfil)`)
+}
+
+const SIN_DOLARES =
+  'Las cuentas en dólares todavía no están disponibles en esta instalación de Vorta. Usa la moneda del perfil.'
+
 function cuentaPorId(cuentas: CuentaFila[], id: unknown, campo: string): CuentaFila {
   const c = typeof id === 'string' ? cuentas.find(x => x.id === id) : undefined
   if (!c) {
@@ -109,12 +163,20 @@ function cuentaPorId(cuentas: CuentaFila[], id: unknown, campo: string): CuentaF
   return c
 }
 
-async function saldosDe(ctx: Contexto, ids: string[], fmt: (c: number) => string) {
+async function saldosDe(ctx: Contexto, ids: string[], perfil: Perfil, monedaDe: (id: string) => MonedaCuenta) {
   const { data, error } = await ctx.db
     .from('cuentas').select('id, nombre, saldo').eq('user_id', ctx.userId).in('id', ids)
   if (error) return undefined   // lo escrito ya está escrito: no se convierte en error
-  return (data ?? []).map(c => ({ id: c.id, nombre: c.nombre, saldo: unidades(c.saldo), saldo_texto: fmt(c.saldo) }))
+  return (data ?? []).map(c => {
+    const moneda = monedaDe(c.id)
+    return {
+      id: c.id, nombre: c.nombre, saldo: unidades(c.saldo),
+      moneda: monedaISO(moneda, perfil.moneda), saldo_texto: formateadorEn(perfil, moneda)(c.saldo),
+    }
+  })
 }
+
+const monedaEn = (cuentas: CuentaFila[]) => (id: string) => cuentas.find(c => c.id === id)?.moneda ?? 'GTQ'
 
 // ─── HERRAMIENTAS ─────────────────────────────────────────────────────
 
@@ -122,24 +184,37 @@ const obtenerContexto: Herramienta = {
   nombre: 'obtener_contexto',
   titulo: 'Ver cuentas y categorías',
   descripcion:
-    'Devuelve el perfil (moneda, zona horaria y la fecha de hoy), las cuentas activas con su saldo e id, ' +
-    'y las categorías válidas de gasto e ingreso. Llámala primero: las demás herramientas piden ids de cuenta ' +
-    'y categorías de esta lista.',
+    'Devuelve el perfil (moneda, zona horaria y la fecha de hoy), las cuentas activas con su saldo, moneda e id, ' +
+    'el total de las cuentas en la moneda del perfil, y las categorías válidas de gasto e ingreso. Llámala ' +
+    'primero: las demás herramientas piden ids de cuenta y categorías de esta lista.',
   esquema: { type: 'object', properties: {}, additionalProperties: false },
   soloLectura: true,
   async ejecutar(ctx) {
     const [perfil, cuentas, categorias] = await Promise.all([cargarPerfil(ctx), cargarCuentas(ctx), cargarCategorias(ctx)])
-    const fmt = (c: number) => formatMoneda(c, perfil)
+    const fmt = formateadorEn(perfil)
+    const hayDolares = cuentas.some(c => c.moneda === 'USD')
+    // El mismo total que el Resumen de la app: las cuentas en dólares, convertidas.
+    const total = calcTotalCuentas(cuentas, perfil.tipoCambioUSD)
     return {
       perfil: {
         nombre: perfil.nombre, moneda: perfil.moneda, zona_horaria: perfil.zona,
         hoy: perfil.hoy, mes_actual: perfil.hoy.slice(0, 7),
+        ...(hayDolares && {
+          tipo_cambio_usd: unidades(perfil.tipoCambioUSD),
+          tipo_cambio_texto: `${fmt(perfil.tipoCambioUSD)} por US$1`,
+        }),
       },
       cuentas: cuentas.map(c => ({
-        id: c.id, nombre: c.nombre, tipo: c.tipo, saldo: unidades(c.saldo), saldo_texto: fmt(c.saldo),
+        id: c.id, nombre: c.nombre, tipo: c.tipo, moneda: monedaISO(c.moneda, perfil.moneda),
+        saldo: unidades(c.saldo), saldo_texto: formateadorEn(perfil, c.moneda)(c.saldo),
       })),
+      total_cuentas: unidades(total),
+      total_cuentas_texto: fmt(total),
       categorias,
-      notas: 'Los montos van en unidades de la moneda del perfil (125.50), siempre positivos: el tipo decide el signo.',
+      notas:
+        'Los montos van en unidades de la moneda de SU cuenta (125.50; en una cuenta en USD son dólares), ' +
+        'siempre positivos: el tipo decide el signo.' +
+        (hayDolares ? ' Los totales convierten las cuentas en dólares con tipo_cambio_usd.' : ''),
     }
   },
 }
@@ -162,8 +237,8 @@ const listarMovimientos: Herramienta = {
   nombre: 'listar_movimientos',
   titulo: 'Ver movimientos del mes',
   descripcion:
-    'Lista los movimientos de un mes (el estado mensual): fecha, tipo, monto con signo (negativo = sale dinero), ' +
-    'categoría, descripción y cuenta o tarjeta. Tipos: ingreso, gasto, ajuste (saldos iniciales, correcciones y ' +
+    'Lista los movimientos de un mes (el estado mensual): fecha, tipo, monto con signo (negativo = sale dinero) ' +
+    'en la moneda de su cuenta, categoría, descripción y cuenta o tarjeta. Tipos: ingreso, gasto, ajuste (saldos iniciales, correcciones y ' +
     'transferencias), gasto_tc (compra con tarjeta de crédito) y pago_tc (pago de tarjeta).',
   esquema: {
     type: 'object',
@@ -179,32 +254,33 @@ const listarMovimientos: Herramienta = {
     const mes = leerMes(args.mes, perfil.hoy.slice(0, 7))
     const cuentaId = leerTextoOpcional(args.cuenta_id, 'cuenta_id', 64)
 
-    const [filas, nombresCuentas, nombresTarjetas] = await Promise.all([
+    const [filas, cuentas, nombresTarjetas] = await Promise.all([
       movimientosDelMes(ctx, mes, cuentaId),
-      // Incluye las archivadas: un movimiento viejo puede ser de una.
-      ctx.db.from('cuentas').select('id, nombre').eq('user_id', ctx.userId),
+      cargarTodasLasCuentas(ctx),
       ctx.db.from('tarjetas_credito').select('id, nombre').eq('user_id', ctx.userId),
     ])
-    const cuentas = new Map((nombresCuentas.data ?? []).map(c => [c.id, c.nombre]))
     const tarjetas = new Map((nombresTarjetas.data ?? []).map(t => [t.id, t.nombre]))
-    const fmt = (c: number) => formatMoneda(c, perfil)
 
     const recortado = filas.length > MAX_LISTADO
     return {
       mes,
       cantidad: Math.min(filas.length, MAX_LISTADO),
       ...(recortado && { aviso: `Se muestran los ${MAX_LISTADO} más recientes; filtra por cuenta para ver el resto.` }),
-      movimientos: filas.slice(0, MAX_LISTADO).map(t => ({
-        id: t.id,
-        fecha: t.fecha,
-        tipo: t.tipo,
-        monto: unidades(t.cantidad),
-        monto_texto: fmt(t.cantidad),
-        categoria: t.categoria,
-        descripcion: t.descripcion,
-        ...(t.cuenta_id && { cuenta: cuentas.get(t.cuenta_id) ?? t.cuenta_id }),
-        ...(t.tarjeta_id && { tarjeta: tarjetas.get(t.tarjeta_id) ?? t.tarjeta_id }),
-      })),
+      movimientos: filas.slice(0, MAX_LISTADO).map(t => {
+        const moneda = cuentas.monedaDe(t.cuenta_id)
+        return {
+          id: t.id,
+          fecha: t.fecha,
+          tipo: t.tipo,
+          monto: unidades(t.cantidad),
+          moneda: monedaISO(moneda, perfil.moneda),
+          monto_texto: formateadorEn(perfil, moneda)(t.cantidad),
+          categoria: t.categoria,
+          descripcion: t.descripcion,
+          ...(t.cuenta_id && { cuenta: cuentas.nombreDe(t.cuenta_id) }),
+          ...(t.tarjeta_id && { tarjeta: tarjetas.get(t.tarjeta_id) ?? t.tarjeta_id }),
+        }
+      }),
     }
   },
 }
@@ -214,7 +290,8 @@ const resumenMes: Herramienta = {
   titulo: 'Resumen del mes',
   descripcion:
     'Ingresos, gastos, neto, porcentaje de ahorro y gasto por categoría de un mes, con los mismos criterios que ' +
-    'la app: las compras con tarjeta cuentan como gasto y los pagos de tarjeta no (moverían la deuda dos veces).',
+    'la app: las compras con tarjeta cuentan como gasto y los pagos de tarjeta no (moverían la deuda dos veces). ' +
+    'Todo en la moneda del perfil: lo de cuentas en dólares se convierte con el tipo de cambio del perfil.',
   esquema: {
     type: 'object',
     properties: { mes: { type: 'string', description: 'YYYY-MM. Por defecto, el mes actual.' } },
@@ -226,13 +303,18 @@ const resumenMes: Herramienta = {
     const mes = leerMes(args.mes, perfil.hoy.slice(0, 7))
     // Sin el tope del listado: un resumen con filas de menos mentiría.
     const { desde, hasta } = rangoMes(mes)
-    const { data, error } = await ctx.db
-      .from('transacciones').select('id, fecha, cantidad, descripcion, categoria, tipo')
-      .eq('user_id', ctx.userId).gte('fecha', desde).lte('fecha', hasta)
+    const [{ data, error }, cuentas] = await Promise.all([
+      ctx.db
+        .from('transacciones').select('id, fecha, cantidad, descripcion, categoria, tipo, cuenta_id')
+        .eq('user_id', ctx.userId).gte('fecha', desde).lte('fecha', hasta),
+      cargarTodasLasCuentas(ctx),
+    ])
     if (error) fallo('leer tus movimientos', error)
-    const txns = (data ?? []) as Transaccion[]
-    const e = calcEstadisticasMes(txns)
-    const fmt = (c: number) => formatMoneda(c, perfil)
+    const txns = (data ?? []) as (Transaccion & { cuenta_id: string | null })[]
+    // Como el Resumen de la app: una cuenta en dólares suma convertida.
+    const enDolares = txns.filter(t => cuentas.monedaDe(t.cuenta_id) === 'USD').length
+    const e = calcEstadisticasMes(txnsEnMonedaBase(txns, cuentas.monedaDe, perfil.tipoCambioUSD))
+    const fmt = formateadorEn(perfil)
     const porCategoria = Object.entries(e.porCategoria)
       .sort((a, b) => b[1] - a[1])
       .map(([categoria, c]) => ({
@@ -247,6 +329,10 @@ const resumenMes: Herramienta = {
       neto: unidades(e.neto), neto_texto: fmt(e.neto),
       porcentaje_ahorro: e.pctAhorro,
       gastos_por_categoria: porCategoria,
+      ...(enDolares > 0 && {
+        nota: `${enDolares} movimiento(s) de cuentas en dólares se convirtieron a ${perfil.moneda} a ` +
+          `${fmt(perfil.tipoCambioUSD)} por US$1.`,
+      }),
     }
   },
 }
@@ -269,7 +355,7 @@ const registrarMovimientos: Herramienta = {
           properties: {
             cuenta_id: { type: 'string', description: 'Id de la cuenta (de obtener_contexto).' },
             tipo: { type: 'string', enum: ['gasto', 'ingreso'] },
-            monto: { type: 'number', exclusiveMinimum: 0, description: 'En unidades, positivo: 125.50' },
+            monto: { type: 'number', exclusiveMinimum: 0, description: 'En unidades de la moneda de la cuenta, positivo: 125.50' },
             descripcion: { type: 'string', maxLength: 200 },
             fecha: { type: 'string', description: 'YYYY-MM-DD. Por defecto, hoy. No puede ser futura.' },
             categoria: { type: 'string', description: 'Una de obtener_contexto para ese tipo. Por defecto, "Otros".' },
@@ -363,13 +449,14 @@ const registrarMovimientos: Herramienta = {
       if (error) fallo('registrar los movimientos (no se registró ninguno)', error)
     }
 
-    const fmt = (c: number) => formatMoneda(c, perfil)
     return {
       registrados: insertar.length,
       omitidos_por_duplicado: duplicados.map(d => ({
         indice: indiceDe.get(d), fecha: d.fecha, descripcion: d.descripcion, monto: unidades(Math.abs(d.cantidad)),
       })),
-      saldos: insertar.length > 0 ? await saldosDe(ctx, [...new Set(insertar.map(f => f.cuenta_id))], fmt) : undefined,
+      saldos: insertar.length > 0
+        ? await saldosDe(ctx, [...new Set(insertar.map(f => f.cuenta_id))], perfil, monedaEn(cuentas))
+        : undefined,
     }
   },
 }
@@ -379,13 +466,19 @@ const transferir: Herramienta = {
   titulo: 'Transferir entre cuentas',
   descripcion:
     'Pasa dinero de una cuenta propia a otra. No es ingreso ni gasto: se registra como las transferencias de la ' +
-    'app (dos ajustes con categoría Transferencia), así que no cambia el resumen del mes.',
+    'app (dos ajustes con categoría Transferencia), así que no cambia el resumen del mes. Entre cuentas de ' +
+    'monedas distintas, lo que llega se convierte con el tipo de cambio del perfil, salvo que indiques ' +
+    'monto_recibido (lo que de verdad acreditó el banco).',
   esquema: {
     type: 'object',
     properties: {
       desde_cuenta_id: { type: 'string' },
       hacia_cuenta_id: { type: 'string' },
-      monto: { type: 'number', exclusiveMinimum: 0 },
+      monto: { type: 'number', exclusiveMinimum: 0, description: 'Lo que sale, en la moneda de la cuenta de origen.' },
+      monto_recibido: {
+        type: 'number', exclusiveMinimum: 0,
+        description: 'Solo entre monedas distintas: lo que llega, en la moneda de la cuenta destino.',
+      },
       fecha: { type: 'string', description: 'YYYY-MM-DD. Por defecto, hoy.' },
       descripcion: { type: 'string', maxLength: 200 },
     },
@@ -401,15 +494,28 @@ const transferir: Herramienta = {
     const centavos = leerMonto(args.monto)
     const fecha = leerFecha(args.fecha, perfil.hoy)
     const descripcion = leerTextoOpcional(args.descripcion, 'descripcion', 200) ?? 'Transferencia'
+    // Cada pata en la moneda de SU cuenta, como en la app (ModalNuevoMovimiento).
+    const entreMonedas = desde.moneda !== hacia.moneda
+    if (!entreMonedas && args.monto_recibido !== undefined) {
+      throw new ErrorHerramienta('monto_recibido: solo entre cuentas de monedas distintas; entre la misma moneda llega lo mismo que sale')
+    }
+    const recibidos = !entreMonedas ? centavos
+      : args.monto_recibido !== undefined ? leerMonto(args.monto_recibido, 'monto_recibido')
+      : convertirMoneda(centavos, desde.moneda, hacia.moneda, perfil.tipoCambioUSD)
 
     const base = { user_id: ctx.userId, categoria: 'Transferencia', tipo: 'ajuste' as const, descripcion, fecha }
     const { error } = await ctx.db.from('transacciones').insert([
       { ...base, cuenta_id: desde.id, cantidad: -centavos },
-      { ...base, cuenta_id: hacia.id, cantidad: centavos },
+      { ...base, cuenta_id: hacia.id, cantidad: recibidos },
     ])
     if (error) fallo('registrar la transferencia (no se movió nada)', error)
-    const fmt = (c: number) => formatMoneda(c, perfil)
-    return { transferido: unidades(centavos), transferido_texto: fmt(centavos), saldos: await saldosDe(ctx, [desde.id, hacia.id], fmt) }
+    return {
+      transferido: unidades(centavos), transferido_texto: formateadorEn(perfil, desde.moneda)(centavos),
+      ...(entreMonedas && {
+        recibido: unidades(recibidos), recibido_texto: formateadorEn(perfil, hacia.moneda)(recibidos),
+      }),
+      saldos: await saldosDe(ctx, [desde.id, hacia.id], perfil, monedaEn(cuentas)),
+    }
   },
 }
 
@@ -417,14 +523,15 @@ const crearCuenta: Herramienta = {
   nombre: 'crear_cuenta',
   titulo: 'Crear cuenta',
   descripcion:
-    'Crea una cuenta (banco, efectivo…) con su saldo inicial. No crea tarjetas de crédito. Si ya hay una cuenta ' +
-    'activa con ese nombre, no crea otra.',
+    'Crea una cuenta (banco, efectivo…) con su saldo inicial, en la moneda del perfil o en dólares. No crea ' +
+    'tarjetas de crédito. Si ya hay una cuenta activa con ese nombre, no crea otra.',
   esquema: {
     type: 'object',
     properties: {
       nombre: { type: 'string', maxLength: 60 },
       tipo: { type: 'string', enum: [...TIPOS_CUENTA], description: 'Por defecto, ahorro.' },
-      saldo_inicial: { type: 'number', minimum: 0, description: 'En unidades. Por defecto, 0.' },
+      moneda: { type: 'string', description: '"USD" para una cuenta en dólares. Por defecto, la moneda del perfil.' },
+      saldo_inicial: { type: 'number', minimum: 0, description: 'En unidades de la moneda de la cuenta. Por defecto, 0.' },
     },
     required: ['nombre'],
     additionalProperties: false,
@@ -443,12 +550,17 @@ const crearCuenta: Herramienta = {
       throw new ErrorHerramienta(`Ya tienes una cuenta "${igual.nombre}" (id ${igual.id}). Usa esa, o elige otro nombre.`)
     }
     const saldo = args.saldo_inicial === undefined || args.saldo_inicial === 0 ? 0 : leerMonto(args.saldo_inicial, 'saldo_inicial')
+    const moneda = leerMonedaCuenta(args.moneda, perfil)
 
     const error = await crearCuentaConSaldoEn(ctx.db, {
       userId: ctx.userId, nombre, tipo, saldoCentavos: saldo, hoy: perfil.hoy,
       color: paletaDatos[cuentas.length % paletaDatos.length],
+      // En la moneda del perfil no se manda la columna: es su default, y así
+      // también funciona en una base sin la migración.
+      ...(moneda === 'USD' && { moneda }),
     })
     if (error) {
+      if (moneda === 'USD' && faltaColumnaMoneda({ message: error })) throw new ErrorHerramienta(SIN_DOLARES)
       // El único mensaje que sirve tal cual es el de la compensación fallida:
       // dice qué quedó a medias. El resto es texto de Postgres.
       if (error.includes('quedó creada')) throw new ErrorHerramienta(error)
@@ -458,12 +570,13 @@ const crearCuenta: Herramienta = {
       .from('cuentas').select('id, nombre, tipo, saldo')
       .eq('user_id', ctx.userId).eq('nombre', nombre).eq('activa', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    const fmt = (c: number) => formatMoneda(c, perfil)
+    const fmt = formateadorEn(perfil, moneda)
+    const monedaTexto = monedaISO(moneda, perfil.moneda)
     return {
       creada: true,
       cuenta: data
-        ? { id: data.id, nombre: data.nombre, tipo: data.tipo, saldo: unidades(data.saldo), saldo_texto: fmt(data.saldo) }
-        : { nombre, tipo, saldo: unidades(saldo) },
+        ? { id: data.id, nombre: data.nombre, tipo: data.tipo, moneda: monedaTexto, saldo: unidades(data.saldo), saldo_texto: fmt(data.saldo) }
+        : { nombre, tipo, moneda: monedaTexto, saldo: unidades(saldo) },
     }
   },
 }
@@ -479,7 +592,7 @@ const fijarSaldo: Herramienta = {
     type: 'object',
     properties: {
       cuenta_id: { type: 'string' },
-      saldo: { type: 'number', description: 'El saldo real, en unidades. Puede ser 0 o negativo.' },
+      saldo: { type: 'number', description: 'El saldo real, en unidades de la moneda de la cuenta. Puede ser 0 o negativo.' },
       fecha: { type: 'string', description: 'YYYY-MM-DD del ajuste. Por defecto, hoy.' },
     },
     required: ['cuenta_id', 'saldo'],
@@ -491,7 +604,7 @@ const fijarSaldo: Herramienta = {
     const cuenta = cuentaPorId(cuentas, args.cuenta_id, 'cuenta_id')
     const nuevo = leerSaldo(args.saldo)
     const fecha = leerFecha(args.fecha, perfil.hoy)
-    const fmt = (c: number) => formatMoneda(c, perfil)
+    const fmt = formateadorEn(perfil, cuenta.moneda)
 
     // Contra el saldo de la base en este momento, no el que la IA vio antes.
     const { data: fila, error: errLeer } = await ctx.db
@@ -551,7 +664,7 @@ const editarMovimiento: Herramienta = {
       id: { type: 'string' },
       descripcion: { type: 'string', maxLength: 200 },
       fecha: { type: 'string', description: 'YYYY-MM-DD, no futura.' },
-      monto: { type: 'number', exclusiveMinimum: 0, description: 'En unidades, positivo. Solo ingresos y gastos.' },
+      monto: { type: 'number', exclusiveMinimum: 0, description: 'En unidades de la moneda de su cuenta, positivo. Solo ingresos y gastos.' },
       categoria: { type: 'string', description: 'Solo ingresos y gastos.' },
       notas: { type: 'string', maxLength: 500 },
     },
@@ -597,8 +710,9 @@ const editarMovimiento: Herramienta = {
       .from('transacciones').update(cambios).eq('id', id).eq('user_id', ctx.userId).select('id')
     if (errEditar) fallo('editar el movimiento', errEditar)
     if (!editadas?.length) sinFilas('editar el movimiento')
-    const fmt = (c: number) => formatMoneda(c, perfil)
-    return { editado: true, cambios: Object.keys(cambios), saldos: t.cuenta_id ? await saldosDe(ctx, [t.cuenta_id], fmt) : undefined }
+    if (!t.cuenta_id) return { editado: true, cambios: Object.keys(cambios) }
+    const cuentas = await cargarTodasLasCuentas(ctx)
+    return { editado: true, cambios: Object.keys(cambios), saldos: await saldosDe(ctx, [t.cuenta_id], perfil, cuentas.monedaDe) }
   },
 }
 
@@ -642,10 +756,10 @@ const borrarMovimientos: Herramienta = {
       .from('transacciones').delete().eq('user_id', ctx.userId).in('id', unicos).select('id')
     if (errBorrar) fallo('borrar los movimientos (no se borró ninguno)', errBorrar)
     if ((borradas?.length ?? 0) !== unicos.length) sinFilas('borrar todos los movimientos')
-    const perfil = await cargarPerfil(ctx)
-    const fmt = (c: number) => formatMoneda(c, perfil)
-    const cuentas = [...new Set((filas ?? []).map(f => f.cuenta_id).filter((c): c is string => !!c))]
-    return { borrados: unicos.length, saldos: cuentas.length ? await saldosDe(ctx, cuentas, fmt) : undefined }
+    const tocadas = [...new Set((filas ?? []).map(f => f.cuenta_id).filter((c): c is string => !!c))]
+    if (!tocadas.length) return { borrados: unicos.length }
+    const [perfil, cuentas] = await Promise.all([cargarPerfil(ctx), cargarTodasLasCuentas(ctx)])
+    return { borrados: unicos.length, saldos: await saldosDe(ctx, tocadas, perfil, cuentas.monedaDe) }
   },
 }
 
@@ -653,13 +767,16 @@ const editarCuenta: Herramienta = {
   nombre: 'editar_cuenta',
   titulo: 'Editar una cuenta',
   descripcion:
-    'Cambia el nombre o el tipo de una cuenta. El saldo no se edita aquí: usa fijar_saldo_cuenta.' + NOTA_PERMISO,
+    'Cambia el nombre, el tipo o la moneda de una cuenta. Cambiar la moneda NO convierte los montos: el saldo y ' +
+    'los movimientos pasan a leerse en la nueva moneda (sirve para corregir una cuenta creada en la moneda ' +
+    'equivocada; si el saldo real es otro, después usa fijar_saldo_cuenta). El saldo no se edita aquí.' + NOTA_PERMISO,
   esquema: {
     type: 'object',
     properties: {
       cuenta_id: { type: 'string' },
       nombre: { type: 'string', maxLength: 60 },
       tipo: { type: 'string', enum: [...TIPOS_CUENTA] },
+      moneda: { type: 'string', description: '"USD" para dólares, o la moneda del perfil.' },
     },
     required: ['cuenta_id'],
     additionalProperties: false,
@@ -667,7 +784,7 @@ const editarCuenta: Herramienta = {
   soloLectura: false,
   async ejecutar(ctx, args) {
     await exigirPermisoModificar(ctx)
-    const cuentas = await cargarCuentas(ctx)
+    const [perfil, cuentas] = await Promise.all([cargarPerfil(ctx), cargarCuentas(ctx)])
     const cuenta = cuentaPorId(cuentas, args.cuenta_id, 'cuenta_id')
     const cambios: Record<string, unknown> = {}
     if (args.nombre !== undefined) {
@@ -682,12 +799,23 @@ const editarCuenta: Herramienta = {
       }
       cambios.tipo = args.tipo
     }
+    const moneda = leerMonedaCuenta(args.moneda, perfil)
+    if (moneda !== undefined && moneda !== cuenta.moneda) cambios.moneda = moneda
     if (Object.keys(cambios).length === 0) throw new ErrorHerramienta('No indicaste nada que cambiar')
     const { data, error } = await ctx.db
       .from('cuentas').update(cambios).eq('id', cuenta.id).eq('user_id', ctx.userId).select('id, nombre, tipo')
+    if (error && cambios.moneda && faltaColumnaMoneda(error)) throw new ErrorHerramienta(SIN_DOLARES)
     if (error) fallo('editar la cuenta', error)
     if (!data?.length) sinFilas('editar la cuenta')
-    return { editada: true, cuenta: data[0] }
+    const final = (cambios.moneda as MonedaCuenta | undefined) ?? cuenta.moneda
+    return {
+      editada: true,
+      cuenta: { ...data[0], moneda: monedaISO(final, perfil.moneda) },
+      ...(cambios.moneda !== undefined && {
+        aviso: `Los montos no se convirtieron: el saldo ${formateadorEn(perfil, cuenta.moneda)(cuenta.saldo)} ahora se lee ` +
+          `${formateadorEn(perfil, final)(cuenta.saldo)}. Si el saldo real es otro, usa fijar_saldo_cuenta.`,
+      }),
+    }
   },
 }
 
@@ -734,7 +862,7 @@ const eliminarCuenta: Herramienta = {
     })
     if (decision.accion === 'bloquear') {
       throw new ErrorHerramienta(decision.motivo === 'saldo'
-        ? `No se eliminó: la cuenta tiene ${formatMoneda(fila.data.saldo, perfil)}. Transfiere ese saldo a otra cuenta o déjala en 0 con fijar_saldo_cuenta, y vuelve a intentarlo.`
+        ? `No se eliminó: la cuenta tiene ${formateadorEn(perfil, cuenta.moneda)(fila.data.saldo)}. Transfiere ese saldo a otra cuenta o déjala en 0 con fijar_saldo_cuenta, y vuelve a intentarlo.`
         : 'No se eliminó: la cuenta tiene pagos fijos activos. Cámbialos a otra cuenta o elimínalos en la app (Ajustes → Pagos fijos).')
     }
     let hecho: 'borrada' | 'archivada' = decision.accion === 'borrar' ? 'borrada' : 'archivada'

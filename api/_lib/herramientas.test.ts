@@ -7,11 +7,13 @@ import { baseFalsa } from './baseFalsa.js'
 const YO = 'u1'
 const herramienta = (n: string) => HERRAMIENTAS.find(h => h.nombre === n)!
 
-function mundo(opciones: { fallaInsert?: boolean; permiso?: boolean; rlsBloqueaModificar?: boolean } = {}) {
+function mundo(opciones: {
+  fallaInsert?: boolean; permiso?: boolean; rlsBloqueaModificar?: boolean; columnasFaltantes?: Record<string, string[]>
+} = {}) {
   const tablas = {
     profiles: [{
       user_id: YO, nombre: 'Ana', moneda: 'GTQ', locale: 'es-GT', zona_horaria: 'America/Guatemala',
-      ia_puede_editar: opciones.permiso ?? false,
+      tipo_cambio_usd: 775, ia_puede_editar: opciones.permiso ?? false,
     }],
     pagos_recurrentes: [] as Record<string, unknown>[],
     cuentas: [
@@ -266,5 +268,102 @@ describe('eliminar_cuenta', () => {
     const r = await herramienta('eliminar_cuenta').ejecutar(ctx, { cuenta_id: 'c9' }) as { resultado: string }
     expect(r.resultado).toBe('borrada')
     expect(tablas.cuentas.some(c => c.id === 'c9')).toBe(false)
+  })
+})
+
+describe('cuentas en dólares', () => {
+  /** El mundo de siempre más una cuenta en dólares con US$100 y un ingreso de US$100 en septiembre. */
+  function conDolares(opciones: Parameters<typeof mundo>[0] = {}) {
+    const m = mundo(opciones)
+    m.tablas.cuentas.push({ id: 'usd', user_id: YO, nombre: 'BI Dólares', tipo: 'ahorro', saldo: 10000, activa: true, moneda: 'USD' } as never)
+    m.tablas.transacciones.push({ id: 'tu', user_id: YO, cuenta_id: 'usd', fecha: '2026-09-05', cantidad: 10000, descripcion: 'Freelance', categoria: 'Ingreso', tipo: 'ingreso' })
+    return m
+  }
+
+  it('obtener_contexto da la moneda de cada cuenta y el total convertido, como el Resumen', async () => {
+    const { ctx } = conDolares()
+    const r = await herramienta('obtener_contexto').ejecutar(ctx, {}) as {
+      perfil: { tipo_cambio_usd?: number }
+      cuentas: { id: string; moneda: string; saldo: number; saldo_texto: string }[]
+      total_cuentas: number
+    }
+    expect(r.cuentas.find(c => c.id === 'usd')).toMatchObject({ moneda: 'USD', saldo: 100, saldo_texto: '$100.00' })
+    expect(r.cuentas.find(c => c.id === 'c1')).toMatchObject({ moneda: 'GTQ', saldo_texto: 'Q1,000.00' })
+    expect(r.total_cuentas).toBe(1000 + 50 + 775)   // US$100 a Q7.75
+    expect(r.perfil.tipo_cambio_usd).toBe(7.75)
+  })
+
+  it('listar_movimientos muestra cada monto en la moneda de su cuenta', async () => {
+    const { ctx } = conDolares()
+    const r = await herramienta('listar_movimientos').ejecutar(ctx, { mes: '2026-09' }) as {
+      movimientos: { id: string; moneda: string; monto_texto: string }[]
+    }
+    expect(r.movimientos.find(m => m.id === 'tu')).toMatchObject({ moneda: 'USD', monto_texto: '$100.00' })
+    expect(r.movimientos.find(m => m.id === 't3')).toMatchObject({ moneda: 'GTQ' })   // de tarjeta
+  })
+
+  it('resumen_mes suma lo de dólares convertido y lo dice', async () => {
+    const { ctx } = conDolares()
+    const r = await herramienta('resumen_mes').ejecutar(ctx, { mes: '2026-09' }) as { ingresos: number; nota?: string }
+    expect(r.ingresos).toBe(8000 + 775)
+    expect(r.nota).toMatch(/1 movimiento\(s\) de cuentas en dólares/)
+  })
+
+  it('transferir entre monedas convierte lo que llega, o usa lo que dijo el banco', async () => {
+    const { ctx, insertados } = conDolares()
+    const r = await herramienta('transferir').ejecutar(ctx, { desde_cuenta_id: 'c1', hacia_cuenta_id: 'usd', monto: 775 }) as {
+      recibido_texto: string
+    }
+    expect(insertados.transacciones).toEqual([
+      expect.objectContaining({ cuenta_id: 'c1', cantidad: -77500 }),
+      expect.objectContaining({ cuenta_id: 'usd', cantidad: 10000 }),
+    ])
+    expect(r.recibido_texto).toBe('$100.00')
+
+    await herramienta('transferir').ejecutar(ctx, { desde_cuenta_id: 'usd', hacia_cuenta_id: 'c2', monto: 10, monto_recibido: 76.5 })
+    expect(insertados.transacciones.slice(2)).toEqual([
+      expect.objectContaining({ cuenta_id: 'usd', cantidad: -1000 }),
+      expect.objectContaining({ cuenta_id: 'c2', cantidad: 7650 }),
+    ])
+    await expect(herramienta('transferir').ejecutar(ctx, { desde_cuenta_id: 'c1', hacia_cuenta_id: 'c2', monto: 5, monto_recibido: 6 }))
+      .rejects.toThrow(/monedas distintas/)
+  })
+
+  it('crear_cuenta en dólares manda la moneda; en la del perfil no manda la columna', async () => {
+    const { ctx, insertados } = mundo()
+    const r = await herramienta('crear_cuenta').ejecutar(ctx, { nombre: 'Ahorro USD', moneda: 'usd', saldo_inicial: 50 }) as {
+      cuenta: { moneda: string; saldo_texto?: string }
+    }
+    expect(insertados.cuentas[0]).toMatchObject({ nombre: 'Ahorro USD', moneda: 'USD' })
+    expect(r.cuenta).toMatchObject({ moneda: 'USD', saldo_texto: '$50.00' })
+    await herramienta('crear_cuenta').ejecutar(ctx, { nombre: 'Caja', moneda: 'GTQ' })
+    expect(insertados.cuentas[1]).not.toHaveProperty('moneda')
+    await expect(herramienta('crear_cuenta').ejecutar(ctx, { nombre: 'Euros', moneda: 'EUR' })).rejects.toThrow(/moneda:/)
+  })
+
+  it('editar_cuenta cambia la moneda sin convertir y lo avisa', async () => {
+    const { ctx, tablas } = mundo({ permiso: true })
+    const r = await herramienta('editar_cuenta').ejecutar(ctx, { cuenta_id: 'c2', moneda: 'USD' }) as { aviso?: string }
+    expect(tablas.cuentas.find(c => c.id === 'c2')).toMatchObject({ moneda: 'USD', saldo: 5000 })
+    expect(r.aviso).toMatch(/Q50\.00 ahora se lee \$50\.00/)
+  })
+
+  it('fijar_saldo_cuenta escribe en la moneda de la cuenta', async () => {
+    const { ctx, insertados } = conDolares()
+    const r = await herramienta('fijar_saldo_cuenta').ejecutar(ctx, { cuenta_id: 'usd', saldo: 120 }) as { saldo_nuevo_texto: string }
+    expect(r.saldo_nuevo_texto).toBe('$120.00')
+    expect(insertados.transacciones).toEqual([expect.objectContaining({ cuenta_id: 'usd', cantidad: 2000 })])
+  })
+
+  it('sin la migración todo sigue funcionando en la moneda del perfil, y dólares se niega con claridad', async () => {
+    const { ctx, insertados } = mundo({ permiso: true, columnasFaltantes: { cuentas: ['moneda'] } })
+    const r = await herramienta('obtener_contexto').ejecutar(ctx, {}) as { cuentas: { moneda: string }[] }
+    expect(r.cuentas.map(c => c.moneda)).toEqual(['GTQ', 'GTQ'])
+    const l = await herramienta('listar_movimientos').ejecutar(ctx, { mes: '2026-09' }) as { movimientos: unknown[] }
+    expect(l.movimientos).toHaveLength(4)
+    await herramienta('crear_cuenta').ejecutar(ctx, { nombre: 'Caja' })
+    expect(insertados.cuentas).toHaveLength(1)
+    await expect(herramienta('crear_cuenta').ejecutar(ctx, { nombre: 'Dólares', moneda: 'USD' })).rejects.toThrow(/no están disponibles/)
+    await expect(herramienta('editar_cuenta').ejecutar(ctx, { cuenta_id: 'c2', moneda: 'USD' })).rejects.toThrow(/no están disponibles/)
   })
 })
