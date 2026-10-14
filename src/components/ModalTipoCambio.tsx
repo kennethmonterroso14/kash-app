@@ -1,29 +1,26 @@
 import { useState } from 'react'
-import Aviso from '../../components/Aviso'
-import Campo from '../../components/Campo'
-import Hoja from '../../components/Hoja'
-import { toCentavos } from '../../lib/finanzas'
-import { IconoAlerta, IconoRecargar } from '../../components/iconos'
-import { useMoneda } from '../../hooks/useMoneda'
-import { useSesion } from '../../context/sesion'
+import Aviso from './Aviso'
+import Campo from './Campo'
+import Hoja from './Hoja'
+import { toCentavos } from '../lib/finanzas'
+import { IconoAlerta, IconoRecargar } from './iconos'
+import { useMoneda } from '../hooks/useMoneda'
+import { useSesion } from '../context/sesion'
+import { useTipoCambio } from '../hooks/useTipoCambio'
 
 interface Props {
-  /** Centavos de la moneda del perfil por 1 USD (775 = Q7.75). */
-  tipoCambioUSD: number
-  /** ISO de la última actualización, o null si nunca se verificó. */
-  tipoCambioFecha: string | null
-  desactualizado: boolean
-  guardar: (centavos: number) => Promise<unknown>
-  /** Consulta la API y YA persiste el valor; devuelve los centavos guardados. */
-  consultarAPI: () => Promise<number>
   onCerrar: () => void
 }
 
-export default function ModalTipoCambio({
-  tipoCambioUSD, tipoCambioFecha, desactualizado, guardar, consultarAPI, onCerrar,
-}: Props) {
+/**
+ * El tipo de cambio del dólar, a mano o "el de hoy" desde la API. Es el mismo
+ * para las inversiones y las cuentas en dólares (ver `useTipoCambio`), así que
+ * se abre desde las dos pantallas.
+ */
+export default function ModalTipoCambio({ onCerrar }: Props) {
   const fmt = useMoneda()
   const { perfil } = useSesion()
+  const { tipoCambioUSD, tipoCambioFecha, desactualizado, guardar, consultarAPI } = useTipoCambio()
   const [valor, setValor] = useState((tipoCambioUSD / 100).toFixed(2))
   const [guardando, setGuardando] = useState(false)
   const [consultando, setConsultando] = useState(false)
@@ -68,6 +65,9 @@ export default function ModalTipoCambio({
 
   return (
     <Hoja titulo="Tipo de cambio" onCerrar={onCerrar}>
+      <p className="text-textDim text-[13px] -mt-1">
+        Convierte tus cuentas e inversiones en dólares al total en {perfil.moneda === 'GTQ' ? 'quetzales' : perfil.moneda}.
+      </p>
       {/* La cifra vigente, grande y centrada, como el monto de la hoja de alta. */}
       <div className="text-center py-2">
         <p className="text-textDim text-[13px]">1 dólar estadounidense</p>
