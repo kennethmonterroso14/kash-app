@@ -29,13 +29,17 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-const pago = (id: string, descripcion: string, categoria: string) => ({
+const pago = (id: string, descripcion: string, categoria: string, cuenta_id = 'c-bac') => ({
   transaccion_id: id,
-  transacciones: { id, fecha: '2026-09-25', cantidad: -4500, descripcion, categoria, tipo: 'gasto', notas: 'Apple Pay · BAC Débito' },
+  transacciones: { id, fecha: '2026-09-25', cantidad: -4500, descripcion, categoria, tipo: 'gasto', cuenta_id, notas: 'Apple Pay · BAC Débito' },
 })
 
 const montar = () => render(
-  <ConSesion sesion={{ ...sesionFalsa(), categoriasGasto: ['Supermercado', 'Comida/Restaurantes', 'Otros'] }}>
+  <ConSesion sesion={{
+    ...sesionFalsa(),
+    categoriasGasto: ['Supermercado', 'Comida/Restaurantes', 'Otros'],
+    monedasCuentas: { 'c-bac': 'GTQ', 'c-usd': 'USD' },
+  }}>
     <PagosPorCategorizar userId="u1" />
   </ConSesion>,
 )
@@ -56,6 +60,7 @@ describe('PagosPorCategorizar', () => {
     fireEvent.click(await screen.findByRole('button', { name: /2 pagos de Apple Pay por categorizar/ }))
 
     expect(screen.getByText('Walmart')).toBeInTheDocument()
+    expect(screen.getByText('Q45.00')).toBeInTheDocument()
     expect(screen.getByText(/BAC Débito · 25 sep/)).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Supermercado' })).toBeChecked()
 
@@ -68,5 +73,12 @@ describe('PagosPorCategorizar', () => {
     // Pasa al siguiente, con SU sugerida.
     expect(await screen.findByText('Uber')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Otros' })).toBeChecked()
+  })
+
+  it('un pago a una cuenta en dólares se muestra en dólares', async () => {
+    filas = [pago('t1', 'Amazon', 'Otros', 'c-usd')]
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /1 pago de Apple Pay por categorizar/ }))
+    expect(screen.getByText('$45.00')).toBeInTheDocument()
   })
 })

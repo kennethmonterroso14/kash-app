@@ -8,6 +8,8 @@ export interface PagoPorCategorizar {
   descripcion: string     // el comercio
   categoria: string       // la sugerida, ya puesta
   tipo: 'gasto' | 'gasto_tc'
+  /** Null en un cargo a tarjeta. El monto está en la moneda de esta cuenta. */
+  cuenta_id: string | null
   /** El nombre de la tarjeta en Wallet, sacado de "Apple Pay · <tarjeta>". */
   tarjeta: string | null
 }
@@ -16,7 +18,7 @@ interface Fila {
   transaccion_id: string
   transacciones: {
     id: string; fecha: string; cantidad: number; descripcion: string
-    categoria: string; tipo: 'gasto' | 'gasto_tc'; notas: string | null
+    categoria: string; tipo: 'gasto' | 'gasto_tc'; cuenta_id: string | null; notas: string | null
   } | null
 }
 
@@ -41,7 +43,7 @@ export function usePorCategorizar(userId: string, generacionTxns: number) {
     const cargar = async () => {
       const { data, error } = await supabase
         .from('pagos_por_categorizar')
-        .select('transaccion_id, transacciones(id, fecha, cantidad, descripcion, categoria, tipo, notas)')
+        .select('transaccion_id, transacciones(id, fecha, cantidad, descripcion, categoria, tipo, cuenta_id, notas)')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
       if (ignorar || error) return   // un fallo conserva lo que había: es un aviso, no una cifra
@@ -50,7 +52,7 @@ export function usePorCategorizar(userId: string, generacionTxns: number) {
         .map(f => {
           const t = f.transacciones!
           return { id: t.id, fecha: t.fecha, cantidad: t.cantidad, descripcion: t.descripcion,
-            categoria: t.categoria, tipo: t.tipo, tarjeta: tarjetaDe(t.notas) }
+            categoria: t.categoria, tipo: t.tipo, cuenta_id: t.cuenta_id, tarjeta: tarjetaDe(t.notas) }
         }))
     }
     void cargar()

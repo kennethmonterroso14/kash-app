@@ -5,6 +5,7 @@ import SelectorCategoria from './SelectorCategoria'
 import { IconoChevron, IconoTarjetas } from './iconos'
 import { useSesion } from '../context/sesion'
 import { useMoneda } from '../hooks/useMoneda'
+import { useMonedas } from '../hooks/useMonedas'
 import { usePorCategorizar } from '../hooks/usePorCategorizar'
 import { fechaCorta } from '../lib/constants'
 
@@ -21,6 +22,7 @@ interface Props { userId: string }
 export default function PagosPorCategorizar({ userId }: Props) {
   const { categoriasGasto, coloresCategorias, generacionTxns, invalidarTxns } = useSesion()
   const fmt = useMoneda()
+  const { monedaDe } = useMonedas()
   const { pendientes, categorizar } = usePorCategorizar(userId, generacionTxns)
   const [abierta, setAbierta] = useState(false)
   // La categoría elegida para el pago que se está viendo; null = la sugerida.
@@ -78,7 +80,7 @@ export default function PagosPorCategorizar({ userId }: Props) {
         <Hoja titulo={n === 1 ? 'Elige la categoría' : `Elige la categoría · quedan ${n}`} onCerrar={() => setAbierta(false)}>
           <div className="text-center">
             <p className="text-text text-[34px] leading-[40px] font-bold tabular-nums tracking-display">
-              {fmt(Math.abs(actual.cantidad))}
+              {fmt(Math.abs(actual.cantidad), monedaDe(actual.cuenta_id))}
             </p>
             <p className="text-text text-[17px] font-semibold mt-1 truncate">{actual.descripcion}</p>
             <p className="text-textDim text-[13px]">
