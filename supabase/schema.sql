@@ -116,6 +116,14 @@ alter table profiles
   add column if not exists tipo_cambio_usd bigint not null default 775,
   add column if not exists tipo_cambio_actualizado_at timestamptz;
 
+-- El tipo de cambio divide y multiplica montos: con 0 o negativo `usdToGTQ`
+-- lanza en el render del total de cuentas (y registrar_pago_atajo responde
+-- `sin_tipo_cambio`). El cliente nunca lo escribe así; esto lo vuelve invariante.
+-- Migración 20261014000000_cuentas_moneda.sql.
+do $$ begin
+  alter table profiles add constraint profiles_tipo_cambio_positivo check (tipo_cambio_usd > 0);
+exception when duplicate_object then null; end $$;
+
 -- Tarea 1.3.4 sobre una base que ya tenía profiles.
 alter table profiles
   add column if not exists locale       text not null default 'es-GT',

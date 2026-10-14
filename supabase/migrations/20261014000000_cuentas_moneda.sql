@@ -8,6 +8,7 @@
 -- QUÉ HACE
 --   · `cuentas.moneda` ('GTQ' por defecto, o 'USD'). Las cuentas existentes
 --     quedan en GTQ: nada cambia hasta que la persona marque una en dólares.
+--   · `profiles.tipo_cambio_usd` > 0 como check: ahora convierte cuentas.
 --   · `registrar_pago_atajo` gana un 5.º parámetro, la moneda del importe, y
 --     convierte si no es la de la cuenta destino. La versión de 4 parámetros
 --     queda como envoltorio sin conversión (ver el comentario en schema.sql).
@@ -24,6 +25,13 @@ alter table cuentas
   add column if not exists moneda text not null default 'GTQ';
 do $$ begin
   alter table cuentas add constraint cuentas_moneda_check check (moneda in ('GTQ', 'USD'));
+exception when duplicate_object then null; end $$;
+
+-- El tipo de cambio divide y multiplica montos: con 0 o negativo `usdToGTQ`
+-- lanza en el render del total de cuentas (y registrar_pago_atajo responde
+-- `sin_tipo_cambio`). El cliente nunca lo escribe así; esto lo vuelve invariante.
+do $$ begin
+  alter table profiles add constraint profiles_tipo_cambio_positivo check (tipo_cambio_usd > 0);
 exception when duplicate_object then null; end $$;
 
 create or replace function registrar_pago_atajo(

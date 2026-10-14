@@ -66,7 +66,16 @@ select pg_temp.exigir((select count(*) from transacciones where descripcion = 'W
 select pg_temp.exigir((select deuda_actual from tarjetas_credito where id = 'c2222222-2222-2222-2222-222222222222') = 15500 + 300,
   'la tarjeta subió en quetzales');
 
--- ── Sin tipo de cambio no se inventa una conversión ───────────────────
+-- ── Un tipo de cambio en 0 lo rechaza la base ──────────────────────────
+do $$ begin
+  update profiles set tipo_cambio_usd = 0 where user_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  raise exception 'FALLO: aceptó un tipo de cambio en 0';
+exception when check_violation then null;
+end $$;
+
+-- ── Y si llegara uno (una base sin el check), no se inventa una conversión
+-- El DDL es transaccional: el rollback del final devuelve el check.
+alter table profiles drop constraint profiles_tipo_cambio_positivo;
 update profiles set tipo_cambio_usd = 0 where user_id = 'aaaaaaaa-0000-0000-0000-000000000001';
 set local role anon;
 select pg_temp.exigir(pg_temp.pago(4500, 'Super', 'Débito USD', 'GTQ') ->> 'codigo' = 'sin_tipo_cambio', 'sin tipo de cambio');
