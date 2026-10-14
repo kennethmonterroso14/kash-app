@@ -26,11 +26,13 @@ export const csvCampo = (valor: string | number): string => {
  */
 export const csvNumero = (centavos: number): string => (centavos / 100).toFixed(2)
 
-const CABECERAS = ['fecha', 'descripcion', 'categoria', 'tipo', 'cantidad_Q', 'cuenta'] as const
+const CABECERAS = ['fecha', 'descripcion', 'categoria', 'tipo', 'cantidad', 'moneda', 'cuenta'] as const
 
 interface Nombres {
   cuenta: (id: string) => string
   tarjeta: (id: string) => string
+  /** La moneda de la cuenta del movimiento; sin cuenta (tarjeta), quetzales. */
+  moneda?: (cuentaId: string | null) => string
 }
 
 /**
@@ -46,9 +48,11 @@ export function construirCSV(txns: Transaccion[], nombres: Nombres): string {
     csvCampo(t.descripcion),
     csvCampo(t.categoria),
     csvCampo(t.tipo),
-    // En quetzales y no en centavos: el archivo es para leerlo en una hoja de
-    // cálculo, no para volver a importarlo.
+    // En unidades y no en centavos: el archivo es para leerlo en una hoja de
+    // cálculo, no para volver a importarlo. En la moneda de SU cuenta, con la
+    // columna siguiente diciendo cuál: una cuenta en dólares exporta dólares.
     csvNumero(t.cantidad),
+    csvCampo(nombres.moneda?.(t.cuenta_id) ?? 'GTQ'),
     csvCampo(
       t.cuenta_id ? nombres.cuenta(t.cuenta_id)
       : t.tarjeta_id ? nombres.tarjeta(t.tarjeta_id)

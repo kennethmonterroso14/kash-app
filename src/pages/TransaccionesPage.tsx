@@ -7,6 +7,7 @@ import { agruparPorDia } from '../lib/finanzas'
 import { useMoneda } from '../hooks/useMoneda'
 import { useSesion } from '../context/sesion'
 import { useFechas } from '../hooks/useFechas'
+import { useMonedas } from '../hooks/useMonedas'
 import SelectorMes from '../components/SelectorMes'
 import TituloGrande from '../components/TituloGrande'
 import { IconoExportar } from '../components/iconos'
@@ -32,6 +33,7 @@ const esEditable = (t: Transaccion) => t.tipo !== 'gasto_tc' && t.tipo !== 'pago
 export default function TransaccionesPage() {
   const { userId, cuentas, coloresCategorias, resumenTCs, perfil } = useSesion()
   const fmt = useMoneda()
+  const { monedaDe, enBase } = useMonedas()
   const fechas = useFechas()
   const [mes, setMes] = useState(fechas.mesActual())
   const { txns, loading, error, deleteTxn, restoreTxn, updateTxn } = useTransacciones(userId, mes)
@@ -52,13 +54,18 @@ export default function TransaccionesPage() {
     if (filtros.busqueda && !t.descripcion.toLowerCase().includes(filtros.busqueda.toLowerCase())) return false
     return true
   }), [txns, filtros])
-  const grupos = useMemo(() => agruparPorDia(filtrados), [filtrados])
+  // El neto del día suma en quetzales; las filas se muestran en su moneda.
+  const grupos = useMemo(
+    () => agruparPorDia(filtrados, t => enBase(t.cantidad, monedaDe(t.cuenta_id))),
+    [filtrados, enBase, monedaDe],
+  )
   const hoy = fechas.hoy()
 
   const exportar = () => descargarCSV(
     construirCSV(filtrados, {
       cuenta:  id => cuentas.find(c => c.id === id)?.nombre ?? id,
       tarjeta: id => resumenTCs.find(r => r.tc.id === id)?.tc.nombre ?? id,
+      moneda:  monedaDe,
     }),
     `vorta_${mes}.csv`,
   )
