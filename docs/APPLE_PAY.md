@@ -25,6 +25,13 @@ global del Layout (`PagosPorCategorizar`) abre una hoja para confirmarla o cambi
   tarjeta de crédito (`gasto_tc` en el ciclo abierto, que abre si falta). Categoría aprendida del
   último gasto con el mismo comercio; un reintento en 2 minutos no duplica. Tests en
   `supabase/tests/atajo_apple_pay.sql`.
+- **Moneda.** `leerMonedaImporte` saca la moneda del texto ("US$20.00" → USD, "Q45.00" → GTQ,
+  "L45.00" → HNL; "$20.00" → `'$'`) y el RPC la recibe en `p_moneda`. Si es el dólar o la moneda
+  del perfil y no coincide con la de la cuenta o tarjeta destino, convierte con
+  `profiles.tipo_cambio_usd` y la respuesta trae lo pagado (`$20.00 → Q155.00`). Un "$" a secas son
+  dólares, salvo en un perfil en pesos (MXN, DOP). Otra moneda (un pago en euros) se registra tal
+  cual y la notificación avisa. Sin la migración `20261014000000_cuentas_moneda.sql`, `api/atajo.ts`
+  cae a la versión de 4 parámetros (sin conversión). Tests en `supabase/tests/cuentas_moneda.sql`.
 - `atajo_claves` guarda solo el SHA-256 de la clave (una por persona); la clave se genera en el
   navegador (`lib/claveAtajo.ts`) y se muestra una vez. `atajo_tarjetas` mapea el nombre de Wallet
   a su destino; una tarjeta desconocida se agrega sola "sin asignar" y ese pago no se registra.

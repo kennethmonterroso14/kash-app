@@ -17,7 +17,8 @@ import PaginaLegal, { H, L, P } from './PaginaLegal'
  *   Editar/borrar solo con `profiles.ia_puede_editar`; perfil y borrar la
  *   cuenta, nunca — policies de schema.sql, sección 4b.
  * - Otra sola llamada a un tercero: `api.exchangerate-api.com` en
- *   `useInversiones.fetchTipoCambioDesdeAPI`, y es un GET de tipos de cambio
+ *   `useTipoCambio.consultarAPI` (botón en Cuentas e Inversiones cuando hay
+ *   algo en dólares), y es un GET de tipos de cambio
  *   que no manda ningún dato del usuario. **Esto era falso cuando se escribió**:
  *   `index.css` traía un `@import` de Google Fonts, o sea un pedido a un
  *   tercero en cada carga. La fuente pasó a servirse desde el propio origen y
@@ -32,7 +33,7 @@ import PaginaLegal, { H, L, P } from './PaginaLegal'
  */
 export default function PoliticaPrivacidad() {
   return (
-    <PaginaLegal titulo="Política de privacidad" vigencia="23 de septiembre de 2026">
+    <PaginaLegal titulo="Política de privacidad" vigencia="14 de octubre de 2026">
       <P>
         Vorta es una app para llevar tus finanzas personales. Este documento dice exactamente qué
         datos se guardan, dónde, quién puede verlos y cómo borrarlos.
@@ -108,7 +109,7 @@ export default function PoliticaPrivacidad() {
       <H>Las otras llamadas a terceros</H>
       <P>
         Además del inicio con Google y de los asistentes que conectes (si usás alguno), hay una sola más.
-        Si tenés inversiones en dólares y tocás “Usar el tipo de cambio de hoy”, la app consulta el tipo de
+        Si tenés cuentas o inversiones en dólares y tocás “Usar el tipo de cambio de hoy”, la app consulta el tipo de
         cambio público en <span className="text-text">api.exchangerate-api.com</span>. Esa consulta
         pide la tabla de tipos de cambio del dólar y <strong className="text-text">no manda ningún
         dato tuyo</strong>: ni tu correo, ni tus montos, ni un identificador. Si nunca tocás ese

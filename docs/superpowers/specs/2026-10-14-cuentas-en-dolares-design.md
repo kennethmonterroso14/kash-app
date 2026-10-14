@@ -52,13 +52,34 @@ proyecto.
 
 ## Plan
 
-- [ ] `finanzas.ts`: `aMonedaBase`, `convertirMoneda`, `calcTotalCuentas`, `txnsEnMonedaBase`,
+- [x] `finanzas.ts`: `aMonedaBase`, `convertirMoneda`, `calcTotalCuentas`, `txnsEnMonedaBase`,
       `agruparPorDia` con valuación; tests.
-- [ ] `lib/tipoCambio.ts`, `useTipoCambio`, `ModalTipoCambio` y `BotonTipoCambio` compartidos.
-- [ ] Migración `20261014000000_cuentas_moneda.sql` + schema + tests SQL (incluye Apple Pay).
-- [ ] `useCuentas` (todas, moneda, guarda contra migración sin aplicar) + provider.
-- [ ] Cuentas, Resumen, hoja de cuenta, "Cambiar saldo", tipo de cambio desde Cuentas.
-- [ ] Movimientos, transferencias entre monedas, presupuestos, 6 meses, CSV, pago de tarjeta,
+- [x] `lib/tipoCambio.ts`, `useTipoCambio`, `ModalTipoCambio` y `BotonTipoCambio` compartidos.
+- [x] Migración `20261014000000_cuentas_moneda.sql` + schema + tests SQL (incluye Apple Pay).
+- [x] `useCuentas` (todas, moneda, guarda contra migración sin aplicar) + provider.
+- [x] Cuentas, Resumen, hoja de cuenta, "Cambiar saldo", tipo de cambio desde Cuentas.
+- [x] Movimientos, transferencias entre monedas, presupuestos, 6 meses, CSV, pago de tarjeta,
       pagos fijos, pagos por categorizar.
-- [ ] Conector MCP y `/api/atajo`.
-- [ ] Privacidad, CLAUDE.md, docs.
+- [x] Conector MCP y `/api/atajo`.
+- [x] Privacidad, CLAUDE.md, docs.
+
+## Decisiones tomadas al implementar
+
+- **`'GTQ'` es la moneda del perfil, también al mostrar.** Pasar la columna tal cual a
+  `formatMoneda` le mostraba "Q" a un perfil en lempiras. `monedaISO` traduce en un lugar
+  (`useMoneda`, y `useMonedas` para el símbolo, el código del CSV y el nombre en los textos).
+- **Con el perfil en dólares no se ofrece "en dólares"**: convertiría US$ a US$ con el tipo de
+  cambio. Una cuenta que ya lo fuera sigue mostrando el selector, para poder devolverla.
+- **`profiles.tipo_cambio_usd > 0` es un check**: ahora el total del Resumen convierte en render y
+  `usdToGTQ` lanza con 0. El cliente ya no lo escribía así; el check lo vuelve invariante.
+- **Apple Pay manda lo que ve, y decide la base.** `/api/atajo` envía un código ISO, o `'$'` para un
+  "$" a secas: son dólares salvo en un perfil en pesos (MXN, DOP), y el perfil solo lo conoce el
+  RPC. Solo se convierte entre el dólar y la moneda del perfil; otra moneda (euros de un viaje) se
+  registra tal cual y la notificación lo avisa. Sin la migración, `/api/atajo` cae a la versión de
+  4 parámetros (PGRST202).
+- **El pago de tarjeta se filtra en la hoja, no en la base.** Es el único que escribe `pago_tc` (el
+  conector no lo hace), y tocar `actualizar_deuda_tc` por esto no compensa el riesgo.
+- **Límite conocido:** con un perfil en una moneda que también se escribe "$" (MXN), el dólar y la
+  moneda del perfil se ven igual (`currencyDisplay: 'narrowSymbol'`). Las listas de cuentas marcan
+  "(US$)" y Cuentas dice "en dólares", pero el monto suelto no los distingue.
+

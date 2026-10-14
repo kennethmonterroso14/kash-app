@@ -46,21 +46,26 @@ no está activado; si falla el registro, falta el paso 3.
 
 | Nombre | Escribe | Qué hace |
 |---|---|---|
-| `obtener_contexto` | — | Perfil (moneda, zona, hoy), cuentas activas con id y saldo, categorías válidas. |
+| `obtener_contexto` | — | Perfil (moneda, zona, hoy), cuentas activas con id, moneda y saldo, el total convertido (el del Resumen), categorías válidas. |
 | `listar_movimientos` | — | El estado mensual: movimientos de un mes, opcionalmente de una cuenta. |
-| `resumen_mes` | — | Ingresos, gastos, neto, % de ahorro, gasto por categoría (`calcEstadisticasMes`). |
+| `resumen_mes` | — | Ingresos, gastos, neto, % de ahorro, gasto por categoría (`calcEstadisticasMes`), con lo de cuentas en dólares convertido. |
 | `registrar_movimientos` | sí | Hasta 100 ingresos/gastos. Todo o nada; omite duplicados por defecto. |
-| `transferir` | sí | Dos patas `ajuste` / `Transferencia`, como la app. |
-| `crear_cuenta` | sí | `crearCuentaConSaldoEn`, con la misma compensación que `ModalCuenta`. |
+| `transferir` | sí | Dos patas `ajuste` / `Transferencia`, como la app. Entre monedas, lo que llega se convierte o se indica (`monto_recibido`). |
+| `crear_cuenta` | sí | `crearCuentaConSaldoEn`, con la misma compensación que `ModalCuenta`. Opcional `moneda: "USD"`. |
 | `fijar_saldo_cuenta` | sí | Pone el saldo real registrando la diferencia (como "Cambiar saldo"). |
 | `editar_movimiento` | con permiso | Descripción, fecha, notas; en ingresos/gastos también monto y categoría. |
 | `borrar_movimientos` | con permiso | Hasta 50 por id, todo o nada. |
-| `editar_cuenta` | con permiso | Nombre y tipo. |
+| `editar_cuenta` | con permiso | Nombre, tipo y moneda (cambiarla no convierte los montos; la respuesta lo avisa). |
 | `eliminar_cuenta` | con permiso | Con `decidirBajaCuenta`: bloquea con saldo o pagos fijos, archiva o borra. |
 
 "Con permiso" = la persona activó **Permitir editar y borrar** en Ajustes → Asistentes de IA
 (`profiles.ia_puede_editar`, apagado por defecto). Nada toca tarjetas de crédito
 (`gasto_tc`/`pago_tc`).
+
+**Monedas.** Cada monto de una cuenta va y viene en la moneda de ESA cuenta (`moneda` en cada
+cuenta y movimiento); los totales y el resumen convierten las cuentas en dólares con
+`profiles.tipo_cambio_usd`, igual que la app. Sin la migración `20261014000000_cuentas_moneda.sql`
+todo sigue en la moneda del perfil y pedir una cuenta en dólares responde que no está disponible.
 
 ## Seguridad: lo que hay que saber
 
