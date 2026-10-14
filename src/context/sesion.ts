@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import type { Cuenta, useCuentas } from '../hooks/useCuentas'
 import type { CategoriaUsuario, useCategorias } from '../hooks/useCategorias'
 import type { useTarjetas } from '../hooks/useTarjetas'
-import type { TarjetaCredito, ResumenTC } from '../lib/finanzas'
+import type { TarjetaCredito, ResumenTC, MonedaCuenta } from '../lib/finanzas'
 
 /**
  * Datos que se cargan UNA vez por sesión y que casi todas las páginas
@@ -46,8 +46,17 @@ export interface Sesion {
   /** Del usuario de auth, no de `profiles`: ahí no se guarda. */
   email: string | null
   perfil: Perfil
+  /** Las cuentas activas, cada saldo en SU moneda. */
   cuentas: Cuenta[]
+  /** El total de las cuentas en la moneda del perfil: las USD, convertidas. */
   totalPatrimonio: number
+  /**
+   * Moneda de CADA cuenta, también las archivadas: sus movimientos siguen en el
+   * historial. Un movimiento sin cuenta (de tarjeta) es en quetzales.
+   */
+  monedasCuentas: Record<string, MonedaCuenta>
+  /** false si la base no tiene `cuentas.moneda` todavía: no se ofrece elegir. */
+  monedaCuentasDisponible: boolean
   categoriasGasto: string[]
   categoriasIngreso: string[]
   coloresCategorias: Record<string, string>

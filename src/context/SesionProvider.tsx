@@ -4,6 +4,7 @@ import { useCuentas } from '../hooks/useCuentas'
 import { useCategorias } from '../hooks/useCategorias'
 import { useTarjetas } from '../hooks/useTarjetas'
 import { zonaValida } from '../lib/constants'
+import { calcTotalCuentas } from '../lib/finanzas'
 import { aplicarAcento, esAcentoValido } from '../lib/acento'
 import { SesionCtx, PERFIL_DEFAULT, type Perfil, type Sesion } from './sesion'
 
@@ -123,7 +124,11 @@ export function SesionProvider(
     email,
     perfil,
     cuentas: cuentas.cuentas,
-    totalPatrimonio: cuentas.totalPatrimonio,
+    // Con el tipo de cambio del perfil: guardar uno nuevo (useTipoCambio)
+    // refresca el perfil y este total se recalcula solo.
+    totalPatrimonio: calcTotalCuentas(cuentas.cuentas, perfil.tipo_cambio_usd),
+    monedasCuentas: cuentas.monedas,
+    monedaCuentasDisponible: cuentas.monedaDisponible,
     categoriasGasto: categorias.categoriasGasto,
     categoriasIngreso: categorias.categoriasIngreso,
     coloresCategorias: categorias.coloresCategorias,
