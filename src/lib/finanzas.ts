@@ -617,6 +617,14 @@ export function gtqToUSD(montoGTQ_centavos: number, tipoCambioUSD: number): numb
 
 export type MonedaCuenta = 'GTQ' | 'USD'
 
+/**
+ * La moneda ISO de un monto guardado con `cuentas.moneda` o `inversiones.moneda`:
+ * 'USD' es dólares y cualquier otra ('GTQ') es la moneda del PERFIL, no
+ * quetzales literales. Para formatear o mostrar el símbolo, nunca la columna tal cual.
+ */
+export const monedaISO = (moneda: string | null | undefined, monedaPerfil: string): string =>
+  moneda === 'USD' ? 'USD' : monedaPerfil
+
 /** Un monto guardado en `moneda`, expresado en la moneda del perfil. */
 export const aMonedaBase = (centavos: number, moneda: string | null | undefined, tipoCambioUSD: number): number =>
   moneda === 'USD' ? usdToGTQ(centavos, tipoCambioUSD) : centavos

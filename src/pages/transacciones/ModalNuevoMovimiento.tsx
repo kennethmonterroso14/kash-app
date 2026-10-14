@@ -5,10 +5,11 @@ import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import SelectorCategoria from '../../components/SelectorCategoria'
 import { IconoAlerta } from '../../components/iconos'
-import { convertirMoneda, simboloMoneda, toCentavos, type MonedaCuenta } from '../../lib/finanzas'
+import { convertirMoneda, toCentavos, type MonedaCuenta } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
+import { useMonedas } from '../../hooks/useMonedas'
 import { AL_INSTANTE, posicionIndicador, RESORTE_SEGMENTO, useMenosMovimiento } from '../../lib/movimiento'
 import type { useTransacciones } from '../../hooks/useTransacciones'
 
@@ -89,7 +90,7 @@ export default function ModalNuevoMovimiento({ agregar, agregarTransferencia, on
     : monedaDeCuenta(cuentaId)
   const monedaDestino = monedaDeCuenta(transferA)
   const entreMonedas = tipo === 'transferencia' && !!transferDe && !!transferA && monedaMonto !== monedaDestino
-  const simbolo = (m: MonedaCuenta) => simboloMoneda({ moneda: m, locale: perfil.locale })
+  const { simbolo } = useMonedas()
   const montoSugerido = entreMonedas && parseFloat(cantidad) > 0
     ? convertirMoneda(toCentavos(parseFloat(cantidad)), monedaMonto, monedaDestino, perfil.tipo_cambio_usd)
     : null

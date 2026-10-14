@@ -4,10 +4,11 @@ import BotonConfirmar from '../../components/BotonConfirmar'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { crearCuentaConSaldo } from '../../lib/altaCuenta'
-import { simboloMoneda, toCentavos, type MonedaCuenta } from '../../lib/finanzas'
+import { toCentavos, type MonedaCuenta } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useFechas } from '../../hooks/useFechas'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 import type { Cuenta } from '../../hooks/useCuentas'
 import { paletaDatos } from '../../lib/tokens'
 
@@ -33,13 +34,15 @@ interface Props {
  * dólares como quetzales", donde los números ya eran dólares. La hoja lo dice
  * antes de guardar, con el antes y el después.
  */
-const MONEDAS: { id: MonedaCuenta; etiqueta: string }[] = [
-  { id: 'GTQ', etiqueta: 'Quetzales' },
-  { id: 'USD', etiqueta: 'Dólares' },
-]
 
 export default function ModalCuenta({ cuenta, onCerrar }: Props) {
-  const { userId, refrescar, actualizarCuenta, eliminarCuenta, monedaCuentasDisponible, perfil } = useSesion()
+  const { userId, refrescar, actualizarCuenta, eliminarCuenta, monedaCuentasDisponible } = useSesion()
+  const { simbolo: simboloDe, nombre: nombreMoneda, ofrecerDolares } = useMonedas()
+  const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+  const monedas: { id: MonedaCuenta; etiqueta: string }[] = [
+    { id: 'GTQ', etiqueta: mayuscula(nombreMoneda('GTQ')) },
+    { id: 'USD', etiqueta: 'Dólares' },
+  ]
   const fechas = useFechas()
   const fmt = useMoneda()
   const editando = !!cuenta
@@ -115,19 +118,21 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
           </Campo>
           {!editando && (
             <Campo
-              etiqueta={`Saldo inicial (${simboloMoneda({ moneda, locale: perfil.locale })})`} tipo="number" step="0.01" min="0" placeholder="0.00"
+              etiqueta={`Saldo inicial (${simboloDe(moneda)})`} tipo="number" step="0.01" min="0" placeholder="0.00"
               value={saldo} onChange={e => setSaldo(e.target.value)}
               clase="tabular-nums"
             />
           )}
         </div>
 
-        {/* Sin la columna en la base no se ofrece: todo es quetzales. */}
-        {monedaCuentasDisponible && (
+        {/* Sin la columna en la base no se ofrece: todo es la moneda del perfil.
+            Tampoco si esa moneda ya es el dólar. Una cuenta que ya es en
+            dólares sí lo muestra, para poder devolverla. */}
+        {monedaCuentasDisponible && (ofrecerDolares || cuenta?.moneda === 'USD') && (
           <div>
             <p className="text-textDim text-xs mb-2 tracking-micro">Moneda</p>
             <div role="radiogroup" aria-label="Moneda de la cuenta" className="flex gap-1 bg-vidrio-relleno rounded-full p-1">
-              {MONEDAS.map(m => (
+              {monedas.map(m => (
                 <button
                   key={m.id}
                   type="button"
@@ -149,7 +154,7 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
           <Aviso tono="atencion">
             Los montos no se convierten: el saldo pasa de {fmt(cuenta.saldo, cuenta.moneda)} a{' '}
             {fmt(cuenta.saldo, moneda)}, y los movimientos de esta cuenta se leen en{' '}
-            {moneda === 'USD' ? 'dólares' : 'quetzales'}. Si el saldo real es otro, corrígelo después con “Cambiar saldo”.
+            {nombreMoneda(moneda)}. Si el saldo real es otro, corrígelo después con “Cambiar saldo”.
           </Aviso>
         )}
 

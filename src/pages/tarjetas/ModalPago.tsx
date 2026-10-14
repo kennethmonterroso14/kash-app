@@ -6,6 +6,7 @@ import { simboloMoneda, toCentavos, type TarjetaCredito } from '../../lib/finanz
 import { useSesion } from '../../context/sesion'
 import { useMoneda } from '../../hooks/useMoneda'
 import { useFechas } from '../../hooks/useFechas'
+import { useMonedas } from '../../hooks/useMonedas'
 
 interface Props {
   tc: TarjetaCredito
@@ -20,6 +21,8 @@ export default function ModalPago({ tc, onCerrar }: Props) {
   const { cuentas, registrarPago, perfil } = useSesion()
   const fmt = useMoneda()
   const fechas = useFechas()
+  const { nombre: nombreMoneda } = useMonedas()
+  const local = nombreMoneda('GTQ')
 
   // El trigger baja la deuda con el MISMO número que debita la cuenta, así que
   // una cuenta en dólares pagaría US$100 como si fueran Q100. Las tarjetas son
@@ -77,10 +80,10 @@ export default function ModalPago({ tc, onCerrar }: Props) {
           etiqueta="Cuenta de cargo" tipo="select"
           value={cuenta} onChange={e => setCuenta(e.target.value)}
           pista={hayEnDolares
-            ? 'Las cuentas en dólares no aparecen: la tarjeta es en quetzales. Pasa primero el dinero a una cuenta en quetzales con una transferencia.'
+            ? `Las cuentas en dólares no aparecen: la tarjeta es en ${local}. Pasa primero el dinero a una cuenta en ${local} con una transferencia.`
             : undefined}
         >
-          {cuentasPago.length === 0 && <option value="">Sin cuentas en quetzales</option>}
+          {cuentasPago.length === 0 && <option value="">Sin cuentas en {local}</option>}
           {cuentasPago.map(c => (
             <option key={c.id} value={c.id}>{c.nombre} — {fmt(c.saldo)}</option>
           ))}

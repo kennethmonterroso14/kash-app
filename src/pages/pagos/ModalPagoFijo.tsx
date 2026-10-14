@@ -2,9 +2,10 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
-import { simboloMoneda, toCentavos } from '../../lib/finanzas'
+import { toCentavos } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import type { PagoRecurrente } from '../../hooks/usePagosRecurrentes'
+import { useMonedas } from '../../hooks/useMonedas'
 
 /**
  * Solo hasta 28: un pago fijo el 30 no existiría en febrero, y el
@@ -29,7 +30,8 @@ interface Props {
 }
 
 export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
-  const { cuentas, categoriasGasto, perfil } = useSesion()
+  const { cuentas, categoriasGasto } = useSesion()
+  const { simbolo: simboloDe } = useMonedas()
   const editando = !!pago
 
   // 'Suscripciones' es el default razonable para un pago fijo, pero solo si el
@@ -49,7 +51,7 @@ export default function ModalPagoFijo({ pago, guardar, onCerrar }: Props) {
   // El auto-aplicador carga el monto tal cual a la cuenta, así que se escribe
   // en la moneda de ella.
   const monedaCuenta = cuentas.find(c => c.id === cuenta)?.moneda ?? 'GTQ'
-  const simbolo = simboloMoneda({ moneda: monedaCuenta, locale: perfil.locale })
+  const simbolo = simboloDe(monedaCuenta)
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()

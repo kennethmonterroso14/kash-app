@@ -2,11 +2,12 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
-import { calcAjusteParaSaldo, centavosConSigno, simboloMoneda, type MonedaCuenta } from '../../lib/finanzas'
+import { calcAjusteParaSaldo, centavosConSigno, type MonedaCuenta } from '../../lib/finanzas'
 import { supabase } from '../../lib/supabase'
 import { useSesion } from '../../context/sesion'
 import { useFechas } from '../../hooks/useFechas'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 
 interface Props {
   cuenta: { id: string; nombre: string; saldo: number; moneda: MonedaCuenta }
@@ -27,13 +28,14 @@ interface Props {
  * resultado igual queda en el valor que se escribió.
  */
 export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
-  const { userId, refrescar, invalidarTxns, perfil } = useSesion()
+  const { userId, refrescar, invalidarTxns } = useSesion()
+  const { simbolo: simboloDe } = useMonedas()
   const fechas = useFechas()
   const fmtPerfil = useMoneda()
   // Todo en la moneda de la cuenta: el saldo y el ajuste de una cuenta en
   // dólares son dólares.
   const fmt = (centavos: number) => fmtPerfil(centavos, cuenta.moneda)
-  const simbolo = simboloMoneda({ moneda: cuenta.moneda, locale: perfil.locale })
+  const simbolo = simboloDe(cuenta.moneda)
 
   const [monto, setMonto] = useState((cuenta.saldo / 100).toFixed(2))
   const [guardando, setGuardando] = useState(false)

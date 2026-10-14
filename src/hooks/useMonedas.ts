@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useSesion } from '../context/sesion'
-import { aMonedaBase, txnsEnMonedaBase, type MonedaCuenta } from '../lib/finanzas'
+import { aMonedaBase, monedaISO, simboloMoneda, txnsEnMonedaBase, type MonedaCuenta } from '../lib/finanzas'
 
 /**
  * Las monedas de las cuentas, curriadas con la sesión: de qué moneda es un
@@ -24,5 +24,19 @@ export function useMonedas() {
     enBase: (centavos: number, moneda: string | null | undefined) => aMonedaBase(centavos, moneda, tipoCambioUSD),
     txnsEnBase: <T extends { cantidad: number; cuenta_id?: string | null }>(txns: T[]) =>
       txnsEnMonedaBase(txns, monedaDe, tipoCambioUSD),
-  }), [tipoCambioUSD, monedaDe])
+    /** El símbolo para la etiqueta de un campo de monto en esa moneda ("Q", "US$"…). */
+    simbolo: (moneda: MonedaCuenta) => simboloMoneda({ moneda: monedaISO(moneda, perfil.moneda), locale: perfil.locale }),
+    /** El código ISO, para exportar: 'GTQ' es la moneda del perfil. */
+    iso: (moneda: MonedaCuenta) => monedaISO(moneda, perfil.moneda),
+    /** Para el texto: "dólares", "quetzales", o el código si el perfil es de otra moneda. */
+    nombre: (moneda: MonedaCuenta) => {
+      const iso = monedaISO(moneda, perfil.moneda)
+      return iso === 'USD' ? 'dólares' : iso === 'GTQ' ? 'quetzales' : iso
+    },
+    /**
+     * Si tiene sentido marcar una cuenta en dólares: no cuando la moneda del
+     * perfil ya es el dólar (convertiría US$ a US$ con el tipo de cambio).
+     */
+    ofrecerDolares: perfil.moneda !== 'USD',
+  }), [tipoCambioUSD, monedaDe, perfil.moneda, perfil.locale])
 }

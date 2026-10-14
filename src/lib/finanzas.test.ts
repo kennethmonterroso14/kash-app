@@ -15,7 +15,7 @@ import {
   promedioCentavos,
   centavosConSigno,
   calcAjusteParaSaldo,
-  gtqToUSD,
+  gtqToUSD, monedaISO,
   aMonedaBase,
   convertirMoneda,
   calcTotalCuentas,
@@ -704,6 +704,13 @@ describe('calcAjusteParaSaldo', () => {
 
 describe('cuentas en dólares', () => {
   const TC = 775   // Q7.75 por US$1
+
+  it("monedaISO: 'USD' es dólares y 'GTQ' es la moneda del perfil, sea cual sea", () => {
+    expect(monedaISO('USD', 'GTQ')).toBe('USD')
+    expect(monedaISO('GTQ', 'GTQ')).toBe('GTQ')
+    expect(monedaISO('GTQ', 'HNL')).toBe('HNL')
+    expect(monedaISO(null, 'MXN')).toBe('MXN')
+  })
 
   it('gtqToUSD es el inverso de usdToGTQ, redondeando al centavo', () => {
     expect(gtqToUSD(77_500, TC)).toBe(10_000)        // Q775 → $100

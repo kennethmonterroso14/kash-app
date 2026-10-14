@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
-import { simboloMoneda, toCentavos } from '../../lib/finanzas'
+import { toCentavos } from '../../lib/finanzas'
 import { useMonedas } from '../../hooks/useMonedas'
 import { useSesion } from '../../context/sesion'
 import type { Transaccion } from '../../hooks/useTransacciones'
@@ -16,10 +16,10 @@ interface Props {
 }
 
 export default function ModalEditarTxn({ txn, actualizar, onCerrar }: Props) {
-  const { categoriasGasto, categoriasIngreso, perfil } = useSesion()
-  const { monedaDe } = useMonedas()
+  const { categoriasGasto, categoriasIngreso } = useSesion()
+  const { monedaDe, simbolo: simboloDe } = useMonedas()
   // El monto está en la moneda de su cuenta (US$ si la cuenta es en dólares).
-  const simbolo = simboloMoneda({ moneda: monedaDe(txn.cuenta_id), locale: perfil.locale })
+  const simbolo = simboloDe(monedaDe(txn.cuenta_id))
   // Ver la nota de htmlFor en ModalNuevoMovimiento.
 
   const [cantidad, setCantidad] = useState(String(Math.abs(txn.cantidad) / 100))

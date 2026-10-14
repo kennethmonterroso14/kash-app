@@ -33,7 +33,7 @@ const esEditable = (t: Transaccion) => t.tipo !== 'gasto_tc' && t.tipo !== 'pago
 export default function TransaccionesPage() {
   const { userId, cuentas, coloresCategorias, resumenTCs, perfil } = useSesion()
   const fmt = useMoneda()
-  const { monedaDe, enBase } = useMonedas()
+  const { monedaDe, enBase, iso } = useMonedas()
   const fechas = useFechas()
   const [mes, setMes] = useState(fechas.mesActual())
   const { txns, loading, error, deleteTxn, restoreTxn, updateTxn } = useTransacciones(userId, mes)
@@ -65,7 +65,7 @@ export default function TransaccionesPage() {
     construirCSV(filtrados, {
       cuenta:  id => cuentas.find(c => c.id === id)?.nombre ?? id,
       tarjeta: id => resumenTCs.find(r => r.tc.id === id)?.tc.nombre ?? id,
-      moneda:  monedaDe,
+      moneda:  id => iso(monedaDe(id)),
     }),
     `vorta_${mes}.csv`,
   )
