@@ -4,7 +4,7 @@ import BotonConfirmar from '../../components/BotonConfirmar'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
 import { crearCuentaConSaldo } from '../../lib/altaCuenta'
-import { toCentavos } from '../../lib/finanzas'
+import { simboloMoneda, toCentavos, type MonedaCuenta } from '../../lib/finanzas'
 import { useSesion } from '../../context/sesion'
 import { useFechas } from '../../hooks/useFechas'
 import { useMoneda } from '../../hooks/useMoneda'
@@ -27,9 +27,19 @@ interface Props {
  * corregirlo está "Cambiar saldo", que inserta un `ajuste` por la diferencia. Eliminar vive acá abajo,
  * con dos toques, y la regla de qué pasa (borrar, archivar o negarse) es de
  * `decidirBajaCuenta`.
+ *
+ * La moneda se elige al crearla y se puede cambiar después. Cambiarla
+ * RE-ETIQUETA la cuenta, no la convierte: es el caso de "registré mi cuenta de
+ * dólares como quetzales", donde los números ya eran dólares. La hoja lo dice
+ * antes de guardar, con el antes y el después.
  */
+const MONEDAS: { id: MonedaCuenta; etiqueta: string }[] = [
+  { id: 'GTQ', etiqueta: 'Quetzales' },
+  { id: 'USD', etiqueta: 'Dólares' },
+]
+
 export default function ModalCuenta({ cuenta, onCerrar }: Props) {
-  const { userId, refrescar, actualizarCuenta, eliminarCuenta } = useSesion()
+  const { userId, refrescar, actualizarCuenta, eliminarCuenta, monedaCuentasDisponible, perfil } = useSesion()
   const fechas = useFechas()
   const fmt = useMoneda()
   const editando = !!cuenta
@@ -38,6 +48,8 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
   const [tipo, setTipo] = useState<string>(cuenta?.tipo ?? 'ahorro')
   const [saldo, setSaldo] = useState('')
   const [color, setColor] = useState(cuenta?.color ?? paletaDatos[0])
+  const [moneda, setMoneda] = useState<MonedaCuenta>(cuenta?.moneda ?? 'GTQ')
+  const cambiaMoneda = !!cuenta && moneda !== cuenta.moneda
   const [guardando, setGuardando] = useState(false)
   const [err, setErr] = useState('')
 
@@ -48,7 +60,7 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
     if (cuenta) {
       setGuardando(true)
       setErr('')
-      const fallo = await actualizarCuenta(cuenta.id, { nombre, tipo, color })
+      const fallo = await actualizarCuenta(cuenta.id, { nombre, tipo, color, moneda })
       setGuardando(false)
       if (fallo) return setErr(fallo)
       onCerrar()
@@ -66,6 +78,7 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
     // por si falla el ajuste está documentada ahí.
     const fallo = await crearCuentaConSaldo({
       userId, nombre, tipo, color, saldoCentavos: toCentavos(saldoQ), hoy: fechas.hoy(),
+      ...(monedaCuentasDisponible && { moneda }),
     })
     if (fallo) { setErr(fallo); setGuardando(false); return }
 
@@ -84,7 +97,7 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
     if ('ok' in r) { onCerrar(); return }
     if ('error' in r) { setErr(r.error); return }
     setErr(r.bloqueada === 'saldo'
-      ? `Esta cuenta tiene ${fmt(cuenta.saldo)}. Para eliminarla, primero pasa ese saldo a otra cuenta con una transferencia, o déjala en ${fmt(0)} con "Cambiar saldo".`
+      ? `Esta cuenta tiene ${fmt(cuenta.saldo, cuenta.moneda)}. Para eliminarla, primero pasa ese saldo a otra cuenta con una transferencia, o déjala en ${fmt(0, cuenta.moneda)} con "Cambiar saldo".`
       : 'Esta cuenta tiene pagos fijos activos. Cámbialos a otra cuenta o elimínalos en Ajustes → Pagos fijos, y vuelve a intentarlo.')
   }
 
@@ -102,16 +115,47 @@ export default function ModalCuenta({ cuenta, onCerrar }: Props) {
           </Campo>
           {!editando && (
             <Campo
-              etiqueta="Saldo inicial (Q)" tipo="number" step="0.01" min="0" placeholder="0.00"
+              etiqueta={`Saldo inicial (${simboloMoneda({ moneda, locale: perfil.locale })})`} tipo="number" step="0.01" min="0" placeholder="0.00"
               value={saldo} onChange={e => setSaldo(e.target.value)}
               clase="tabular-nums"
             />
           )}
         </div>
 
-        {cuenta && (
+        {/* Sin la columna en la base no se ofrece: todo es quetzales. */}
+        {monedaCuentasDisponible && (
+          <div>
+            <p className="text-textDim text-xs mb-2 tracking-micro">Moneda</p>
+            <div role="radiogroup" aria-label="Moneda de la cuenta" className="flex gap-1 bg-vidrio-relleno rounded-full p-1">
+              {MONEDAS.map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={moneda === m.id}
+                  onClick={() => setMoneda(m.id)}
+                  className={`flex-1 h-9 rounded-full text-[14px] transition-colors duration-rapida ${
+                    moneda === m.id ? 'bg-vidrio-segmento shadow-chip text-text font-semibold' : 'text-textDim font-medium'
+                  }`}
+                >
+                  {m.etiqueta}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {cambiaMoneda && (
+          <Aviso tono="atencion">
+            Los montos no se convierten: el saldo pasa de {fmt(cuenta.saldo, cuenta.moneda)} a{' '}
+            {fmt(cuenta.saldo, moneda)}, y los movimientos de esta cuenta se leen en{' '}
+            {moneda === 'USD' ? 'dólares' : 'quetzales'}. Si el saldo real es otro, corrígelo después con “Cambiar saldo”.
+          </Aviso>
+        )}
+
+        {cuenta && !cambiaMoneda && (
           <p className="text-textDim text-[13px]">
-            Saldo actual <span className="text-text tabular-nums font-semibold">{fmt(cuenta.saldo)}</span>.
+            Saldo actual <span className="text-text tabular-nums font-semibold">{fmt(cuenta.saldo, cuenta.moneda)}</span>.
             Para corregirlo usa “Cambiar saldo” en la lista: escribes el saldo real y queda registrado como un ajuste.
           </p>
         )}

@@ -2,14 +2,14 @@ import { useState } from 'react'
 import Aviso from '../../components/Aviso'
 import Campo from '../../components/Campo'
 import Hoja from '../../components/Hoja'
-import { calcAjusteParaSaldo, centavosConSigno } from '../../lib/finanzas'
+import { calcAjusteParaSaldo, centavosConSigno, simboloMoneda, type MonedaCuenta } from '../../lib/finanzas'
 import { supabase } from '../../lib/supabase'
 import { useSesion } from '../../context/sesion'
 import { useFechas } from '../../hooks/useFechas'
 import { useMoneda } from '../../hooks/useMoneda'
 
 interface Props {
-  cuenta: { id: string; nombre: string; saldo: number }
+  cuenta: { id: string; nombre: string; saldo: number; moneda: MonedaCuenta }
   onCerrar: () => void
 }
 
@@ -27,9 +27,13 @@ interface Props {
  * resultado igual queda en el valor que se escribió.
  */
 export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
-  const { userId, refrescar, invalidarTxns } = useSesion()
+  const { userId, refrescar, invalidarTxns, perfil } = useSesion()
   const fechas = useFechas()
-  const fmt = useMoneda()
+  const fmtPerfil = useMoneda()
+  // Todo en la moneda de la cuenta: el saldo y el ajuste de una cuenta en
+  // dólares son dólares.
+  const fmt = (centavos: number) => fmtPerfil(centavos, cuenta.moneda)
+  const simbolo = simboloMoneda({ moneda: cuenta.moneda, locale: perfil.locale })
 
   const [monto, setMonto] = useState((cuenta.saldo / 100).toFixed(2))
   const [guardando, setGuardando] = useState(false)
@@ -83,7 +87,7 @@ export default function ModalAjusteSaldo({ cuenta, onCerrar }: Props) {
       </p>
       <form onSubmit={enviar} className="space-y-3">
         <Campo
-          etiqueta="Saldo real (Q)" tipo="number" step="0.01" required inputMode="decimal"
+          etiqueta={`Saldo real (${simbolo})`} tipo="number" step="0.01" required inputMode="decimal"
           value={monto} onChange={e => setMonto(e.target.value)}
           clase="text-xl tabular-nums"
         />

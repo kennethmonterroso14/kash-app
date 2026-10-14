@@ -1,6 +1,7 @@
 import Aviso from '../../components/Aviso'
 import type { Cuenta } from '../../hooks/useCuentas'
 import { useMoneda } from '../../hooks/useMoneda'
+import { useMonedas } from '../../hooks/useMonedas'
 import { IconoOjo } from '../../components/iconos'
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
 
 export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlternar }: Props) {
   const fmt = useMoneda()
+  const { tipoCambioUSD } = useMonedas()
+  const hayDolares = cuentas.some(c => c.moneda === 'USD')
 
   return (
     <div className="vidrio-panel rounded-tarjeta p-5">
@@ -50,10 +53,17 @@ export default function TarjetaPatrimonio({ total, cuentas, error, oculto, onAlt
               <div key={c.id} className="flex items-center gap-1.5 bg-vidrio-relleno rounded-chip px-2 py-1">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
                 <span className="text-xs text-textDim">{c.nombre}</span>
-                <span className="text-xs tabular-nums text-text">{fmt(c.saldo)}</span>
+                <span className="text-xs tabular-nums text-text">{fmt(c.saldo, c.moneda)}</span>
               </div>
             ))}
           </div>
+          {/* El total ya las incluye convertidas: se dice con qué tipo de cambio,
+              que se actualiza en Cuentas o Inversiones. */}
+          {hayDolares && !error && (
+            <p className="text-textDim text-[12px] mt-2">
+              Las cuentas en dólares, a {fmt(tipoCambioUSD)} por US$1.
+            </p>
+          )}
         </>
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { MonedaCuenta } from './finanzas'
 
 export interface Alta {
   userId: string
@@ -9,6 +10,11 @@ export interface Alta {
   saldoCentavos: number
   /** 'YYYY-MM-DD' en la zona del usuario. */
   hoy: string
+  /**
+   * Moneda de la cuenta; el saldo inicial está en ella. Sin ella, la columna
+   * toma su default (quetzales) — y una base sin la columna no recibe el campo.
+   */
+  moneda?: MonedaCuenta
 }
 
 /**
@@ -39,11 +45,11 @@ export interface Alta {
  */
 export async function crearCuentaConSaldoEn(
   supabase: SupabaseClient,
-  { userId, nombre, tipo, color, saldoCentavos, hoy }: Alta,
+  { userId, nombre, tipo, color, saldoCentavos, hoy, moneda }: Alta,
 ): Promise<string | null> {
   const { data: cuenta, error: errCuenta } = await supabase
     .from('cuentas')
-    .insert({ user_id: userId, nombre: nombre.trim(), tipo, saldo: 0, color })
+    .insert({ user_id: userId, nombre: nombre.trim(), tipo, saldo: 0, color, ...(moneda && { moneda }) })
     .select('id, nombre')
     .single()
   if (errCuenta) return errCuenta.message

@@ -5,13 +5,15 @@ interface Props {
   oculto: boolean
   className?: string
   signo?: string
+  /** La moneda en que está `valor` (una cuenta en dólares). Por defecto, la del perfil. */
+  moneda?: string
 }
 
 /**
  * Un monto que respeta el modo privado: con `oculto` muestra •••••• más un
  * equivalente para lector de pantalla, en lugar de la cifra.
  */
-export default function Monto({ valor, oculto, className = '', signo = '' }: Props) {
+export default function Monto({ valor, oculto, className = '', signo = '', moneda }: Props) {
   const fmt = useMoneda()
   if (oculto) {
     return (
@@ -20,5 +22,5 @@ export default function Monto({ valor, oculto, className = '', signo = '' }: Pro
       </span>
     )
   }
-  return <span className={`tabular-nums ${className}`}>{signo}{fmt(valor)}</span>
+  return <span className={`tabular-nums ${className}`}>{signo}{fmt(valor, moneda)}</span>
 }
