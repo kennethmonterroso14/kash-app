@@ -144,6 +144,17 @@ create table if not exists cuentas (
   created_at  timestamptz not null default now()
 );
 
+-- Moneda de la cuenta (migración 20261014000000_cuentas_moneda.sql). El saldo y
+-- TODOS los movimientos de la cuenta están en esta moneda; el trigger de saldo
+-- no la mira. Lo que suma entre cuentas convierte con profiles.tipo_cambio_usd
+-- (finanzas.ts: calcTotalCuentas, txnsEnMonedaBase). Misma convención que
+-- inversiones.moneda: 'GTQ' es la moneda del perfil.
+alter table cuentas
+  add column if not exists moneda text not null default 'GTQ';
+do $$ begin
+  alter table cuentas add constraint cuentas_moneda_check check (moneda in ('GTQ', 'USD'));
+exception when duplicate_object then null; end $$;
+
 -- ─── TARJETAS DE CRÉDITO (Fase 6) ─────────────────────────────────────
 -- `deuda_actual` y `deuda_ciclo_anterior` las mantiene el trigger
 -- trg_deuda_tc y el RPC cerrar_ciclo_tc. Nunca escribirlas desde el cliente.
@@ -1400,8 +1411,10 @@ grant execute on function borrar_mi_cuenta() to authenticated;
 --     ese user_id en cada consulta. Lo ÚNICO que hace es registrar un gasto
 --     de esa persona: con la clave no se lee ni se borra nada.
 --
---     El monto llega en centavos (la función de Vercel parsea "Q45.00"), y
---     el texto de la respuesta lo arma también ella a partir de `codigo`.
+--     El monto llega en centavos (la función de Vercel parsea "Q45.00") junto
+--     con su moneda si el texto la traía; si no es la de la cuenta destino se
+--     convierte con profiles.tipo_cambio_usd. El texto de la respuesta lo arma
+--     la función de Vercel a partir de `codigo`.
 --
 --     Reglas:
 --       · tarjeta de Wallet sin asignar → no se registra; queda en la lista
@@ -1420,7 +1433,11 @@ create or replace function registrar_pago_atajo(
   p_clave_hash text,
   p_centavos   bigint,
   p_comercio   text,
-  p_tarjeta    text
+  p_tarjeta    text,
+  -- La moneda del importe ('GTQ' / 'USD'), deducida del texto que manda el
+  -- atajo ("Q45.00", "$45.00"); null si no traía símbolo. SIN default: un
+  -- default haría ambigua la versión de 4 parámetros de abajo.
+  p_moneda     text
 )
 returns jsonb
 language plpgsql
@@ -1443,6 +1460,8 @@ declare
   v_cierre     date;
   v_pago       date;
   v_txn        uuid;
+  v_centavos   bigint := p_centavos;   -- el monto ya en la moneda del destino
+  v_moneda_dest text;
 begin
   if p_centavos is null or p_centavos <= 0 or p_centavos > 1000000000000 then
     return jsonb_build_object('ok', false, 'codigo', 'monto_invalido');
@@ -1455,7 +1474,7 @@ begin
     return jsonb_build_object('ok', false, 'codigo', 'clave_invalida');
   end if;
 
-  select moneda, locale, zona_horaria into v_perfil from profiles where user_id = v_uid;
+  select moneda, locale, zona_horaria, tipo_cambio_usd into v_perfil from profiles where user_id = v_uid;
   if not found then
     return jsonb_build_object('ok', false, 'codigo', 'sin_perfil');
   end if;
@@ -1465,8 +1484,8 @@ begin
     return jsonb_build_object('ok', false, 'codigo', 'sin_tarjeta');
   end if;
 
-  select m.cuenta_id, m.tarjeta_id, c.nombre as cuenta, c.activa as cuenta_activa,
-         t.nombre as tc, t.activa as tc_activa, t.dia_cierre, t.dia_pago
+  select m.cuenta_id, m.tarjeta_id, c.nombre as cuenta, c.activa as cuenta_activa, c.moneda as cuenta_moneda,
+         t.nombre as tc, t.activa as tc_activa, t.dia_cierre, t.dia_pago, t.moneda as tc_moneda
     into v_map
     from atajo_tarjetas m
     left join cuentas c on c.id = m.cuenta_id
@@ -1486,17 +1505,34 @@ begin
   end if;
   v_destino := coalesce(v_map.cuenta, v_map.tc);
 
+  -- El importe viene en la moneda del pago; el movimiento va en la de la
+  -- cuenta (o tarjeta) destino. Si difieren, se convierte con el tipo de
+  -- cambio del perfil — el mismo que usa la app para sumar.
+  v_moneda_dest := coalesce(case when v_map.cuenta_id is not null then v_map.cuenta_moneda else v_map.tc_moneda end, 'GTQ');
+  if p_moneda in ('GTQ', 'USD') and p_moneda <> v_moneda_dest then
+    if coalesce(v_perfil.tipo_cambio_usd, 0) <= 0 then
+      return jsonb_build_object('ok', false, 'codigo', 'sin_tipo_cambio');
+    end if;
+    v_centavos := case when p_moneda = 'USD'
+                       then round(p_centavos * v_perfil.tipo_cambio_usd / 100.0)
+                       else round(p_centavos * 100.0 / v_perfil.tipo_cambio_usd) end;
+    if v_centavos <= 0 then
+      return jsonb_build_object('ok', false, 'codigo', 'monto_invalido');
+    end if;
+  end if;
+
   -- El atajo reintentó (o se disparó dos veces): no se duplica.
   if exists (
     select 1 from transacciones
      where user_id = v_uid
        and descripcion = v_comercio
-       and cantidad = -p_centavos
+       and cantidad = -v_centavos
        and (cuenta_id = v_map.cuenta_id or tarjeta_id = v_map.tarjeta_id)
        and created_at > now() - interval '2 minutes'
   ) then
-    return jsonb_build_object('ok', true, 'codigo', 'duplicado', 'centavos', p_centavos,
-      'moneda', v_perfil.moneda, 'locale', v_perfil.locale, 'destino', v_destino);
+    return jsonb_build_object('ok', true, 'codigo', 'duplicado', 'centavos', v_centavos,
+      'moneda', case when v_moneda_dest = 'USD' then 'USD' else v_perfil.moneda end,
+      'locale', v_perfil.locale, 'destino', v_destino);
   end if;
 
   select categoria into v_categoria
@@ -1510,7 +1546,7 @@ begin
 
   if v_map.cuenta_id is not null then
     insert into transacciones (user_id, cuenta_id, fecha, cantidad, descripcion, categoria, tipo, notas)
-    values (v_uid, v_map.cuenta_id, v_hoy, -p_centavos, v_comercio, v_categoria, 'gasto',
+    values (v_uid, v_map.cuenta_id, v_hoy, -v_centavos, v_comercio, v_categoria, 'gasto',
             'Apple Pay · ' || v_tarjeta)
     returning id into v_txn;
   else
@@ -1551,7 +1587,7 @@ begin
     end if;
 
     insert into transacciones (user_id, tarjeta_id, ciclo_id, fecha, cantidad, descripcion, categoria, tipo, notas)
-    values (v_uid, v_map.tarjeta_id, v_ciclo, v_hoy, -p_centavos, v_comercio, v_categoria, 'gasto_tc',
+    values (v_uid, v_map.tarjeta_id, v_ciclo, v_hoy, -v_centavos, v_comercio, v_categoria, 'gasto_tc',
             'Apple Pay · ' || v_tarjeta)
     returning id into v_txn;
   end if;
@@ -1559,10 +1595,30 @@ begin
   -- La persona elige la categoría en la app (la sugerida ya quedó puesta).
   insert into pagos_por_categorizar (transaccion_id, user_id) values (v_txn, v_uid);
 
-  return jsonb_build_object('ok', true, 'codigo', 'registrado', 'centavos', p_centavos,
-    'moneda', v_perfil.moneda, 'locale', v_perfil.locale,
-    'categoria', v_categoria, 'destino', v_destino, 'por_categorizar', true);
+  return jsonb_build_object('ok', true, 'codigo', 'registrado', 'centavos', v_centavos,
+    'moneda', case when v_moneda_dest = 'USD' then 'USD' else v_perfil.moneda end,
+    'locale', v_perfil.locale,
+    'categoria', v_categoria, 'destino', v_destino, 'por_categorizar', true)
+    -- Si hubo conversión, también lo que se pagó, para que el atajo lo muestre.
+    || case when v_centavos <> p_centavos
+            then jsonb_build_object('centavos_original', p_centavos, 'moneda_original', p_moneda)
+            else '{}'::jsonb end;
 end;
+$$;
+
+-- La versión de 4 parámetros, sin moneda: la que llamaba /api/atajo antes de
+-- las cuentas en dólares. Se conserva como envoltorio (sin conversión) para que
+-- el orden en que se apliquen la migración y el código no importe, y para que
+-- volver a correr 20260925 / 20260926 —que la crean— no deje dos versiones
+-- ambiguas: la nueva no tiene default, así que 4 argumentos van siempre acá.
+create or replace function registrar_pago_atajo(
+  p_clave_hash text, p_centavos bigint, p_comercio text, p_tarjeta text
+)
+returns jsonb
+language sql
+set search_path = public, pg_temp
+as $$
+  select registrar_pago_atajo(p_clave_hash, p_centavos, p_comercio, p_tarjeta, null::text)
 $$;
 
 -- Solo `anon`: quien la llama es /api/atajo, sin sesión. La autorización es el
@@ -1571,6 +1627,9 @@ $$;
 revoke all on function registrar_pago_atajo(text, bigint, text, text) from public;
 revoke execute on function registrar_pago_atajo(text, bigint, text, text) from authenticated;
 grant execute on function registrar_pago_atajo(text, bigint, text, text) to anon;
+revoke all on function registrar_pago_atajo(text, bigint, text, text, text) from public;
+revoke execute on function registrar_pago_atajo(text, bigint, text, text, text) from authenticated;
+grant execute on function registrar_pago_atajo(text, bigint, text, text, text) to anon;
 
 -- ══════════════════════════════════════════════════════════════════════
 -- 14. RPC: elegir la categoría de un pago que llegó por el atajo
